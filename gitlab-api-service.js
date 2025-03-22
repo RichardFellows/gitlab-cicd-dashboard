@@ -12,7 +12,6 @@ class GitLabApiService {
    * Set GitLab private token for authentication
    * @param {string} token - The private token
    */
-
   setPrivateToken(token) {
     this.privateToken = token;
   }
@@ -22,7 +21,6 @@ class GitLabApiService {
    * @param {string|number} groupId - The GitLab group ID
    * @returns {Promise<Array>} - List of projects
    */
-
   async getGroupProjects(groupId) {
     try {
       const response = await fetch(
@@ -52,7 +50,6 @@ class GitLabApiService {
    * @param {Object} params - Additional parameters like date range
    * @returns {Promise<Array>} - List of pipelines
    */
-
   async getProjectPipelines(projectId, params = {}) {
     const { startDate, endDate, status } = params;
 
@@ -96,18 +93,18 @@ class GitLabApiService {
           'PRIVATE-TOKEN': this.privateToken
         }
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error fetching jobs: ${response.statusText}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error(`Failed to fetch jobs for pipeline ${pipelineId}:`, error);
       throw error;
     }
   }
-  
+
   /**
    * Get detailed pipeline information
    * @param {string|number} projectId - The GitLab project ID
@@ -121,17 +118,15 @@ class GitLabApiService {
           'PRIVATE-TOKEN': this.privateToken
         }
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error fetching pipeline details: ${response.statusText}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error(`Failed to fetch details for pipeline ${pipelineId}:`, error);
       throw error;
-    }
-  }
     }
   }
 
@@ -140,7 +135,6 @@ class GitLabApiService {
    * @param {string|number} projectId - The GitLab project ID
    * @returns {Promise<Object>} - Test metrics
    */
-
   async getTestReports(projectId) {
     try {
       const response = await fetch(
@@ -170,4 +164,4 @@ class GitLabApiService {
       return { total: 0, success: 0, failed: 0, skipped: 0 };
     }
   }
-}
+}

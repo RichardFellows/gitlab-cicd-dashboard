@@ -9,13 +9,11 @@ class DashboardDataService {
   }
 
   /**
-
    * Get all CI/CD metrics for projects in a group
    * @param {string|number} groupId - The GitLab group ID
    * @param {Object} timeframe - Time range for metrics
    * @returns {Promise<Object>} - Dashboard metrics
    */
-
   async getGroupMetrics(groupId, timeframe = { days: 30 }) {
     try {
       // Calculate date range
@@ -26,8 +24,8 @@ class DashboardDataService {
 
       // Get all projects in the group
       const projects = await this.gitLabService.getGroupProjects(groupId);
-      // Collect metrics for each project
 
+      // Collect metrics for each project
       const projectMetrics = await Promise.all(
         projects.map((project) =>
           this.getProjectMetrics(project.id, { startDate, endDate })
@@ -35,7 +33,6 @@ class DashboardDataService {
       );
 
       // Combine all project metrics
-
       const metrics = {
         totalProjects: projects.length,
         projects: projects.map((project, index) => ({
@@ -45,7 +42,6 @@ class DashboardDataService {
           webUrl: project.web_url,
           metrics: projectMetrics[index],
         })),
-
         aggregateMetrics: this.calculateAggregateMetrics(projectMetrics),
       };
 
@@ -58,13 +54,11 @@ class DashboardDataService {
   }
 
   /**
-
    * Get CI/CD metrics for a specific project
    * @param {string|number} projectId - The GitLab project ID
    * @param {Object} params - Parameters like date range
    * @returns {Promise<Object>} - Project metrics
    */
-
   async getProjectMetrics(projectId, params) {
     try {
       // Get pipelines
@@ -99,13 +93,13 @@ class DashboardDataService {
 
       const successRate =
         totalPipelines > 0 ? (successfulPipelines / totalPipelines) * 100 : 0;
+
       // Calculate average pipeline duration
       let totalDuration = 0;
       let pipelinesWithDuration = 0;
       for (const pipeline of pipelines) {
         if (pipeline.duration) {
           totalDuration += pipeline.duration;
-
           pipelinesWithDuration++;
         }
       }
@@ -127,7 +121,6 @@ class DashboardDataService {
       console.error(`Failed to get metrics for project ${projectId}:`, error);
 
       // Return empty metrics in case of error
-
       return {
         totalPipelines: 0,
         successfulPipelines: 0,
@@ -146,7 +139,6 @@ class DashboardDataService {
    * @param {Array} projectMetrics - Metrics from all projects
    * @returns {Object} - Aggregate metrics
    */
-
   calculateAggregateMetrics(projectMetrics) {
     const aggregate = {
       totalPipelines: 0,
@@ -157,15 +149,14 @@ class DashboardDataService {
       avgSuccessRate: 0,
       avgDuration: 0,
       testMetrics: {
-       total: 0,
+        total: 0,
         success: 0,
         failed: 0,
         skipped: 0,
-     },
+      },
     };
 
     // Sum up all metrics
-
     for (const metrics of projectMetrics) {
       aggregate.totalPipelines += metrics.totalPipelines;
       aggregate.successfulPipelines += metrics.successfulPipelines;
@@ -201,8 +192,6 @@ class DashboardDataService {
   }
 
   /**
-
-  /**
    * Get time series data for pipeline trends
    * @param {string|number} projectId - The GitLab project ID
    * @param {Object} params - Parameters like date range
@@ -211,13 +200,13 @@ class DashboardDataService {
   async getProjectPipelineTrends(projectId, params) {
     try {
       const pipelines = await this.gitLabService.getProjectPipelines(projectId, params);
-      
+
       // Group pipelines by day
       const pipelinesByDay = {};
-      
+
       for (const pipeline of pipelines) {
         const date = new Date(pipeline.created_at).toISOString().split('T')[0];
-        
+
         if (!pipelinesByDay[date]) {
           pipelinesByDay[date] = {
             date,
@@ -228,21 +217,21 @@ class DashboardDataService {
             pipelinesWithDuration: 0
           };
         }
-        
+
         pipelinesByDay[date].total++;
-        
+
         if (pipeline.status === 'success') {
           pipelinesByDay[date].successful++;
         } else if (pipeline.status === 'failed') {
           pipelinesByDay[date].failed++;
         }
-        
+
         if (pipeline.duration) {
           pipelinesByDay[date].duration += pipeline.duration;
           pipelinesByDay[date].pipelinesWithDuration++;
         }
       }
-      
+
       // Convert to array and calculate averages
       const trends = Object.values(pipelinesByDay).map(day => ({
         date: day.date,
@@ -252,7 +241,7 @@ class DashboardDataService {
         successRate: day.total > 0 ? (day.successful / day.total) * 100 : 0,
         avgDuration: day.pipelinesWithDuration > 0 ? day.duration / day.pipelinesWithDuration : 0
       }));
-      
+
       // Sort by date
       return trends.sort((a, b) => new Date(a.date) - new Date(b.date));
     } catch (error) {
@@ -260,7 +249,7 @@ class DashboardDataService {
       return [];
     }
   }
-  
+
   /**
    * Get pipeline performance analysis data
    * @param {string|number} projectId - The GitLab project ID
@@ -272,13 +261,13 @@ class DashboardDataService {
       // Get the most recent pipelines
       const pipelines = await this.gitLabService.getProjectPipelines(projectId);
       const recentPipelines = pipelines.slice(0, limit);
-      
+
       // Get detailed information for each pipeline including jobs
       const pipelineDetails = await Promise.all(
         recentPipelines.map(async (pipeline) => {
           const details = await this.gitLabService.getPipelineDetails(projectId, pipeline.id);
           const jobs = await this.gitLabService.getPipelineJobs(projectId, pipeline.id);
-          
+
           return {
             id: pipeline.id,
             ref: pipeline.ref,
@@ -289,11 +278,11 @@ class DashboardDataService {
           };
         })
       );
-      
+
       // Organize jobs by stage
       const stageAnalysis = {};
       const stageOrder = [];
-      
+
       pipelineDetails.forEach(pipeline => {
         pipeline.jobs.forEach(job => {
           if (!stageAnalysis[job.stage]) {
@@ -307,18 +296,18 @@ class DashboardDataService {
             };
             stageOrder.push(job.stage);
           }
-          
+
           stageAnalysis[job.stage].jobCount++;
-          
+
           if (job.status === 'success') {
             stageAnalysis[job.stage].successCount++;
           } else if (job.status === 'failed') {
             stageAnalysis[job.stage].failureCount++;
           }
-          
+
           if (job.duration) {
             stageAnalysis[job.stage].totalDuration += job.duration;
-            
+
             if (!stageAnalysis[job.stage].jobs[job.name]) {
               stageAnalysis[job.stage].jobs[job.name] = {
                 name: job.name,
@@ -326,27 +315,27 @@ class DashboardDataService {
                 statuses: []
               };
             }
-            
+
             stageAnalysis[job.stage].jobs[job.name].durations.push(job.duration);
             stageAnalysis[job.stage].jobs[job.name].statuses.push(job.status);
           }
         });
       });
-      
+
       // Calculate average durations and success rates for each stage
       const uniqueStageOrder = [...new Set(stageOrder)];
       const stages = uniqueStageOrder.map(stageName => {
         const stage = stageAnalysis[stageName];
         const avgDuration = stage.jobCount > 0 ? stage.totalDuration / stage.jobCount : 0;
         const successRate = stage.jobCount > 0 ? (stage.successCount / stage.jobCount) * 100 : 0;
-        
+
         // Calculate statistics for each job in the stage
         const jobs = Object.values(stage.jobs).map(job => {
           const totalDuration = job.durations.reduce((sum, duration) => sum + duration, 0);
           const avgJobDuration = job.durations.length > 0 ? totalDuration / job.durations.length : 0;
           const successCount = job.statuses.filter(status => status === 'success').length;
           const jobSuccessRate = job.statuses.length > 0 ? (successCount / job.statuses.length) * 100 : 0;
-          
+
           return {
             name: job.name,
             avgDuration: avgJobDuration,
@@ -354,7 +343,7 @@ class DashboardDataService {
             runs: job.durations.length
           };
         });
-        
+
         return {
           name: stageName,
           avgDuration,
@@ -363,17 +352,17 @@ class DashboardDataService {
           jobs: jobs.sort((a, b) => b.avgDuration - a.avgDuration) // Sort jobs by duration (descending)
         };
       });
-      
+
       // Find the slowest stage and jobs
       const slowestStage = [...stages].sort((a, b) => b.avgDuration - a.avgDuration)[0];
       const slowestJobs = stages.flatMap(stage => stage.jobs)
         .sort((a, b) => b.avgDuration - a.avgDuration)
         .slice(0, 5);
-      
+
       // Calculate overall statistics
       const totalDuration = pipelineDetails.reduce((sum, pipeline) => sum + pipeline.duration, 0);
       const avgPipelineDuration = pipelineDetails.length > 0 ? totalDuration / pipelineDetails.length : 0;
-      
+
       return {
         pipelineCount: pipelineDetails.length,
         avgPipelineDuration,
@@ -394,12 +383,4 @@ class DashboardDataService {
       };
     }
   }
-    } catch (error) {
-      console.error(
-        `Failed to get pipeline trends for project ${projectId}:`,
-        error
-      );
-      return [];
-    }
-  }
-}
+}
