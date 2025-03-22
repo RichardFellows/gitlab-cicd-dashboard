@@ -535,8 +535,11 @@ class GitLabApiService {
       // Add with_labels_details=true to get label details
       queryParams += '&with_labels_details=true';
       
-      // Add with_pipeline=true to include pipeline info
+      // Add parameters to include pipeline info (trying both documented parameters)
       queryParams += '&include_pipeline=true';
+      queryParams += '&with_pipeline_status=true';
+      
+      console.log(`Requesting MRs for project ${projectId} with query params: ${queryParams}`);
       
       const path = `/projects/${projectId}/merge_requests`;
       const url = this.getApiUrl(path, queryParams);
@@ -554,6 +557,19 @@ class GitLabApiService {
       // Get MRs with pipeline details
       const mergeRequests = await response.json();
       
+      // Log the first MR to see its structure and pipeline data
+      if (mergeRequests.length > 0) {
+        console.log(`First merge request data for project ${projectId}:`, {
+          id: mergeRequests[0].id,
+          iid: mergeRequests[0].iid,
+          title: mergeRequests[0].title,
+          head_pipeline: mergeRequests[0].head_pipeline,
+          has_pipeline: !!mergeRequests[0].head_pipeline
+        });
+      } else {
+        console.log(`No merge requests found for project ${projectId}`);
+      }
+      
       // For each MR, get the head pipeline details and recent commits if available
       const detailedMRs = await Promise.all(
         mergeRequests.map(async mr => {
@@ -570,10 +586,25 @@ class GitLabApiService {
           }
           
           // Get pipeline details if available
-          if (mr.head_pipeline) {
-            try {
-              // Only fetch details if we have a pipeline
-              const pipelineDetails = await this.getPipelineDetails(projectId, mr.head_pipeline.id);
+          console.log(`MR ${mr.iid} (${mr.title}): head_pipeline =`, mr.head_pipeline);
+          
+          // If we have a head_pipeline object, check if it has necessary properties
+          if (mr.head_pipeline && typeof mr.head_pipeline === 'object') {
+            // Check if it has an ID, which is required for fetching details
+            if (!mr.head_pipeline.id) {
+              console.warn(`MR ${mr.iid} has head_pipeline object but missing ID:`, mr.head_pipeline);
+              // Add a minimal placeholder to ensure UI shows something
+              enhancedMR.head_pipeline = {
+                ...mr.head_pipeline,
+                id: 'unknown',
+                status: 'unknown', 
+                web_url: mr.web_url
+              };
+            } else {
+              try {
+                // Only fetch details if we have a valid pipeline ID
+                console.log(`Fetching pipeline details for MR ${mr.iid}, pipeline ID: ${mr.head_pipeline.id}`);
+                const pipelineDetails = await this.getPipelineDetails(projectId, mr.head_pipeline.id);
               
               // Return MR with enhanced pipeline info
               enhancedMR.head_pipeline = {
