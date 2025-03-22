@@ -170,6 +170,20 @@ function renderDashboard(metrics) {
 
 function createSummarySection(metrics) {
   const aggregate = metrics.aggregateMetrics;
+  
+  // Count projects by their pipeline status
+  const projectStatusCounts = {
+    success: 0,
+    warning: 0,
+    failed: 0,
+    'no-pipeline': 0
+  };
+  
+  // Categorize each project
+  metrics.projects.forEach(project => {
+    const category = categorizeProject(project);
+    projectStatusCounts[category]++;
+  });
 
   const section = document.createElement('section');
   section.className = 'summary-section';
@@ -178,52 +192,77 @@ function createSummarySection(metrics) {
     <h2>CI/CD Summary</h2>
     <div class="summary-cards">
       <div class="summary-card">
-        <h3>Projects</h3>
+        <h3>Total Projects</h3>
         <div class="metric">${metrics.totalProjects}</div>
       </div>
-      <div class="summary-card">
-        <h3>Total Pipelines</h3>
-        <div class="metric">${aggregate.totalPipelines}</div>
+      <div class="summary-card success">
+        <h3>Successful</h3>
+        <div class="metric">${projectStatusCounts.success}</div>
       </div>
-      <div class="summary-card">
-        <h3>Success Rate</h3>
-        <div class="metric">${aggregate.avgSuccessRate.toFixed(2)}%</div>
+      <div class="summary-card warning">
+        <h3>Warning</h3>
+        <div class="metric">${projectStatusCounts.warning}</div>
       </div>
-      <div class="summary-card">
-        <h3>Avg Duration</h3>
-        <div class="metric">${formatDuration(aggregate.avgDuration)}</div>
+      <div class="summary-card danger">
+        <h3>Failed</h3>
+        <div class="metric">${projectStatusCounts.failed}</div>
+      </div>
+      <div class="summary-card no-pipeline">
+        <h3>No Pipeline</h3>
+        <div class="metric">${projectStatusCounts['no-pipeline']}</div>
+      </div>
+    </div>
+    <div class="summary-metrics">
+      <div class="summary-metric-row">
+        <div class="summary-metric">
+          <span class="metric-label">Total Pipelines:</span>
+          <span class="metric-value">${aggregate.totalPipelines}</span>
+        </div>
+        <div class="summary-metric">
+          <span class="metric-label">Success Rate:</span>
+          <span class="metric-value ${getSuccessRateClass(aggregate.avgSuccessRate)}">${aggregate.avgSuccessRate.toFixed(2)}%</span>
+        </div>
+        <div class="summary-metric">
+          <span class="metric-label">Avg Duration:</span>
+          <span class="metric-value">${formatDuration(aggregate.avgDuration)}</span>
+        </div>
       </div>
     </div>
     <div class="chart-container">
-      <canvas id="pipeline-status-chart"></canvas>
+      <canvas id="project-status-chart"></canvas>
     </div>
   `;
 
   // Add chart after the section is added to the DOM
   setTimeout(() => {
-    const ctx = document.getElementById('pipeline-status-chart').getContext('2d');
+    const ctx = document.getElementById('project-status-chart').getContext('2d');
     new Chart(ctx, {
       type: 'pie',
       data: {
-        labels: ['Successful', 'Failed', 'Canceled', 'Running'],
+        labels: ['Successful', 'Warning', 'Failed', 'No Pipeline'],
         datasets: [{
           data: [
-            aggregate.successfulPipelines,
-            aggregate.failedPipelines,
-            aggregate.canceledPipelines,
-            aggregate.runningPipelines
+            projectStatusCounts.success,
+            projectStatusCounts.warning,
+            projectStatusCounts.failed,
+            projectStatusCounts['no-pipeline']
           ],
           backgroundColor: [
             '#28a745', // green
+            '#ffc107', // yellow
             '#dc3545', // red
-            '#6c757d', // gray
-            '#17a2b8'  // blue
+            '#6c757d'  // gray
           ]
         }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right'
+          }
+        }
       }
     });
   }, 0);
@@ -234,79 +273,116 @@ function createSummarySection(metrics) {
 function createProjectsSection(projects) {
   const section = document.createElement('section');
   section.className = 'projects-section';
-
-  section.innerHTML = `
-    <h2>Project Metrics</h2>
-    <div class="project-cards">
-      ${projects.map(project => `
-        <div class="project-card">
-          <div class="project-header">
-            <h3>${project.name}</h3>
-            <a href="${project.webUrl}" target="_blank" rel="noopener noreferrer">View on GitLab</a>
+  
+  // Group projects by status
+  const groupedProjects = {
+    failed: [],
+    warning: [],
+    'no-pipeline': [],
+    success: []
+  };
+  
+  // Categorize and group each project
+  projects.forEach(project => {
+    const category = categorizeProject(project);
+    groupedProjects[category].push(project);
+  });
+  
+  // Function to render a single project card
+  const renderProjectCard = (project) => {
+    const category = categorizeProject(project);
+    
+    return `
+      <div class="project-card ${category}">
+        <div class="project-header">
+          <h3>${project.name}</h3>
+          <a href="${project.webUrl}" target="_blank" rel="noopener noreferrer">View on GitLab</a>
+        </div>
+        <div class="project-metrics">
+          <div class="metric-section">
+            <h4>Pipeline Status</h4>
+            <div class="metric-item">
+              <span class="metric-label">Main Branch:</span>
+              <span class="metric-value ${project.metrics.mainBranchPipeline.available ? getPipelineStatusClass(project.metrics.mainBranchPipeline.status) : ''}">
+                ${formatPipelineStatus(project.metrics.mainBranchPipeline.status, project.metrics.mainBranchPipeline.available)}
+                ${project.metrics.mainBranchPipeline.available && project.metrics.mainBranchPipeline.web_url ? 
+                  `<a href="${project.metrics.mainBranchPipeline.web_url}" target="_blank" title="View pipeline">
+                    <i class="icon">🔍</i>
+                   </a>` : ''}
+              </span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Success Rate:</span>
+              <span class="metric-value ${getSuccessRateClass(project.metrics.successRate)}">${project.metrics.successRate.toFixed(2)}%</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Avg Duration:</span>
+              <span class="metric-value">${formatDuration(project.metrics.avgDuration)}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Code Coverage:</span>
+              <span class="metric-value">${formatCoverage(project.metrics.codeCoverage.coverage, project.metrics.codeCoverage.available)}</span>
+            </div>
           </div>
-          <div class="project-metrics">
-            <div class="metric-section">
-              <h4>Pipeline Status</h4>
-              <div class="metric-item">
-                <span class="metric-label">Main Branch:</span>
-                <span class="metric-value ${project.metrics.mainBranchPipeline.available ? getPipelineStatusClass(project.metrics.mainBranchPipeline.status) : ''}">
-                  ${formatPipelineStatus(project.metrics.mainBranchPipeline.status, project.metrics.mainBranchPipeline.available)}
-                  ${project.metrics.mainBranchPipeline.available && project.metrics.mainBranchPipeline.web_url ? 
-                    `<a href="${project.metrics.mainBranchPipeline.web_url}" target="_blank" title="View pipeline">
-                      <i class="icon">🔍</i>
-                     </a>` : ''}
-                </span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Success Rate:</span>
-                <span class="metric-value ${getSuccessRateClass(project.metrics.successRate)}">${project.metrics.successRate.toFixed(2)}%</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Avg Duration:</span>
-                <span class="metric-value">${formatDuration(project.metrics.avgDuration)}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Code Coverage:</span>
-                <span class="metric-value">${formatCoverage(project.metrics.codeCoverage.coverage, project.metrics.codeCoverage.available)}</span>
-              </div>
-            </div>
-            
-            <div class="metric-section">
-              <h4>Recent Commits</h4>
-              <div class="recent-commits">
-                ${project.metrics.recentCommits.length > 0 ? 
-                  project.metrics.recentCommits.map(commit => `
-                    <div class="commit-item">
-                      <div class="commit-header">
-                        <span class="commit-id">${commit.short_id}</span>
-                        <span class="commit-date">${formatDate(commit.created_at)}</span>
-                      </div>
-                      <div class="commit-message">${escapeHtml(commit.title)}</div>
+          
+          <div class="metric-section">
+            <h4>Recent Commits</h4>
+            <div class="recent-commits">
+              ${project.metrics.recentCommits.length > 0 ? 
+                project.metrics.recentCommits.map(commit => `
+                  <div class="commit-item">
+                    <div class="commit-header">
+                      <span class="commit-id">${commit.short_id}</span>
+                      <span class="commit-date">${formatDate(commit.created_at)}</span>
                     </div>
-                  `).join('') : 
-                  '<div class="no-data">No recent commits found</div>'
-                }
-              </div>
+                    <div class="commit-message">${escapeHtml(commit.title)}</div>
+                  </div>
+                `).join('') : 
+                '<div class="no-data">No recent commits found</div>'
+              }
             </div>
-            
-            <div class="metric-section">
-              <h4>Test Results</h4>
-              <div class="metric-item">
-                <span class="metric-label">Tests:</span>
-                ${project.metrics.testMetrics.available ?
-                  `<span class="metric-value">${project.metrics.testMetrics.total}</span>
-                   <span class="test-details">
-                     (${project.metrics.testMetrics.success} passed,
-                     ${project.metrics.testMetrics.failed} failed)
-                   </span>` :
-                  `<span class="metric-value">No Test Data Available</span>`
-                }
-              </div>
+          </div>
+          
+          <div class="metric-section">
+            <h4>Test Results</h4>
+            <div class="metric-item">
+              <span class="metric-label">Tests:</span>
+              ${project.metrics.testMetrics.available ?
+                `<span class="metric-value">${project.metrics.testMetrics.total}</span>
+                 <span class="test-details">
+                   (${project.metrics.testMetrics.success} passed,
+                   ${project.metrics.testMetrics.failed} failed)
+                 </span>` :
+                `<span class="metric-value">No Test Data Available</span>`
+              }
             </div>
           </div>
         </div>
-      `).join('')}
-    </div>
+      </div>
+    `;
+  };
+  
+  // Render project groups with headers
+  const renderProjectGroup = (title, projects, className) => {
+    if (projects.length === 0) return '';
+    
+    return `
+      <div class="project-group ${className}">
+        <h3 class="group-header">${title} (${projects.length})</h3>
+        <div class="project-cards">
+          ${projects.map(project => renderProjectCard(project)).join('')}
+        </div>
+      </div>
+    `;
+  };
+
+  section.innerHTML = `
+    <h2>Project Metrics</h2>
+    
+    ${renderProjectGroup('Failed Pipelines', groupedProjects.failed, 'failed-group')}
+    ${renderProjectGroup('Warning', groupedProjects.warning, 'warning-group')}
+    ${renderProjectGroup('No Pipelines', groupedProjects['no-pipeline'], 'no-pipeline-group')}
+    ${renderProjectGroup('Successful', groupedProjects.success, 'success-group')}
   `;
 
   return section;
@@ -316,6 +392,39 @@ function getSuccessRateClass(rate) {
   if (rate >= 90) return 'success';
   if (rate >= 75) return 'warning';
   return 'danger';
+}
+
+/**
+ * Categorize a project based on its pipeline status
+ * @param {Object} project - The project object with metrics
+ * @returns {string} - Category ('failed', 'warning', 'no-pipeline', 'success')
+ */
+function categorizeProject(project) {
+  // Check if pipeline exists
+  if (!project.metrics.mainBranchPipeline.available) {
+    return 'no-pipeline';
+  }
+  
+  // Check pipeline status
+  const status = project.metrics.mainBranchPipeline.status;
+  if (status === 'failed' || status === 'canceled') {
+    return 'failed';
+  }
+  
+  if (status === 'running' || status === 'pending') {
+    return 'warning';
+  }
+  
+  if (status === 'success') {
+    // Even if pipeline is successful, we may want to warn about low success rates
+    if (project.metrics.successRate < 75) {
+      return 'warning';
+    }
+    return 'success';
+  }
+  
+  // Default case for unknown statuses
+  return 'warning';
 }
 
 function formatDuration(seconds) {
