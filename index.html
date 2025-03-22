@@ -507,9 +507,24 @@
         align-items: center;
         gap: 10px;
         font-size: 14px;
+        padding: 8px;
+        border-radius: 4px;
+        background-color: rgba(108, 117, 125, 0.1);
+      }
+      .pipeline-status.success {
+        background-color: rgba(40, 167, 69, 0.1);
+      }
+      .pipeline-status.warning {
+        background-color: rgba(255, 193, 7, 0.1);
+      }
+      .pipeline-status.danger {
+        background-color: rgba(220, 53, 69, 0.1);
       }
       .status-label {
         font-weight: 500;
+      }
+      .status-value {
+        font-weight: 600;
       }
       .status-value.success {
         color: var(--success-color);
@@ -519,6 +534,15 @@
       }
       .status-value.danger {
         color: var(--danger-color);
+      }
+      .no-pipeline {
+        font-style: italic;
+        color: #6c757d;
+        padding: 10px;
+        margin-top: 10px;
+        border-top: 1px solid var(--border-color);
+        background-color: #f8f9fa;
+        border-radius: 4px;
       }
       .pipeline-link {
         margin-left: auto;
@@ -568,7 +592,28 @@
         margin-bottom: 8px;
       }
       
-      /* Responsive styles for detail view */
+      /* Details element for collapsible content */
+      details {
+        margin-top: 8px;
+      }
+      details summary {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s;
+        border-radius: 4px;
+        padding: 4px;
+      }
+      details summary:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+      details summary::-webkit-details-marker {
+        color: var(--primary-color);
+      }
+      details[open] summary {
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 8px;
+      }
       @media (max-width: 768px) {
         .detail-content {
           display: block;

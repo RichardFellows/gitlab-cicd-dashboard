@@ -805,7 +805,7 @@ function createProjectDetailView(project, mergeRequests) {
                     <div class="mr-pipeline">
                       <div class="pipeline-status ${getPipelineStatusClass(mr.head_pipeline.status)}">
                         <span class="status-label">Pipeline:</span>
-                        <span class="status-value">${formatPipelineStatus(mr.head_pipeline.status, true)}</span>
+                        <span class="status-value ${getPipelineStatusClass(mr.head_pipeline.status)}">${formatPipelineStatus(mr.head_pipeline.status, true)}</span>
                         <a href="${mr.head_pipeline.web_url}" target="_blank" class="pipeline-link">View Pipeline</a>
                         ${mr.head_pipeline.duration ? `
                           <span class="pipeline-duration">Duration: ${formatDuration(mr.head_pipeline.duration)}</span>
@@ -813,27 +813,29 @@ function createProjectDetailView(project, mergeRequests) {
                       </div>
                       ${mr.head_pipeline.failedJobs && mr.head_pipeline.failedJobs.length > 0 ? `
                         <div class="failed-jobs">
-                          <div class="failed-jobs-header">Failed Jobs (${mr.head_pipeline.failedJobs.length})</div>
-                          <div class="failed-jobs-list">
-                            ${mr.head_pipeline.failedJobs.map(job => `
-                              <div class="job-item failed">
-                                <div class="job-header">
-                                  <span class="job-name">${job.name}</span>
-                                  <span class="job-stage">${job.stage}</span>
-                                </div>
-                                <div class="job-details">
-                                  <div class="job-reason">${job.failure_reason || 'Unknown failure'}</div>
-                                  <div class="job-actions">
-                                    <a href="${job.web_url}" target="_blank" class="job-link">View Job</a>
+                          <details>
+                            <summary class="failed-jobs-header">Failed Jobs (${mr.head_pipeline.failedJobs.length})</summary>
+                            <div class="failed-jobs-list">
+                              ${mr.head_pipeline.failedJobs.map(job => `
+                                <div class="job-item failed">
+                                  <div class="job-header">
+                                    <span class="job-name">${job.name}</span>
+                                    <span class="job-stage">${job.stage}</span>
+                                  </div>
+                                  <div class="job-details">
+                                    <div class="job-reason">${job.failure_reason || 'Unknown failure'}</div>
+                                    <div class="job-actions">
+                                      <a href="${job.web_url}" target="_blank" class="job-link">View Job</a>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            `).join('')}
-                          </div>
+                              `).join('')}
+                            </div>
+                          </details>
                         </div>
                       ` : ''}
                     </div>
-                  ` : ''}
+                  ` : '<div class="no-pipeline">No pipeline information available</div>'}
                   
                   ${mr.recent_commits && mr.recent_commits.length > 0 ? `
                     <div class="mr-commits">

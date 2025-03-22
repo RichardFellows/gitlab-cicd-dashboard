@@ -105,7 +105,17 @@ class GitLabApiService {
         throw new Error(`Error fetching pipelines: ${response.statusText}`);
       }
 
-      return await response.json();
+      const pipelines = await response.json();
+      console.log(`Pipeline data for project ${projectId} (sample):`, 
+        pipelines.slice(0, 3).map(p => ({
+          id: p.id,
+          status: p.status,
+          duration: p.duration,
+          created_at: p.created_at,
+          updated_at: p.updated_at
+        }))
+      );
+      return pipelines;
     } catch (error) {
       console.error(
         `Failed to fetch pipelines for project ${projectId}:`,
