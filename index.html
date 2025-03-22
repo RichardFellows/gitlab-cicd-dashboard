@@ -241,10 +241,39 @@
         margin: 0;
         font-size: 18px;
       }
-      .project-header a {
+      .project-name-link {
+        color: var(--text-color);
+        text-decoration: none;
+        position: relative;
+        display: inline-block;
+      }
+      .project-name-link:hover {
+        color: var(--primary-color);
+      }
+      .project-name-link:hover::after {
+        content: '→';
+        position: absolute;
+        margin-left: 5px;
+        font-size: 90%;
+      }
+      .gitlab-link {
         color: var(--primary-color);
         text-decoration: none;
         font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(110, 73, 203, 0.1);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        transition: background-color 0.2s;
+      }
+      .gitlab-link:hover {
+        background-color: rgba(110, 73, 203, 0.2);
+      }
+      .gitlab-icon {
+        font-size: 16px;
       }
       .project-metrics {
         display: grid;
@@ -381,6 +410,134 @@
       }
       .job-link:hover {
         background-color: #5a3da8;
+      }
+      
+      /* Project Detail View Styles */
+      .project-detail-view {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .detail-header {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .back-button {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+      .back-button:hover {
+        background-color: rgba(110, 73, 203, 0.1);
+      }
+      .project-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .project-title h2 {
+        margin: 0;
+        color: var(--primary-color);
+      }
+      .detail-section {
+        background-color: var(--card-bg-color);
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+      .detail-section h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: var(--primary-color);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 8px;
+      }
+      .detail-card {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        padding: 15px;
+      }
+      
+      /* Merge Requests Styles */
+      .merge-requests-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      .mr-card {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        padding: 15px;
+        border-left: 4px solid var(--secondary-color);
+      }
+      .mr-header {
+        margin-bottom: 10px;
+      }
+      .mr-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+      .mr-title a {
+        color: var(--text-color);
+        text-decoration: none;
+      }
+      .mr-title a:hover {
+        color: var(--primary-color);
+      }
+      .mr-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 13px;
+        color: #666;
+      }
+      .mr-pipeline {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border-color);
+      }
+      .pipeline-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+      }
+      .status-label {
+        font-weight: 500;
+      }
+      .status-value.success {
+        color: var(--success-color);
+      }
+      .status-value.warning {
+        color: var(--warning-color);
+      }
+      .status-value.danger {
+        color: var(--danger-color);
+      }
+      .pipeline-link {
+        margin-left: auto;
+        padding: 3px 8px;
+        background-color: var(--primary-color);
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      .pipeline-link:hover {
+        background-color: #5a3da8;
+      }
+      
+      /* Responsive styles for detail view */
+      @media (max-width: 768px) {
+        .detail-content {
+          display: block;
+        }
       }
       .test-details {
         font-size: 14px;

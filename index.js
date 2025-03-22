@@ -215,6 +215,9 @@ function renderDashboard(metrics) {
   const dashboard = document.createElement('div');
   dashboard.className = 'dashboard';
 
+  // Store metrics in a global variable for later use
+  window.dashboardMetrics = metrics;
+
   // Add summary section
   dashboard.appendChild(createSummarySection(metrics));
 
@@ -223,6 +226,9 @@ function renderDashboard(metrics) {
 
   // Append to container
   dashboardContainer.appendChild(dashboard);
+
+  // Add event listeners for project detail links
+  addProjectDetailEventListeners();
 }
 
 function createSummarySection(metrics) {
@@ -352,8 +358,10 @@ function createProjectsSection(projects) {
     return `
       <div class="project-card ${category}">
         <div class="project-header">
-          <h3>${project.name}</h3>
-          <a href="${project.webUrl}" target="_blank" rel="noopener noreferrer">View on GitLab</a>
+          <h3><a href="#project/${project.id}" class="project-name-link" data-project-id="${project.id}">${project.name}</a></h3>
+          <a href="${project.webUrl}" target="_blank" rel="noopener noreferrer" class="gitlab-link" title="Open in GitLab">
+            <i class="gitlab-icon">🔍</i>
+          </a>
         </div>
         <div class="project-metrics">
           <div class="metric-section">
@@ -574,4 +582,196 @@ function escapeHtml(unsafe) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+/**
+ * Add event listeners to project detail links
+ */
+function addProjectDetailEventListeners() {
+  const projectLinks = document.querySelectorAll('.project-name-link');
+  
+  projectLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const projectId = this.getAttribute('data-project-id');
+      showProjectDetails(projectId);
+    });
+  });
+}
+
+/**
+ * Show detailed view for a specific project
+ * @param {string} projectId - The project ID
+ */
+async function showProjectDetails(projectId) {
+  try {
+    showLoading(true);
+    
+    // Find the project in our metrics data
+    const project = window.dashboardMetrics.projects.find(p => p.id.toString() === projectId.toString());
+    
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+    
+    // Fetch the project's merge requests with pipeline info
+    const mergeRequests = await gitLabService.getProjectMergeRequests(projectId);
+    
+    // Create the project detail view
+    const detailView = createProjectDetailView(project, mergeRequests);
+    
+    // Clear the dashboard and show the detail view
+    dashboardContainer.innerHTML = '';
+    dashboardContainer.appendChild(detailView);
+    
+    // Add event listeners for back button
+    const backButton = document.getElementById('back-to-dashboard');
+    if (backButton) {
+      backButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        renderDashboard(window.dashboardMetrics);
+      });
+    }
+  } catch (error) {
+    console.error('Error showing project details:', error);
+    displayError(`Failed to load project details: ${error.message}`);
+  } finally {
+    showLoading(false);
+  }
+}
+
+/**
+ * Create the project detail view
+ * @param {Object} project - The project data
+ * @param {Array} mergeRequests - The project's merge requests
+ * @returns {HTMLElement} - The detail view element
+ */
+function createProjectDetailView(project, mergeRequests) {
+  const detailView = document.createElement('div');
+  detailView.className = 'project-detail-view';
+  
+  detailView.innerHTML = `
+    <div class="detail-header">
+      <div class="back-button-container">
+        <a href="#" id="back-to-dashboard" class="back-button">← Back to Dashboard</a>
+      </div>
+      <div class="project-title">
+        <h2>${project.name}</h2>
+        <a href="${project.webUrl}" target="_blank" rel="noopener noreferrer" class="gitlab-link" title="Open in GitLab">
+          <i class="gitlab-icon">🔍</i>
+        </a>
+      </div>
+    </div>
+    
+    <div class="detail-content">
+      <div class="detail-section pipeline-status">
+        <h3>Pipeline Status</h3>
+        <div class="detail-card">
+          <div class="metric-item">
+            <span class="metric-label">Main Branch:</span>
+            <span class="metric-value ${project.metrics.mainBranchPipeline.available ? getPipelineStatusClass(project.metrics.mainBranchPipeline.status) : ''}">
+              ${formatPipelineStatus(project.metrics.mainBranchPipeline.status, project.metrics.mainBranchPipeline.available)}
+              ${project.metrics.mainBranchPipeline.available && project.metrics.mainBranchPipeline.web_url ? 
+                `<a href="${project.metrics.mainBranchPipeline.web_url}" target="_blank" title="View pipeline">
+                  <i class="icon">🔍</i>
+                </a>` : ''}
+            </span>
+          </div>
+          ${project.metrics.mainBranchPipeline.failedJobs && project.metrics.mainBranchPipeline.failedJobs.length > 0 ? `
+            <div class="failed-jobs">
+              <details open>
+                <summary class="failed-jobs-summary">Failed Jobs (${project.metrics.mainBranchPipeline.failedJobs.length})</summary>
+                <div class="failed-jobs-list">
+                  ${project.metrics.mainBranchPipeline.failedJobs.map(job => `
+                    <div class="job-item failed">
+                      <div class="job-header">
+                        <span class="job-name">${job.name}</span>
+                        <span class="job-stage">${job.stage}</span>
+                      </div>
+                      <div class="job-details">
+                        <div class="job-reason">${job.failure_reason || 'Unknown failure'}</div>
+                        <div class="job-actions">
+                          <a href="${job.web_url}" target="_blank" class="job-link">View Job</a>
+                        </div>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </details>
+            </div>
+          ` : ''}
+          <div class="metric-item">
+            <span class="metric-label">Success Rate:</span>
+            <span class="metric-value ${getSuccessRateClass(project.metrics.successRate)}">${project.metrics.successRate.toFixed(2)}%</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Avg Duration:</span>
+            <span class="metric-value">${formatDuration(project.metrics.avgDuration)}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Code Coverage:</span>
+            <span class="metric-value">${formatCoverage(project.metrics.codeCoverage.coverage, project.metrics.codeCoverage.available)}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="detail-section merge-requests">
+        <h3>Active Merge Requests</h3>
+        <div class="merge-requests-container">
+          ${mergeRequests.length > 0 ? `
+            <div class="merge-requests-list">
+              ${mergeRequests.map(mr => `
+                <div class="mr-card">
+                  <div class="mr-header">
+                    <div class="mr-title">
+                      <a href="${mr.web_url}" target="_blank" rel="noopener noreferrer">${escapeHtml(mr.title)}</a>
+                    </div>
+                    <div class="mr-meta">
+                      <span class="mr-branch">Source: ${mr.source_branch}</span>
+                      <span class="mr-author">${mr.author?.name || 'Unknown'}</span>
+                      <span class="mr-date">${formatDate(mr.created_at)}</span>
+                    </div>
+                  </div>
+                  ${mr.head_pipeline ? `
+                    <div class="mr-pipeline">
+                      <div class="pipeline-status ${getPipelineStatusClass(mr.head_pipeline.status)}">
+                        <span class="status-label">Pipeline:</span>
+                        <span class="status-value">${formatPipelineStatus(mr.head_pipeline.status, true)}</span>
+                        <a href="${mr.head_pipeline.web_url}" target="_blank" class="pipeline-link">View Pipeline</a>
+                      </div>
+                    </div>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+          ` : '<div class="no-data">No active merge requests</div>'}
+        </div>
+      </div>
+      
+      <div class="detail-section recent-activity">
+        <h3>Recent Commits</h3>
+        <div class="detail-card">
+          <div class="recent-commits">
+            ${project.metrics.recentCommits.length > 0 ? 
+              project.metrics.recentCommits.map(commit => `
+                <div class="commit-item">
+                  <div class="commit-header">
+                    <span class="commit-id">${commit.short_id}</span>
+                    <span class="commit-date">${formatDate(commit.created_at)}</span>
+                  </div>
+                  <div class="commit-message">${escapeHtml(commit.title)}</div>
+                  <div class="commit-author">
+                    ${commit.author_name || 'Unknown'}
+                  </div>
+                </div>
+              `).join('') : 
+              '<div class="no-data">No recent commits found</div>'
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  return detailView;
 }

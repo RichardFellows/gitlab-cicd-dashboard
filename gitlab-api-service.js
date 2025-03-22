@@ -434,4 +434,76 @@ class GitLabApiService {
       return [];
     }
   }
+  
+  /**
+   * Get merge requests for a project
+   * @param {string|number} projectId - The GitLab project ID
+   * @param {Object} params - Additional parameters
+   * @returns {Promise<Array>} - List of merge requests
+   */
+  async getProjectMergeRequests(projectId, params = {}) {
+    try {
+      const { state = 'opened', scope = 'all', per_page = 10 } = params;
+      
+      // Build query parameters
+      let queryParams = `?state=${state}&scope=${scope}&per_page=${per_page}`;
+      
+      // Add with_merge_status_recheck=true to get the latest pipeline status
+      queryParams += '&with_merge_status_recheck=true';
+      
+      // Add with_labels_details=true to get label details
+      queryParams += '&with_labels_details=true';
+      
+      // Add with_pipeline=true to include pipeline info
+      queryParams += '&include_pipeline=true';
+      
+      const path = `/projects/${projectId}/merge_requests`;
+      const url = this.getApiUrl(path, queryParams);
+      
+      const response = await fetch(url, {
+        headers: {
+          "PRIVATE-TOKEN": this.privateToken,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error fetching merge requests: ${response.statusText}`);
+      }
+
+      // Get MRs with pipeline details
+      const mergeRequests = await response.json();
+      
+      // For each MR, get the head pipeline details if available
+      const detailedMRs = await Promise.all(
+        mergeRequests.map(async mr => {
+          if (mr.head_pipeline) {
+            try {
+              // Only fetch details if we have a pipeline
+              const pipelineDetails = await this.getPipelineDetails(projectId, mr.head_pipeline.id);
+              // Return MR with enhanced pipeline info
+              return {
+                ...mr,
+                head_pipeline: {
+                  ...mr.head_pipeline,
+                  ...pipelineDetails
+                }
+              };
+            } catch (error) {
+              console.error(`Failed to fetch pipeline details for MR ${mr.iid}:`, error);
+              return mr;
+            }
+          }
+          return mr;
+        })
+      );
+      
+      return detailedMRs;
+    } catch (error) {
+      console.error(
+        `Failed to fetch merge requests for project ${projectId}:`,
+        error
+      );
+      return [];
+    }
+  }
 }
