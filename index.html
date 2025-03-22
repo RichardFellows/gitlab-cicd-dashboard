@@ -636,6 +636,7 @@
         }
       }
     </style>
+    <link rel="stylesheet" href="table-view.css">
   </head>
   <body>
     <div class="container">
@@ -683,6 +684,12 @@
       </div>
       <div id="error-container"></div>
       <div id="loading-indicator">Loading dashboard data...</div>
+      
+      <div id="view-toggle" class="view-toggle" style="display: none;">
+        <button id="card-view-btn" class="active">Card View</button>
+        <button id="table-view-btn">Table View</button>
+      </div>
+      
       <div id="dashboard-container">
         <!-- Dashboard content will be dynamically inserted here -->
       </div>

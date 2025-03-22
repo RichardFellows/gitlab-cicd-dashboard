@@ -7,7 +7,8 @@ const STORAGE_KEYS = {
   GITLAB_URL: 'gitlab_cicd_dashboard_url',
   GROUP_ID: 'gitlab_cicd_dashboard_group_id',
   TOKEN: 'gitlab_cicd_dashboard_token',
-  TIMEFRAME: 'gitlab_cicd_dashboard_timeframe'
+  TIMEFRAME: 'gitlab_cicd_dashboard_timeframe',
+  VIEW_TYPE: 'gitlab_cicd_dashboard_view_type'
 };
 
 // DOM elements

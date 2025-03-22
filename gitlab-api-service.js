@@ -10,7 +10,7 @@ class GitLabApiService {
     this.useProxy = this.shouldUseProxy();
     this.proxyUrl = 'http://localhost:3000/proxy'; // Default, may be overridden by start.js
   }
-  
+
   /**
    * Determine if we should use the proxy based on the current environment
    * @returns {boolean} - Whether to use the proxy
@@ -28,7 +28,7 @@ class GitLabApiService {
   setPrivateToken(token) {
     this.privateToken = token;
   }
-  
+
   /**
    * Get the URL for an API request, using the proxy if needed
    * @param {string} path - The API path (without the baseUrl)
@@ -56,9 +56,9 @@ class GitLabApiService {
       const path = `/groups/${groupId}/projects`;
       const queryParams = '?include_subgroups=true&per_page=100';
       const url = this.getApiUrl(path, queryParams);
-      
+
       console.log(`Fetching group projects from: ${url}`);
-      
+
       const response = await fetch(url, {
         headers: {
           "PRIVATE-TOKEN": this.privateToken,
@@ -106,7 +106,7 @@ class GitLabApiService {
       }
 
       const pipelines = await response.json();
-      console.log(`Pipeline data for project ${projectId} (sample):`, 
+      console.log(`Pipeline data for project ${projectId} (sample):`,
         pipelines.slice(0, 3).map(p => ({
           id: p.id,
           status: p.status,
@@ -135,7 +135,7 @@ class GitLabApiService {
     try {
       const path = `/projects/${projectId}/pipelines/${pipelineId}/jobs`;
       const url = this.getApiUrl(path, '');
-      
+
       const response = await fetch(url, {
         headers: {
           'PRIVATE-TOKEN': this.privateToken
@@ -163,7 +163,7 @@ class GitLabApiService {
     try {
       const path = `/projects/${projectId}/pipelines/${pipelineId}`;
       const url = this.getApiUrl(path, '');
-      
+
       const response = await fetch(url, {
         headers: {
           'PRIVATE-TOKEN': this.privateToken
@@ -197,7 +197,7 @@ class GitLabApiService {
 
       const path = `/projects/${projectId}/pipelines/latest/test_report`;
       const url = this.getApiUrl(path, '');
-      
+
       const response = await fetch(url, {
         headers: {
           "PRIVATE-TOKEN": this.privateToken,
@@ -224,7 +224,7 @@ class GitLabApiService {
       return { total: 0, success: 0, failed: 0, skipped: 0, available: false };
     }
   }
-  
+
   /**
    * Get main branch pipeline status
    * @param {string|number} projectId - The GitLab project ID
@@ -235,12 +235,12 @@ class GitLabApiService {
       // First get the default branch for the project
       const projectDetails = await this.getProjectDetails(projectId);
       const defaultBranch = projectDetails.default_branch || this.defaultBranch;
-      
+
       // Get the latest pipeline for the default branch
       const path = `/projects/${projectId}/pipelines`;
       const queryParams = `?ref=${defaultBranch}&per_page=1`;
       const url = this.getApiUrl(path, queryParams);
-      
+
       const response = await fetch(url, {
         headers: {
           "PRIVATE-TOKEN": this.privateToken,
@@ -261,7 +261,7 @@ class GitLabApiService {
       }
 
       const pipelines = await response.json();
-      
+
       if (!pipelines || pipelines.length === 0) {
         console.log(`No pipelines found for the main branch of project ${projectId}`);
         return {
@@ -274,15 +274,15 @@ class GitLabApiService {
           failedJobs: []
         };
       }
-      
+
       const pipeline = pipelines[0];
       const pipelineWithData = {...pipeline, available: true, failedJobs: []};
-      
+
       // If the pipeline failed, get the failed jobs
       if (pipeline.status === 'failed' || pipeline.status === 'canceled') {
         try {
           const jobs = await this.getPipelineJobs(projectId, pipeline.id);
-          
+
           // Filter out failed jobs
           const failedJobs = jobs.filter(job => job.status === 'failed').map(job => ({
             id: job.id,
@@ -294,14 +294,14 @@ class GitLabApiService {
             finished_at: job.finished_at,
             failure_reason: job.failure_reason || 'Unknown'
           }));
-          
+
           pipelineWithData.failedJobs = failedJobs;
         } catch (jobError) {
           console.error(`Failed to fetch jobs for pipeline ${pipeline.id}:`, jobError);
           // Don't fail if we can't get jobs, just continue with what we have
         }
       }
-      
+
       return pipelineWithData;
     } catch (error) {
       console.error(
@@ -319,7 +319,7 @@ class GitLabApiService {
       };
     }
   }
-  
+
   /**
    * Get merge request counts for a project
    * @param {string|number} projectId - The GitLab project ID
@@ -331,7 +331,7 @@ class GitLabApiService {
       const path = `/projects/${projectId}/merge_requests`;
       const queryParams = `?state=opened&per_page=100`;
       const url = this.getApiUrl(path, queryParams);
-      
+
       const response = await fetch(url, {
         headers: {
           "PRIVATE-TOKEN": this.privateToken,
@@ -343,10 +343,10 @@ class GitLabApiService {
       }
 
       const mergeRequests = await response.json();
-      
+
       // Count draft MRs
       const draftMRs = mergeRequests.filter(mr => mr.draft || (mr.title && mr.title.toLowerCase().startsWith('draft:')));
-      
+
       return {
         totalOpen: mergeRequests.length,
         drafts: draftMRs.length
@@ -359,7 +359,7 @@ class GitLabApiService {
       };
     }
   }
-  
+
   /**
    * Get commits for a specific merge request
    * @param {string|number} projectId - The GitLab project ID
@@ -370,7 +370,7 @@ class GitLabApiService {
     try {
       const path = `/projects/${projectId}/merge_requests/${mrIid}/commits`;
       const url = this.getApiUrl(path, '');
-      
+
       const response = await fetch(url, {
         headers: {
           "PRIVATE-TOKEN": this.privateToken,
@@ -390,7 +390,7 @@ class GitLabApiService {
       return [];
     }
   }
-  
+
   /**
    * Get project details including default branch
    * @param {string|number} projectId - The GitLab project ID
@@ -400,7 +400,7 @@ class GitLabApiService {
     try {
       const path = `/projects/${projectId}`;
       const url = this.getApiUrl(path, '');
-      
+
       const response = await fetch(url, {
         headers: {
           "PRIVATE-TOKEN": this.privateToken,
@@ -420,7 +420,7 @@ class GitLabApiService {
       return { default_branch: this.defaultBranch };
     }
   }
-  
+
   /**
    * Get code coverage data for a project
    * @param {string|number} projectId - The GitLab project ID
@@ -431,20 +431,20 @@ class GitLabApiService {
       // First get the default branch for the project
       const projectDetails = await this.getProjectDetails(projectId);
       const defaultBranch = projectDetails.default_branch || this.defaultBranch;
-      
+
       // Get the latest pipeline for the default branch
       const pipelines = await this.getProjectPipelines(projectId, { ref: defaultBranch, per_page: 1 });
-      
+
       if (!pipelines || pipelines.length === 0) {
         console.log(`No pipelines found for project ${projectId}, cannot fetch code coverage`);
         return { coverage: null, available: false };
       }
-      
+
       const pipelineId = pipelines[0].id;
-      
+
       // Get pipeline details including coverage
       const pipelineDetails = await this.getPipelineDetails(projectId, pipelineId);
-      
+
       if (pipelineDetails && pipelineDetails.coverage !== undefined) {
         // Normalize coverage to be a number
         let coverageValue;
@@ -459,8 +459,8 @@ class GitLabApiService {
           console.log(`Error parsing coverage for project ${projectId}: ${e.message}`);
           coverageValue = null;
         }
-        
-        return { 
+
+        return {
           coverage: coverageValue,
           pipelineId: pipelineId,
           pipelineUrl: pipelines[0].web_url,
@@ -468,11 +468,11 @@ class GitLabApiService {
         };
       } else {
         console.log(`Code coverage not available for project ${projectId}`);
-        return { 
-          coverage: null, 
+        return {
+          coverage: null,
           pipelineId: pipelineId,
           pipelineUrl: pipelines[0].web_url,
-          available: false 
+          available: false
         };
       }
     } catch (error) {
@@ -483,7 +483,7 @@ class GitLabApiService {
       return { coverage: null, available: false };
     }
   }
-  
+
   /**
    * Get the last N commits for a project
    * @param {string|number} projectId - The GitLab project ID
@@ -495,7 +495,7 @@ class GitLabApiService {
       const path = `/projects/${projectId}/repository/commits`;
       const queryParams = `?per_page=${limit}`;
       const url = this.getApiUrl(path, queryParams);
-      
+
       const response = await fetch(url, {
         headers: {
           "PRIVATE-TOKEN": this.privateToken,
@@ -515,7 +515,7 @@ class GitLabApiService {
       return [];
     }
   }
-  
+
   /**
    * Get merge requests for a project
    * @param {string|number} projectId - The GitLab project ID
@@ -525,29 +525,19 @@ class GitLabApiService {
   async getProjectMergeRequests(projectId, params = {}) {
     try {
       const { state = 'opened', scope = 'all', per_page = 10 } = params;
-      
+
       // Build query parameters
       let queryParams = `?state=${state}&scope=${scope}&per_page=${per_page}`;
-      
-      // Add with_merge_status_recheck=true to get the latest pipeline status
-      queryParams += '&with_merge_status_recheck=true';
-      
-      // Add with_labels_details=true to get label details
-      queryParams += '&with_labels_details=true';
-      
-      // Add parameters to include pipeline info (trying both documented parameters)
+
       // Add parameters to include pipeline info (trying both documented parameters)
       queryParams += '&include_pipeline=true';
       queryParams += '&with_pipeline_status=true';
-      
+
       console.log(`Requesting MRs for project ${projectId} with query params: ${queryParams}`);
-      queryParams += '&with_pipeline_status=true';
-      
-      console.log(`Requesting MRs for project ${projectId} with query params: ${queryParams}`);
-      
+
       const path = `/projects/${projectId}/merge_requests`;
       const url = this.getApiUrl(path, queryParams);
-      
+
       const response = await fetch(url, {
         headers: {
           "PRIVATE-TOKEN": this.privateToken,
@@ -558,6 +548,9 @@ class GitLabApiService {
         throw new Error(`Error fetching merge requests: ${response.statusText}`);
       }
 
+      // Get MRs with pipeline details
+      const mergeRequests = await response.json();
+      
       // Try different approach to get pipelines for MRs
       console.log('Adding direct pipeline lookup for merge requests...');
       
@@ -618,7 +611,7 @@ class GitLabApiService {
           pipeline_id: mr.head_pipeline ? mr.head_pipeline.id : 'none'
         })));
       }
-      
+
       // Log the first MR to see its structure and pipeline data
       if (mergeRequests.length > 0) {
         console.log(`First merge request data for project ${projectId}:`, {
@@ -631,13 +624,13 @@ class GitLabApiService {
       } else {
         console.log(`No merge requests found for project ${projectId}`);
       }
-      
+
       // For each MR, get the head pipeline details and recent commits if available
       const detailedMRs = await Promise.all(
         mergeRequests.map(async mr => {
           // Create an enhanced MR object
           const enhancedMR = {...mr, recent_commits: []};
-          
+
           // Get recent commits for the MR
           try {
             const commits = await this.getMergeRequestCommits(projectId, mr.iid);
@@ -646,10 +639,10 @@ class GitLabApiService {
           } catch (error) {
             console.error(`Failed to fetch commits for MR ${mr.iid}:`, error);
           }
-          
+
           // Get pipeline details if available
           console.log(`MR ${mr.iid} (${mr.title}): head_pipeline =`, mr.head_pipeline);
-          
+
           // If we have a head_pipeline object, check if it has necessary properties
           if (mr.head_pipeline && typeof mr.head_pipeline === 'object') {
             // Check if it has an ID, which is required for fetching details
@@ -659,7 +652,7 @@ class GitLabApiService {
               enhancedMR.head_pipeline = {
                 ...mr.head_pipeline,
                 id: 'unknown',
-                status: 'unknown', 
+                status: 'unknown',
                 web_url: mr.web_url
               };
             } else {
@@ -674,45 +667,46 @@ class GitLabApiService {
                   duration: pipelineDetails.duration || 'N/A',
                   web_url: pipelineDetails.web_url
                 });
-              
-              // Return MR with enhanced pipeline info
-              enhancedMR.head_pipeline = {
-                ...mr.head_pipeline,
-                ...pipelineDetails
-              };
-              
-              // Get failed jobs for the pipeline if it failed
-              if (enhancedMR.head_pipeline.status === 'failed' || enhancedMR.head_pipeline.status === 'canceled') {
-                try {
-                  const jobs = await this.getPipelineJobs(projectId, enhancedMR.head_pipeline.id);
-                  
-                  // Filter out failed jobs
-                  const failedJobs = jobs.filter(job => job.status === 'failed').map(job => ({
-                    id: job.id,
-                    name: job.name,
-                    stage: job.stage,
-                    web_url: job.web_url,
-                    created_at: job.created_at,
-                    started_at: job.started_at,
-                    finished_at: job.finished_at,
-                    failure_reason: job.failure_reason || 'Unknown'
-                  }));
-                  
-                  enhancedMR.head_pipeline.jobs = jobs;
-                  enhancedMR.head_pipeline.failedJobs = failedJobs;
-                } catch (jobError) {
-                  console.error(`Failed to fetch jobs for pipeline ${enhancedMR.head_pipeline.id}:`, jobError);
+
+                // Return MR with enhanced pipeline info
+                enhancedMR.head_pipeline = {
+                  ...mr.head_pipeline,
+                  ...pipelineDetails
+                };
+
+                // Get failed jobs for the pipeline if it failed
+                if (enhancedMR.head_pipeline.status === 'failed' || enhancedMR.head_pipeline.status === 'canceled') {
+                  try {
+                    const jobs = await this.getPipelineJobs(projectId, enhancedMR.head_pipeline.id);
+
+                    // Filter out failed jobs
+                    const failedJobs = jobs.filter(job => job.status === 'failed').map(job => ({
+                      id: job.id,
+                      name: job.name,
+                      stage: job.stage,
+                      web_url: job.web_url,
+                      created_at: job.created_at,
+                      started_at: job.started_at,
+                      finished_at: job.finished_at,
+                      failure_reason: job.failure_reason || 'Unknown'
+                    }));
+
+                    enhancedMR.head_pipeline.jobs = jobs;
+                    enhancedMR.head_pipeline.failedJobs = failedJobs;
+                  } catch (jobError) {
+                    console.error(`Failed to fetch jobs for pipeline ${enhancedMR.head_pipeline.id}:`, jobError);
+                  }
                 }
+              } catch (error) {
+                console.error(`Failed to fetch pipeline details for MR ${mr.iid}:`, error);
               }
-            } catch (error) {
-              console.error(`Failed to fetch pipeline details for MR ${mr.iid}:`, error);
             }
           }
-          
+
           return enhancedMR;
         })
       );
-      
+
       return detailedMRs;
     } catch (error) {
       console.error(
