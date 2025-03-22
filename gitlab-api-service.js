@@ -311,6 +311,46 @@ class GitLabApiService {
   }
   
   /**
+   * Get merge request counts for a project
+   * @param {string|number} projectId - The GitLab project ID
+   * @returns {Promise<Object>} - The MR count data
+   */
+  async getMergeRequestCounts(projectId) {
+    try {
+      // Get all open MRs
+      const path = `/projects/${projectId}/merge_requests`;
+      const queryParams = `?state=opened&per_page=100`;
+      const url = this.getApiUrl(path, queryParams);
+      
+      const response = await fetch(url, {
+        headers: {
+          "PRIVATE-TOKEN": this.privateToken,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error fetching merge requests: ${response.statusText}`);
+      }
+
+      const mergeRequests = await response.json();
+      
+      // Count draft MRs
+      const draftMRs = mergeRequests.filter(mr => mr.draft || (mr.title && mr.title.toLowerCase().startsWith('draft:')));
+      
+      return {
+        totalOpen: mergeRequests.length,
+        drafts: draftMRs.length
+      };
+    } catch (error) {
+      console.error(`Failed to fetch merge request counts for project ${projectId}:`, error);
+      return {
+        totalOpen: 0,
+        drafts: 0
+      };
+    }
+  }
+  
+  /**
    * Get project details including default branch
    * @param {string|number} projectId - The GitLab project ID
    * @returns {Promise<Object>} - Project details

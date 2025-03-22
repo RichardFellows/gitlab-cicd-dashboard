@@ -23,6 +23,22 @@ const errorContainer = document.getElementById('error-container');
 // Load saved values from localStorage
 loadSavedSettings();
 
+// Handle browser navigation
+window.addEventListener('popstate', function(event) {
+  if (event.state) {
+    if (event.state.view === 'dashboard') {
+      renderDashboard(window.dashboardMetrics);
+    } else if (event.state.view === 'project' && event.state.projectId) {
+      showProjectDetails(event.state.projectId);
+    }
+  } else {
+    // If no state, default to dashboard
+    if (window.dashboardMetrics) {
+      renderDashboard(window.dashboardMetrics);
+    }
+  }
+});
+
 /**
  * Load saved settings from localStorage
  */
@@ -123,6 +139,10 @@ async function loadDashboard() {
           project.metrics.codeCoverage = { coverage: null, available: false };
         }
         
+        if (!project.metrics.mergeRequestCounts) {
+          project.metrics.mergeRequestCounts = { totalOpen: 0, drafts: 0 };
+        }
+        
         if (!project.metrics.testMetrics) {
           project.metrics.testMetrics = { total: 0, success: 0, failed: 0, skipped: 0, available: false };
         }
@@ -217,6 +237,11 @@ function renderDashboard(metrics) {
 
   // Store metrics in a global variable for later use
   window.dashboardMetrics = metrics;
+  
+  // Update browser history if not already on the dashboard view
+  if (window.location.hash !== '' && window.location.hash !== '#dashboard') {
+    window.history.pushState({view: 'dashboard'}, 'Dashboard', '#dashboard');
+  }
 
   // Add summary section
   dashboard.appendChild(createSummarySection(metrics));
@@ -360,7 +385,7 @@ function createProjectsSection(projects) {
         <div class="project-header">
           <h3><a href="#project/${project.id}" class="project-name-link" data-project-id="${project.id}">${project.name}</a></h3>
           <a href="${project.webUrl}" target="_blank" rel="noopener noreferrer" class="gitlab-link" title="Open in GitLab">
-            <i class="gitlab-icon">🔍</i>
+            <i class="gitlab-icon">↗️</i>
           </a>
         </div>
         <div class="project-metrics">
@@ -410,6 +435,15 @@ function createProjectsSection(projects) {
             <div class="metric-item">
               <span class="metric-label">Code Coverage:</span>
               <span class="metric-value">${formatCoverage(project.metrics.codeCoverage.coverage, project.metrics.codeCoverage.available)}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Open MRs:</span>
+              <span class="metric-value">
+                ${project.metrics.mergeRequestCounts.totalOpen}
+                ${project.metrics.mergeRequestCounts.drafts > 0 ? 
+                  `<span class="mr-details">(${project.metrics.mergeRequestCounts.drafts} draft${project.metrics.mergeRequestCounts.drafts !== 1 ? 's' : ''})</span>` : 
+                  ''}
+              </span>
             </div>
           </div>
           
@@ -614,6 +648,9 @@ async function showProjectDetails(projectId) {
       throw new Error(`Project with ID ${projectId} not found`);
     }
     
+    // Update browser history
+    window.history.pushState({view: 'project', projectId}, `Project: ${project.name}`, `#project/${projectId}`);
+    
     // Fetch the project's merge requests with pipeline info
     const mergeRequests = await gitLabService.getProjectMergeRequests(projectId);
     
@@ -629,7 +666,7 @@ async function showProjectDetails(projectId) {
     if (backButton) {
       backButton.addEventListener('click', function(e) {
         e.preventDefault();
-        renderDashboard(window.dashboardMetrics);
+        window.history.back();
       });
     }
   } catch (error) {
@@ -658,7 +695,7 @@ function createProjectDetailView(project, mergeRequests) {
       <div class="project-title">
         <h2>${project.name}</h2>
         <a href="${project.webUrl}" target="_blank" rel="noopener noreferrer" class="gitlab-link" title="Open in GitLab">
-          <i class="gitlab-icon">🔍</i>
+          <i class="gitlab-icon">↗️</i>
         </a>
       </div>
     </div>
@@ -711,6 +748,15 @@ function createProjectDetailView(project, mergeRequests) {
           <div class="metric-item">
             <span class="metric-label">Code Coverage:</span>
             <span class="metric-value">${formatCoverage(project.metrics.codeCoverage.coverage, project.metrics.codeCoverage.available)}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Open MRs:</span>
+            <span class="metric-value">
+              ${project.metrics.mergeRequestCounts.totalOpen}
+              ${project.metrics.mergeRequestCounts.drafts > 0 ? 
+                `<span class="mr-details">(${project.metrics.mergeRequestCounts.drafts} draft${project.metrics.mergeRequestCounts.drafts !== 1 ? 's' : ''})</span>` : 
+                ''}
+            </span>
           </div>
         </div>
       </div>

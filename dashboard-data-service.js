@@ -101,6 +101,15 @@ class DashboardDataService {
         // Silently fail if we can't get code coverage
       }
       
+      // Get merge request counts
+      let mergeRequestCounts = { totalOpen: 0, drafts: 0 };
+      
+      try {
+        mergeRequestCounts = await this.gitLabService.getMergeRequestCounts(projectId);
+      } catch (error) {
+        // Silently fail if we can't get MR counts
+      }
+      
       // Get recent commits
       let recentCommits = [];
       
@@ -152,6 +161,7 @@ class DashboardDataService {
         testMetrics,
         mainBranchPipeline,
         codeCoverage,
+        mergeRequestCounts,
         recentCommits,
       };
     } catch (error) {
@@ -169,6 +179,7 @@ class DashboardDataService {
         testMetrics: { total: 0, success: 0, failed: 0, skipped: 0 },
         mainBranchPipeline: { status: 'unknown', id: null, web_url: null },
         codeCoverage: { coverage: null },
+        mergeRequestCounts: { totalOpen: 0, drafts: 0 },
         recentCommits: [],
       };
     }
