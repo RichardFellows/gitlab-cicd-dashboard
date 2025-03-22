@@ -140,15 +140,44 @@ class DashboardDataService {
       // Calculate average pipeline duration
       let totalDuration = 0;
       let pipelinesWithDuration = 0;
+      
+      console.log(`Calculating durations for ${pipelines.length} pipelines in project ${projectId}`);
+      
       for (const pipeline of pipelines) {
+        // First try using the duration field directly from the API
         if (pipeline.duration) {
+          console.log(`Pipeline ${pipeline.id} has duration: ${pipeline.duration}s`);
           totalDuration += pipeline.duration;
           pipelinesWithDuration++;
+        } 
+        // Fallback: calculate duration from timestamps if available
+        else if (pipeline.finished_at && pipeline.created_at && pipeline.status !== 'running') {
+          try {
+            const startTime = new Date(pipeline.created_at).getTime();
+            const endTime = new Date(pipeline.finished_at || pipeline.updated_at).getTime();
+            const calculatedDuration = (endTime - startTime) / 1000; // Convert to seconds
+            
+            if (calculatedDuration > 0) {
+              console.log(`Pipeline ${pipeline.id} calculated duration: ${calculatedDuration.toFixed(2)}s (from timestamps)`);
+              totalDuration += calculatedDuration;
+              pipelinesWithDuration++;
+            } else {
+              console.log(`Pipeline ${pipeline.id} has invalid calculated duration: ${calculatedDuration}s`);
+            }
+          } catch (err) {
+            console.error(`Error calculating duration for pipeline ${pipeline.id}:`, err);
+          }
+        } else {
+          console.log(`Pipeline ${pipeline.id} (${pipeline.status}) has no duration data`);
         }
       }
 
+      // Log summary of duration calculation
+      console.log(`Project ${projectId}: Found ${pipelinesWithDuration} pipelines with duration out of ${pipelines.length} total`);
+      
       const avgDuration =
         pipelinesWithDuration > 0 ? totalDuration / pipelinesWithDuration : 0;
+      console.log(`Project ${projectId}: Average pipeline duration: ${avgDuration.toFixed(2)}s`);
 
       return {
         totalPipelines,
@@ -232,12 +261,24 @@ class DashboardDataService {
       aggregate.avgSuccessRate = totalSuccessRate / projectsWithPipelines;
     }
 
-    if (aggregate.totalPipelines > 0) {
-      aggregate.avgDuration =
-        projectMetrics
-          .filter((m) => m.totalPipelines > 0)
-          .reduce((sum, m) => sum + m.avgDuration * m.totalPipelines, 0) /
-        aggregate.totalPipelines;
+    // For average duration, we need to consider projects that actually have duration data
+    const projectsWithDuration = projectMetrics
+      .filter(m => m.totalPipelines > 0 && m.avgDuration > 0);
+    
+    if (projectsWithDuration.length > 0) {
+      // Calculate weighted average based on pipeline count
+      const totalDurationWeighted = projectsWithDuration
+        .reduce((sum, m) => sum + m.avgDuration * m.totalPipelines, 0);
+      
+      const totalPipelinesWithDuration = projectsWithDuration
+        .reduce((sum, m) => sum + m.totalPipelines, 0);
+      
+      aggregate.avgDuration = totalDurationWeighted / totalPipelinesWithDuration;
+      
+      console.log(`Aggregate avg duration: ${aggregate.avgDuration.toFixed(2)}s (from ${projectsWithDuration.length} projects with duration data)`);
+    } else {
+      aggregate.avgDuration = 0;
+      console.log(`No projects with valid duration data found for aggregate calculation`);
     }
     return aggregate;
   }
