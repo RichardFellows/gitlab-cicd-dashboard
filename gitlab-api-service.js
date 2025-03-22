@@ -351,6 +351,37 @@ class GitLabApiService {
   }
   
   /**
+   * Get commits for a specific merge request
+   * @param {string|number} projectId - The GitLab project ID
+   * @param {string|number} mrIid - The merge request IID
+   * @returns {Promise<Array>} - List of commits
+   */
+  async getMergeRequestCommits(projectId, mrIid) {
+    try {
+      const path = `/projects/${projectId}/merge_requests/${mrIid}/commits`;
+      const url = this.getApiUrl(path, '');
+      
+      const response = await fetch(url, {
+        headers: {
+          "PRIVATE-TOKEN": this.privateToken,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error fetching merge request commits: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(
+        `Failed to fetch commits for MR ${mrIid}:`,
+        error
+      );
+      return [];
+    }
+  }
+  
+  /**
    * Get project details including default branch
    * @param {string|number} projectId - The GitLab project ID
    * @returns {Promise<Object>} - Project details
@@ -513,27 +544,62 @@ class GitLabApiService {
       // Get MRs with pipeline details
       const mergeRequests = await response.json();
       
-      // For each MR, get the head pipeline details if available
+      // For each MR, get the head pipeline details and recent commits if available
       const detailedMRs = await Promise.all(
         mergeRequests.map(async mr => {
+          // Create an enhanced MR object
+          const enhancedMR = {...mr, recent_commits: []};
+          
+          // Get recent commits for the MR
+          try {
+            const commits = await this.getMergeRequestCommits(projectId, mr.iid);
+            // Add the commits to the MR object (limited to 3 most recent commits)
+            enhancedMR.recent_commits = commits.slice(0, 3);
+          } catch (error) {
+            console.error(`Failed to fetch commits for MR ${mr.iid}:`, error);
+          }
+          
+          // Get pipeline details if available
           if (mr.head_pipeline) {
             try {
               // Only fetch details if we have a pipeline
               const pipelineDetails = await this.getPipelineDetails(projectId, mr.head_pipeline.id);
+              
               // Return MR with enhanced pipeline info
-              return {
-                ...mr,
-                head_pipeline: {
-                  ...mr.head_pipeline,
-                  ...pipelineDetails
-                }
+              enhancedMR.head_pipeline = {
+                ...mr.head_pipeline,
+                ...pipelineDetails
               };
+              
+              // Get failed jobs for the pipeline if it failed
+              if (enhancedMR.head_pipeline.status === 'failed' || enhancedMR.head_pipeline.status === 'canceled') {
+                try {
+                  const jobs = await this.getPipelineJobs(projectId, enhancedMR.head_pipeline.id);
+                  
+                  // Filter out failed jobs
+                  const failedJobs = jobs.filter(job => job.status === 'failed').map(job => ({
+                    id: job.id,
+                    name: job.name,
+                    stage: job.stage,
+                    web_url: job.web_url,
+                    created_at: job.created_at,
+                    started_at: job.started_at,
+                    finished_at: job.finished_at,
+                    failure_reason: job.failure_reason || 'Unknown'
+                  }));
+                  
+                  enhancedMR.head_pipeline.jobs = jobs;
+                  enhancedMR.head_pipeline.failedJobs = failedJobs;
+                } catch (jobError) {
+                  console.error(`Failed to fetch jobs for pipeline ${enhancedMR.head_pipeline.id}:`, jobError);
+                }
+              }
             } catch (error) {
               console.error(`Failed to fetch pipeline details for MR ${mr.iid}:`, error);
-              return mr;
             }
           }
-          return mr;
+          
+          return enhancedMR;
         })
       );
       

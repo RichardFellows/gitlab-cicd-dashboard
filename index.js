@@ -451,15 +451,38 @@ function createProjectsSection(projects) {
             <h4>Recent Commits</h4>
             <div class="recent-commits">
               ${project.metrics.recentCommits.length > 0 ? 
-                project.metrics.recentCommits.map(commit => `
-                  <div class="commit-item">
-                    <div class="commit-header">
-                      <span class="commit-id">${commit.short_id}</span>
-                      <span class="commit-date">${formatDate(commit.created_at)}</span>
+                (() => {
+                  // Get commits from the last week
+                  const oneWeekAgo = new Date();
+                  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+                  
+                  const recentCommits = project.metrics.recentCommits.filter(
+                    commit => new Date(commit.created_at) > oneWeekAgo
+                  );
+                  
+                  // Determine how many commits to display based on criteria
+                  let commitsToShow;
+                  if (recentCommits.length >= 3) {
+                    // At least 3 in the last week, show top 3
+                    commitsToShow = project.metrics.recentCommits.slice(0, 3);
+                  } else if (project.metrics.recentCommits.length >= 2) {
+                    // Less than 3 in the last week, show top 2
+                    commitsToShow = project.metrics.recentCommits.slice(0, 2);
+                  } else {
+                    // Just show 1 if there is only 1 or none in the last week
+                    commitsToShow = project.metrics.recentCommits.slice(0, 1);
+                  }
+                  
+                  return commitsToShow.map(commit => `
+                    <div class="commit-item">
+                      <div class="commit-header">
+                        <span class="commit-id">${commit.short_id}</span>
+                        <span class="commit-date">${formatDate(commit.created_at)}</span>
+                      </div>
+                      <div class="commit-message">${escapeHtml(commit.title)}</div>
                     </div>
-                    <div class="commit-message">${escapeHtml(commit.title)}</div>
-                  </div>
-                `).join('') : 
+                  `).join('');
+                })() : 
                 '<div class="no-data">No recent commits found</div>'
               }
             </div>
@@ -784,6 +807,48 @@ function createProjectDetailView(project, mergeRequests) {
                         <span class="status-label">Pipeline:</span>
                         <span class="status-value">${formatPipelineStatus(mr.head_pipeline.status, true)}</span>
                         <a href="${mr.head_pipeline.web_url}" target="_blank" class="pipeline-link">View Pipeline</a>
+                        ${mr.head_pipeline.duration ? `
+                          <span class="pipeline-duration">Duration: ${formatDuration(mr.head_pipeline.duration)}</span>
+                        ` : ''}
+                      </div>
+                      ${mr.head_pipeline.failedJobs && mr.head_pipeline.failedJobs.length > 0 ? `
+                        <div class="failed-jobs">
+                          <div class="failed-jobs-header">Failed Jobs (${mr.head_pipeline.failedJobs.length})</div>
+                          <div class="failed-jobs-list">
+                            ${mr.head_pipeline.failedJobs.map(job => `
+                              <div class="job-item failed">
+                                <div class="job-header">
+                                  <span class="job-name">${job.name}</span>
+                                  <span class="job-stage">${job.stage}</span>
+                                </div>
+                                <div class="job-details">
+                                  <div class="job-reason">${job.failure_reason || 'Unknown failure'}</div>
+                                  <div class="job-actions">
+                                    <a href="${job.web_url}" target="_blank" class="job-link">View Job</a>
+                                  </div>
+                                </div>
+                              </div>
+                            `).join('')}
+                          </div>
+                        </div>
+                      ` : ''}
+                    </div>
+                  ` : ''}
+                  
+                  ${mr.recent_commits && mr.recent_commits.length > 0 ? `
+                    <div class="mr-commits">
+                      <div class="commits-header">Recent Commits (${mr.recent_commits.length})</div>
+                      <div class="commits-list">
+                        ${mr.recent_commits.map(commit => `
+                          <div class="commit-item">
+                            <div class="commit-header">
+                              <span class="commit-id">${commit.short_id || commit.id.substring(0, 8)}</span>
+                              <span class="commit-date">${formatDate(commit.created_at)}</span>
+                            </div>
+                            <div class="commit-message">${escapeHtml(commit.title || commit.message)}</div>
+                            <div class="commit-author">${commit.author_name || commit.committer_name || 'Unknown'}</div>
+                          </div>
+                        `).join('')}
                       </div>
                     </div>
                   ` : ''}
@@ -794,28 +859,6 @@ function createProjectDetailView(project, mergeRequests) {
         </div>
       </div>
       
-      <div class="detail-section recent-activity">
-        <h3>Recent Commits</h3>
-        <div class="detail-card">
-          <div class="recent-commits">
-            ${project.metrics.recentCommits.length > 0 ? 
-              project.metrics.recentCommits.map(commit => `
-                <div class="commit-item">
-                  <div class="commit-header">
-                    <span class="commit-id">${commit.short_id}</span>
-                    <span class="commit-date">${formatDate(commit.created_at)}</span>
-                  </div>
-                  <div class="commit-message">${escapeHtml(commit.title)}</div>
-                  <div class="commit-author">
-                    ${commit.author_name || 'Unknown'}
-                  </div>
-                </div>
-              `).join('') : 
-              '<div class="no-data">No recent commits found</div>'
-            }
-          </div>
-        </div>
-      </div>
     </div>
   `;
   
