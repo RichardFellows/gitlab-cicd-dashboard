@@ -48,7 +48,7 @@ class DashboardDataService {
       this.metrics = metrics;
       return metrics;
     } catch (error) {
-      console.error(\"Failed to get group metrics:\", error);
+      console.error("Failed to get group metrics:", error);
       throw error;
     }
   }
@@ -79,16 +79,16 @@ class DashboardDataService {
       // Calculate pipeline success rate
       const totalPipelines = pipelines.length;
       const successfulPipelines = pipelines.filter(
-        (p) => p.status === \"success\"
+        (p) => p.status === "success"
       ).length;
       const failedPipelines = pipelines.filter(
-        (p) => p.status === \"failed\"
+        (p) => p.status === "failed"
       ).length;
       const canceledPipelines = pipelines.filter(
-        (p) => p.status === \"canceled\"
+        (p) => p.status === "canceled"
       ).length;
       const runningPipelines = pipelines.filter(
-        (p) => p.status === \"running\"
+        (p) => p.status === "running"
       ).length;
 
       const successRate =
