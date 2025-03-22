@@ -78,6 +78,37 @@ class DashboardDataService {
       } catch (error) {
         // Silently fail as test reports might not be available
       }
+      
+      // Get main branch pipeline status
+      let mainBranchPipeline = { 
+        status: 'unknown',
+        id: null,
+        web_url: null 
+      };
+      
+      try {
+        mainBranchPipeline = await this.gitLabService.getMainBranchPipeline(projectId);
+      } catch (error) {
+        // Silently fail if we can't get main branch pipeline
+      }
+      
+      // Get code coverage
+      let codeCoverage = { coverage: null };
+      
+      try {
+        codeCoverage = await this.gitLabService.getCodeCoverage(projectId);
+      } catch (error) {
+        // Silently fail if we can't get code coverage
+      }
+      
+      // Get recent commits
+      let recentCommits = [];
+      
+      try {
+        recentCommits = await this.gitLabService.getRecentCommits(projectId, 3);
+      } catch (error) {
+        // Silently fail if we can't get recent commits
+      }
 
       // Calculate pipeline success rate
       const totalPipelines = pipelines.length;
@@ -119,6 +150,9 @@ class DashboardDataService {
         successRate,
         avgDuration,
         testMetrics,
+        mainBranchPipeline,
+        codeCoverage,
+        recentCommits,
       };
     } catch (error) {
       console.error(`Failed to get metrics for project ${projectId}:`, error);
@@ -133,6 +167,9 @@ class DashboardDataService {
         successRate: 0,
         avgDuration: 0,
         testMetrics: { total: 0, success: 0, failed: 0, skipped: 0 },
+        mainBranchPipeline: { status: 'unknown', id: null, web_url: null },
+        codeCoverage: { coverage: null },
+        recentCommits: [],
       };
     }
   }

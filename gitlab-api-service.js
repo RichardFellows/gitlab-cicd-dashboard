@@ -6,6 +6,7 @@ class GitLabApiService {
   constructor(baseUrl = "https://gitlab.com/api/v4", privateToken = "") {
     this.baseUrl = baseUrl;
     this.privateToken = privateToken;
+    this.defaultBranch = 'main'; // Default branch name to use if not specified
   }
 
   /**
@@ -160,6 +161,157 @@ class GitLabApiService {
       );
       // Return empty metrics in case of error
       return { total: 0, success: 0, failed: 0, skipped: 0 };
+    }
+  }
+  
+  /**
+   * Get main branch pipeline status
+   * @param {string|number} projectId - The GitLab project ID
+   * @returns {Promise<Object>} - Pipeline status
+   */
+  async getMainBranchPipeline(projectId) {
+    try {
+      // First get the default branch for the project
+      const projectDetails = await this.getProjectDetails(projectId);
+      const defaultBranch = projectDetails.default_branch || this.defaultBranch;
+      
+      // Get the latest pipeline for the default branch
+      const response = await fetch(
+        `${this.baseUrl}/projects/${projectId}/pipelines?ref=${defaultBranch}&per_page=1`,
+        {
+          headers: {
+            "PRIVATE-TOKEN": this.privateToken,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error fetching main branch pipeline: ${response.statusText}`);
+      }
+
+      const pipelines = await response.json();
+      
+      if (pipelines.length === 0) {
+        return {
+          status: 'unknown',
+          id: null,
+          web_url: null,
+          created_at: null,
+          updated_at: null
+        };
+      }
+      
+      return pipelines[0];
+    } catch (error) {
+      console.error(
+        `Failed to fetch main branch pipeline for project ${projectId}:`,
+        error
+      );
+      return {
+        status: 'unknown',
+        id: null,
+        web_url: null,
+        created_at: null,
+        updated_at: null
+      };
+    }
+  }
+  
+  /**
+   * Get project details including default branch
+   * @param {string|number} projectId - The GitLab project ID
+   * @returns {Promise<Object>} - Project details
+   */
+  async getProjectDetails(projectId) {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/projects/${projectId}`,
+        {
+          headers: {
+            "PRIVATE-TOKEN": this.privateToken,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error fetching project details: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(
+        `Failed to fetch project details for project ${projectId}:`,
+        error
+      );
+      return { default_branch: this.defaultBranch };
+    }
+  }
+  
+  /**
+   * Get code coverage data for a project
+   * @param {string|number} projectId - The GitLab project ID
+   * @returns {Promise<Object>} - Coverage data
+   */
+  async getCodeCoverage(projectId) {
+    try {
+      // First get the default branch for the project
+      const projectDetails = await this.getProjectDetails(projectId);
+      const defaultBranch = projectDetails.default_branch || this.defaultBranch;
+      
+      // Get the latest pipeline for the default branch
+      const pipelines = await this.getProjectPipelines(projectId, { ref: defaultBranch, per_page: 1 });
+      
+      if (pipelines.length === 0) {
+        return { coverage: null };
+      }
+      
+      const pipelineId = pipelines[0].id;
+      
+      // Get pipeline details including coverage
+      const pipelineDetails = await this.getPipelineDetails(projectId, pipelineId);
+      
+      return { 
+        coverage: pipelineDetails.coverage || null,
+        pipelineId: pipelineId,
+        pipelineUrl: pipelines[0].web_url 
+      };
+    } catch (error) {
+      console.error(
+        `Failed to fetch code coverage for project ${projectId}:`,
+        error
+      );
+      return { coverage: null };
+    }
+  }
+  
+  /**
+   * Get the last N commits for a project
+   * @param {string|number} projectId - The GitLab project ID
+   * @param {number} limit - Number of commits to fetch
+   * @returns {Promise<Array>} - List of commits
+   */
+  async getRecentCommits(projectId, limit = 3) {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/projects/${projectId}/repository/commits?per_page=${limit}`,
+        {
+          headers: {
+            "PRIVATE-TOKEN": this.privateToken,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error fetching commits: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(
+        `Failed to fetch commits for project ${projectId}:`,
+        error
+      );
+      return [];
     }
   }
 }

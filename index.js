@@ -155,25 +155,60 @@ function createProjectsSection(projects) {
             <a href="${project.webUrl}" target="_blank" rel="noopener noreferrer">View on GitLab</a>
           </div>
           <div class="project-metrics">
-            <div class="metric-item">
-              <span class="metric-label">Pipelines:</span>
-              <span class="metric-value">${project.metrics.totalPipelines}</span>
+            <div class="metric-section">
+              <h4>Pipeline Status</h4>
+              <div class="metric-item">
+                <span class="metric-label">Main Branch:</span>
+                <span class="metric-value ${getPipelineStatusClass(project.metrics.mainBranchPipeline.status)}">
+                  ${formatPipelineStatus(project.metrics.mainBranchPipeline.status)}
+                  ${project.metrics.mainBranchPipeline.web_url ? 
+                    `<a href="${project.metrics.mainBranchPipeline.web_url}" target="_blank" title="View pipeline">
+                      <i class="icon">🔍</i>
+                     </a>` : ''}
+                </span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Success Rate:</span>
+                <span class="metric-value ${getSuccessRateClass(project.metrics.successRate)}">${project.metrics.successRate.toFixed(2)}%</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Avg Duration:</span>
+                <span class="metric-value">${formatDuration(project.metrics.avgDuration)}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Code Coverage:</span>
+                <span class="metric-value">${formatCoverage(project.metrics.codeCoverage.coverage)}</span>
+              </div>
             </div>
-            <div class="metric-item">
-              <span class="metric-label">Success Rate:</span>
-              <span class="metric-value ${getSuccessRateClass(project.metrics.successRate)}">${project.metrics.successRate.toFixed(2)}%</span>
+            
+            <div class="metric-section">
+              <h4>Recent Commits</h4>
+              <div class="recent-commits">
+                ${project.metrics.recentCommits.length > 0 ? 
+                  project.metrics.recentCommits.map(commit => `
+                    <div class="commit-item">
+                      <div class="commit-header">
+                        <span class="commit-id">${commit.short_id}</span>
+                        <span class="commit-date">${formatDate(commit.created_at)}</span>
+                      </div>
+                      <div class="commit-message">${escapeHtml(commit.title)}</div>
+                    </div>
+                  `).join('') : 
+                  '<div class="no-data">No recent commits found</div>'
+                }
+              </div>
             </div>
-            <div class="metric-item">
-              <span class="metric-label">Avg Duration:</span>
-              <span class="metric-value">${formatDuration(project.metrics.avgDuration)}</span>
-            </div>
-            <div class="metric-item">
-              <span class="metric-label">Tests:</span>
-              <span class="metric-value">${project.metrics.testMetrics.total}</span>
-              <span class="test-details">
-                (${project.metrics.testMetrics.success} passed,
-                ${project.metrics.testMetrics.failed} failed)
-              </span>
+            
+            <div class="metric-section">
+              <h4>Test Results</h4>
+              <div class="metric-item">
+                <span class="metric-label">Tests:</span>
+                <span class="metric-value">${project.metrics.testMetrics.total}</span>
+                <span class="test-details">
+                  (${project.metrics.testMetrics.success} passed,
+                  ${project.metrics.testMetrics.failed} failed)
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -201,4 +236,51 @@ function formatDuration(seconds) {
   }
 
   return `${minutes}m ${remainingSeconds}s`;
+}
+
+function getPipelineStatusClass(status) {
+  switch (status) {
+    case 'success':
+      return 'success';
+    case 'failed':
+      return 'danger';
+    case 'running':
+      return 'warning';
+    case 'canceled':
+      return 'danger';
+    case 'pending':
+      return 'warning';
+    default:
+      return '';
+  }
+}
+
+function formatPipelineStatus(status) {
+  if (!status || status === 'unknown') return 'Unknown';
+  
+  // Capitalize first letter
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function formatCoverage(coverage) {
+  if (coverage === null || coverage === undefined) return 'N/A';
+  return `${coverage.toFixed(2)}%`;
+}
+
+function formatDate(dateString) {
+  if (!dateString) return 'N/A';
+  
+  const date = new Date(dateString);
+  return date.toLocaleString();
+}
+
+function escapeHtml(unsafe) {
+  if (!unsafe) return '';
+  
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
