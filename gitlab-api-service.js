@@ -39,7 +39,6 @@ class GitLabApiService {
       return await response.json();
     } catch (error) {
       console.error("Failed to fetch group projects:", error);
-
       throw error;
     }
   }
@@ -75,7 +74,6 @@ class GitLabApiService {
         `Failed to fetch pipelines for project ${projectId}:`,
         error
       );
-
       throw error;
     }
   }
