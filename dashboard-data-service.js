@@ -23,7 +23,10 @@ class DashboardDataService {
       ).toISOString();
 
       // Get all projects in the group
-      const projects = await this.gitLabService.getGroupProjects(groupId);
+      const allProjects = await this.gitLabService.getGroupProjects(groupId);
+      
+      // Filter out projects starting with "DELETE-"
+      const projects = allProjects.filter(project => !project.name.startsWith('DELETE-'));
 
       // Collect metrics for each project
       const projectMetrics = await Promise.all(
