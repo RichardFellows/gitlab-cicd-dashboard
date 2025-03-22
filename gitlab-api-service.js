@@ -7,6 +7,18 @@ class GitLabApiService {
     this.baseUrl = baseUrl;
     this.privateToken = privateToken;
     this.defaultBranch = 'main'; // Default branch name to use if not specified
+    this.useProxy = this.shouldUseProxy();
+    this.proxyUrl = 'http://localhost:3000/proxy';
+  }
+  
+  /**
+   * Determine if we should use the proxy based on the current environment
+   * @returns {boolean} - Whether to use the proxy
+   */
+  shouldUseProxy() {
+    // Check if we're running on localhost with a port like 8000 (Python server)
+    return window.location.hostname === 'localhost' && 
+           (window.location.port === '8000' || window.location.port === '8080');
   }
 
   /**
@@ -16,6 +28,23 @@ class GitLabApiService {
   setPrivateToken(token) {
     this.privateToken = token;
   }
+  
+  /**
+   * Get the URL for an API request, using the proxy if needed
+   * @param {string} path - The API path (without the baseUrl)
+   * @param {string} queryParams - The query parameters to append
+   * @returns {string} - The full URL to use for the request
+   */
+  getApiUrl(path, queryParams = '') {
+    if (this.useProxy) {
+      // When using the proxy, we send the full path as a query parameter
+      // The proxy will extract the path and make the request to GitLab
+      return `${this.proxyUrl}?path=${encodeURIComponent(path + queryParams)}`;
+    } else {
+      // Direct API call when not using the proxy
+      return `${this.baseUrl}${path}${queryParams}`;
+    }
+  }
 
   /**
    * Fetch all projects under a specific group
@@ -24,14 +53,17 @@ class GitLabApiService {
    */
   async getGroupProjects(groupId) {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/groups/${groupId}/projects?include_subgroups=true&per_page=100`,
-        {
-          headers: {
-            "PRIVATE-TOKEN": this.privateToken,
-          },
-        }
-      );
+      const path = `/groups/${groupId}/projects`;
+      const queryParams = '?include_subgroups=true&per_page=100';
+      const url = this.getApiUrl(path, queryParams);
+      
+      console.log(`Fetching group projects from: ${url}`);
+      
+      const response = await fetch(url, {
+        headers: {
+          "PRIVATE-TOKEN": this.privateToken,
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Error fetching projects: ${response.statusText}`);
@@ -51,12 +83,16 @@ class GitLabApiService {
    * @returns {Promise<Array>} - List of pipelines
    */
   async getProjectPipelines(projectId, params = {}) {
-    const { startDate, endDate, status } = params;
+    const { startDate, endDate, status, ref, per_page } = params;
 
-    let url = `${this.baseUrl}/projects/${projectId}/pipelines?per_page=100`;
-    if (startDate) url += `&updated_after=${startDate}`;
-    if (endDate) url += `&updated_before=${endDate}`;
-    if (status) url += `&status=${status}`;
+    let queryParams = '?per_page=' + (per_page || 100);
+    if (startDate) queryParams += `&updated_after=${startDate}`;
+    if (endDate) queryParams += `&updated_before=${endDate}`;
+    if (status) queryParams += `&status=${status}`;
+    if (ref) queryParams += `&ref=${ref}`;
+
+    const path = `/projects/${projectId}/pipelines`;
+    const url = this.getApiUrl(path, queryParams);
 
     try {
       const response = await fetch(url, {
@@ -87,7 +123,10 @@ class GitLabApiService {
    */
   async getPipelineJobs(projectId, pipelineId) {
     try {
-      const response = await fetch(`${this.baseUrl}/projects/${projectId}/pipelines/${pipelineId}/jobs`, {
+      const path = `/projects/${projectId}/pipelines/${pipelineId}/jobs`;
+      const url = this.getApiUrl(path, '');
+      
+      const response = await fetch(url, {
         headers: {
           'PRIVATE-TOKEN': this.privateToken
         }
@@ -112,7 +151,10 @@ class GitLabApiService {
    */
   async getPipelineDetails(projectId, pipelineId) {
     try {
-      const response = await fetch(`${this.baseUrl}/projects/${projectId}/pipelines/${pipelineId}`, {
+      const path = `/projects/${projectId}/pipelines/${pipelineId}`;
+      const url = this.getApiUrl(path, '');
+      
+      const response = await fetch(url, {
         headers: {
           'PRIVATE-TOKEN': this.privateToken
         }
@@ -143,14 +185,14 @@ class GitLabApiService {
         return { total: 0, success: 0, failed: 0, skipped: 0, available: false };
       }
 
-      const response = await fetch(
-        `${this.baseUrl}/projects/${projectId}/pipelines/latest/test_report`,
-        {
-          headers: {
-            "PRIVATE-TOKEN": this.privateToken,
-          },
-        }
-      );
+      const path = `/projects/${projectId}/pipelines/latest/test_report`;
+      const url = this.getApiUrl(path, '');
+      
+      const response = await fetch(url, {
+        headers: {
+          "PRIVATE-TOKEN": this.privateToken,
+        },
+      });
 
       if (!response.ok) {
         // Test reports might not be enabled for all projects
@@ -185,14 +227,15 @@ class GitLabApiService {
       const defaultBranch = projectDetails.default_branch || this.defaultBranch;
       
       // Get the latest pipeline for the default branch
-      const response = await fetch(
-        `${this.baseUrl}/projects/${projectId}/pipelines?ref=${defaultBranch}&per_page=1`,
-        {
-          headers: {
-            "PRIVATE-TOKEN": this.privateToken,
-          },
-        }
-      );
+      const path = `/projects/${projectId}/pipelines`;
+      const queryParams = `?ref=${defaultBranch}&per_page=1`;
+      const url = this.getApiUrl(path, queryParams);
+      
+      const response = await fetch(url, {
+        headers: {
+          "PRIVATE-TOKEN": this.privateToken,
+        },
+      });
 
       if (!response.ok) {
         console.log(`Error fetching main branch pipeline for project ${projectId}: ${response.statusText}`);
@@ -244,14 +287,14 @@ class GitLabApiService {
    */
   async getProjectDetails(projectId) {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/projects/${projectId}`,
-        {
-          headers: {
-            "PRIVATE-TOKEN": this.privateToken,
-          },
-        }
-      );
+      const path = `/projects/${projectId}`;
+      const url = this.getApiUrl(path, '');
+      
+      const response = await fetch(url, {
+        headers: {
+          "PRIVATE-TOKEN": this.privateToken,
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Error fetching project details: ${response.statusText}`);
@@ -324,14 +367,15 @@ class GitLabApiService {
    */
   async getRecentCommits(projectId, limit = 3) {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/projects/${projectId}/repository/commits?per_page=${limit}`,
-        {
-          headers: {
-            "PRIVATE-TOKEN": this.privateToken,
-          },
-        }
-      );
+      const path = `/projects/${projectId}/repository/commits`;
+      const queryParams = `?per_page=${limit}`;
+      const url = this.getApiUrl(path, queryParams);
+      
+      const response = await fetch(url, {
+        headers: {
+          "PRIVATE-TOKEN": this.privateToken,
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Error fetching commits: ${response.statusText}`);
