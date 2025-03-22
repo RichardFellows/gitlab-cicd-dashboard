@@ -320,6 +320,68 @@
         color: #999;
         font-style: italic;
       }
+      .failed-jobs {
+        margin-top: 8px;
+        margin-bottom: 15px;
+      }
+      .failed-jobs-summary {
+        cursor: pointer;
+        font-weight: 500;
+        color: var(--danger-color);
+        margin-left: 120px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        background-color: rgba(220, 53, 69, 0.1);
+        display: inline-block;
+      }
+      .failed-jobs-list {
+        margin-top: 8px;
+        margin-left: 120px;
+        border-left: 2px solid var(--danger-color);
+        padding-left: 10px;
+      }
+      .job-item {
+        margin-bottom: 8px;
+        padding: 8px;
+        border-radius: 4px;
+        background-color: rgba(220, 53, 69, 0.05);
+      }
+      .job-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+      }
+      .job-name {
+        font-weight: 600;
+      }
+      .job-stage {
+        color: #666;
+        font-size: 12px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        background-color: #f0f0f0;
+      }
+      .job-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+      }
+      .job-reason {
+        color: var(--danger-color);
+      }
+      .job-link {
+        display: inline-block;
+        padding: 2px 6px;
+        background-color: var(--primary-color);
+        color: white;
+        text-decoration: none;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+      .job-link:hover {
+        background-color: #5a3da8;
+      }
       .test-details {
         font-size: 14px;
         color: #6c757d;

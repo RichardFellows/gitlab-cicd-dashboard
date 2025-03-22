@@ -245,7 +245,8 @@ class GitLabApiService {
           web_url: null,
           created_at: null,
           updated_at: null,
-          available: false
+          available: false,
+          failedJobs: []
         };
       }
 
@@ -259,11 +260,39 @@ class GitLabApiService {
           web_url: null,
           created_at: null,
           updated_at: null,
-          available: false
+          available: false,
+          failedJobs: []
         };
       }
       
-      return {...pipelines[0], available: true};
+      const pipeline = pipelines[0];
+      const pipelineWithData = {...pipeline, available: true, failedJobs: []};
+      
+      // If the pipeline failed, get the failed jobs
+      if (pipeline.status === 'failed' || pipeline.status === 'canceled') {
+        try {
+          const jobs = await this.getPipelineJobs(projectId, pipeline.id);
+          
+          // Filter out failed jobs
+          const failedJobs = jobs.filter(job => job.status === 'failed').map(job => ({
+            id: job.id,
+            name: job.name,
+            stage: job.stage,
+            web_url: job.web_url,
+            created_at: job.created_at,
+            started_at: job.started_at,
+            finished_at: job.finished_at,
+            failure_reason: job.failure_reason || 'Unknown'
+          }));
+          
+          pipelineWithData.failedJobs = failedJobs;
+        } catch (jobError) {
+          console.error(`Failed to fetch jobs for pipeline ${pipeline.id}:`, jobError);
+          // Don't fail if we can't get jobs, just continue with what we have
+        }
+      }
+      
+      return pipelineWithData;
     } catch (error) {
       console.error(
         `Failed to fetch main branch pipeline for project ${projectId}:`,
@@ -275,7 +304,8 @@ class GitLabApiService {
         web_url: null,
         created_at: null,
         updated_at: null,
-        available: false
+        available: false,
+        failedJobs: []
       };
     }
   }

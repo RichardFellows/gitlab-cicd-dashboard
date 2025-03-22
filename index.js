@@ -114,7 +114,9 @@ async function loadDashboard() {
 
         // Ensure all required properties exist
         if (!project.metrics.mainBranchPipeline) {
-          project.metrics.mainBranchPipeline = { available: false };
+          project.metrics.mainBranchPipeline = { available: false, failedJobs: [] };
+        } else if (!project.metrics.mainBranchPipeline.failedJobs) {
+          project.metrics.mainBranchPipeline.failedJobs = [];
         }
         
         if (!project.metrics.codeCoverage) {
@@ -366,6 +368,29 @@ function createProjectsSection(projects) {
                    </a>` : ''}
               </span>
             </div>
+            ${project.metrics.mainBranchPipeline.failedJobs && project.metrics.mainBranchPipeline.failedJobs.length > 0 ? `
+              <div class="failed-jobs">
+                <details>
+                  <summary class="failed-jobs-summary">Failed Jobs (${project.metrics.mainBranchPipeline.failedJobs.length})</summary>
+                  <div class="failed-jobs-list">
+                    ${project.metrics.mainBranchPipeline.failedJobs.map(job => `
+                      <div class="job-item failed">
+                        <div class="job-header">
+                          <span class="job-name">${job.name}</span>
+                          <span class="job-stage">${job.stage}</span>
+                        </div>
+                        <div class="job-details">
+                          <div class="job-reason">${job.failure_reason || 'Unknown failure'}</div>
+                          <div class="job-actions">
+                            <a href="${job.web_url}" target="_blank" class="job-link">View Job</a>
+                          </div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </details>
+              </div>
+            ` : ''}
             <div class="metric-item">
               <span class="metric-label">Success Rate:</span>
               <span class="metric-value ${getSuccessRateClass(project.metrics.successRate)}">${project.metrics.successRate.toFixed(2)}%</span>
