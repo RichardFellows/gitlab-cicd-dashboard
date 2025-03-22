@@ -8,7 +8,7 @@ class GitLabApiService {
     this.privateToken = privateToken;
     this.defaultBranch = 'main'; // Default branch name to use if not specified
     this.useProxy = this.shouldUseProxy();
-    this.proxyUrl = 'http://localhost:3000/proxy';
+    this.proxyUrl = 'http://localhost:3000/proxy'; // Default, may be overridden by start.js
   }
   
   /**
@@ -16,9 +16,9 @@ class GitLabApiService {
    * @returns {boolean} - Whether to use the proxy
    */
   shouldUseProxy() {
-    // Check if we're running on localhost with a port like 8000 (Python server)
-    return window.location.hostname === 'localhost' && 
-           (window.location.port === '8000' || window.location.port === '8080');
+    // Check if we're running on localhost (with any port)
+    // Our start.js script uses port 5050 for the HTTP server
+    return window.location.hostname === 'localhost';
   }
 
   /**

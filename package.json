@@ -1,0 +1,30 @@
+{
+  "name": "gitlab-cicd-dashboard",
+  "version": "1.0.0",
+  "description": "A dashboard to visualize CI/CD metrics for GitLab repositories",
+  "main": "index.js",
+  "scripts": {
+    "start": "node start.js",
+    "proxy": "node proxy.js",
+    "serve": "python -m http.server 5050"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RichardFellows/gitlab-cicd-dashboard.git"
+  },
+  "keywords": [
+    "gitlab",
+    "cicd",
+    "dashboard",
+    "metrics"
+  ],
+  "author": "Richard Fellows",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/RichardFellows/gitlab-cicd-dashboard/issues"
+  },
+  "homepage": "https://github.com/RichardFellows/gitlab-cicd-dashboard#readme",
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}

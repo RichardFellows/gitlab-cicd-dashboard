@@ -22,25 +22,38 @@ A dashboard to visualize CI/CD metrics for GitLab repositories under a specific 
 3. Enter your GitLab private token and group ID
 4. View your CI/CD metrics
 
-### Running Locally with CORS Proxy (Recommended)
+### Running Locally with Dev Server (Recommended)
 
-When running locally, you may encounter CORS (Cross-Origin Resource Sharing) issues when trying to access the GitLab API. To solve this, use the included proxy server:
+When running locally, you may encounter CORS (Cross-Origin Resource Sharing) issues when trying to access the GitLab API. We've included an all-in-one development server that handles this automatically:
 
-1. Make sure you have Node.js installed
+1. Make sure you have Node.js installed (version 12 or higher)
 2. Open a terminal and navigate to the project directory
-3. Start the proxy server:
+3. Run the development server:
    ```
-   node proxy.js
+   npm start
    ```
-4. In another terminal, start a local web server for the dashboard:
-   ```
-   python -m http.server
-   ```
-5. Open a browser and go to `http://localhost:8000`
-6. Enter your GitLab API token and group ID
-7. The dashboard will automatically use the proxy to avoid CORS issues
 
-The proxy server runs on port 3000 by default. It forwards your requests to the GitLab API while adding the necessary CORS headers.
+This will:
+- Start the proxy server on an available port
+- Start an HTTP server on port 5050
+- Automatically open your browser to `http://localhost:5050`
+- Configure the dashboard to use the correct proxy URL
+
+The dashboard will automatically use the proxy to avoid CORS issues. Your browser will open to the dashboard once everything is running.
+
+### Alternative: Manual Setup
+
+If you prefer to run the servers manually:
+
+1. Start the proxy server:
+   ```
+   npm run proxy
+   ```
+2. In another terminal, start a local web server:
+   ```
+   npm run serve
+   ```
+3. Open your browser to `http://localhost:5050`
 
 ## Files
 
@@ -50,3 +63,5 @@ The proxy server runs on port 3000 by default. It forwards your requests to the 
 - `index.js` - Main application logic
 - `pipeline-performance.js` - Pipeline metrics calculations
 - `proxy.js` - CORS proxy server for local development
+- `start.js` - Combined development server script
+- `package.json` - Project metadata and npm scripts
