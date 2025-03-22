@@ -2,6 +2,14 @@
 const gitLabService = new GitLabApiService();
 const dashboardService = new DashboardDataService(gitLabService);
 
+// LocalStorage keys
+const STORAGE_KEYS = {
+  GITLAB_URL: 'gitlab_cicd_dashboard_url',
+  GROUP_ID: 'gitlab_cicd_dashboard_group_id',
+  TOKEN: 'gitlab_cicd_dashboard_token',
+  TIMEFRAME: 'gitlab_cicd_dashboard_timeframe'
+};
+
 // DOM elements
 const gitlabUrlInput = document.getElementById('gitlab-url');
 const tokenInput = document.getElementById('gitlab-token');
@@ -12,8 +20,60 @@ const dashboardContainer = document.getElementById('dashboard-container');
 const loadingIndicator = document.getElementById('loading-indicator');
 const errorContainer = document.getElementById('error-container');
 
-// Event listeners
-loadButton.addEventListener('click', async () => {
+// Load saved values from localStorage
+loadSavedSettings();
+
+/**
+ * Load saved settings from localStorage
+ */
+function loadSavedSettings() {
+  // Load values if they exist
+  const savedUrl = localStorage.getItem(STORAGE_KEYS.GITLAB_URL);
+  const savedGroupId = localStorage.getItem(STORAGE_KEYS.GROUP_ID);
+  const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
+  const savedTimeframe = localStorage.getItem(STORAGE_KEYS.TIMEFRAME);
+  
+  if (savedUrl) {
+    gitlabUrlInput.value = savedUrl;
+  }
+  
+  if (savedGroupId) {
+    groupIdInput.value = savedGroupId;
+  }
+  
+  if (savedToken) {
+    tokenInput.value = savedToken;
+  }
+  
+  if (savedTimeframe) {
+    timeframeSelect.value = savedTimeframe;
+  }
+  
+  // Auto-load dashboard if we have all required values
+  if (savedUrl && savedGroupId && savedToken) {
+    loadDashboard();
+  }
+}
+
+/**
+ * Save current settings to localStorage
+ */
+function saveSettings() {
+  const baseUrl = gitlabUrlInput.value.trim();
+  const token = tokenInput.value.trim();
+  const groupId = groupIdInput.value.trim();
+  const timeframe = timeframeSelect.value;
+  
+  localStorage.setItem(STORAGE_KEYS.GITLAB_URL, baseUrl);
+  localStorage.setItem(STORAGE_KEYS.GROUP_ID, groupId);
+  localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+  localStorage.setItem(STORAGE_KEYS.TIMEFRAME, timeframe);
+}
+
+/**
+ * Load dashboard data using current input values
+ */
+async function loadDashboard() {
   const baseUrl = gitlabUrlInput.value.trim();
   const token = tokenInput.value.trim();
   const groupId = groupIdInput.value.trim();
@@ -27,6 +87,9 @@ loadButton.addEventListener('click', async () => {
   try {
     showLoading(true);
     clearError();
+
+    // Save settings to localStorage
+    saveSettings();
 
     // Update GitLab API base URL and token
     gitLabService.baseUrl = baseUrl.endsWith('/api/v4') ? baseUrl : `${baseUrl}/api/v4`;
@@ -42,7 +105,34 @@ loadButton.addEventListener('click', async () => {
   } finally {
     showLoading(false);
   }
-});
+}
+
+// Event listeners
+loadButton.addEventListener('click', loadDashboard);
+
+// Add event handler for clearing saved settings
+const clearSettingsButton = document.getElementById('clear-settings');
+if (clearSettingsButton) {
+  clearSettingsButton.addEventListener('click', () => {
+    // Clear localStorage
+    localStorage.removeItem(STORAGE_KEYS.GITLAB_URL);
+    localStorage.removeItem(STORAGE_KEYS.GROUP_ID);
+    localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.TIMEFRAME);
+    
+    // Clear input fields
+    gitlabUrlInput.value = 'https://gitlab.com';
+    tokenInput.value = '';
+    groupIdInput.value = '';
+    timeframeSelect.value = '30';
+    
+    // Clear dashboard
+    dashboardContainer.innerHTML = '';
+    
+    // Show confirmation
+    alert('Saved settings have been cleared.');
+  });
+}
 
 // Helper functions
 function showLoading(isLoading) {

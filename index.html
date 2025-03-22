@@ -39,6 +39,10 @@
         border-bottom: 1px solid var(--border-color);
         margin-bottom: 30px;
       }
+      .header-actions {
+        display: flex;
+        gap: 10px;
+      }
       h1 {
         color: var(--primary-color);
         margin: 0;
@@ -84,6 +88,14 @@
       button:disabled {
         background-color: #b8a8e0;
         cursor: not-allowed;
+      }
+      .secondary-button {
+        background-color: #f8f9fa;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+      }
+      .secondary-button:hover {
+        background-color: #f0f0f0;
       }
       #loading-indicator {
         display: none;
@@ -261,6 +273,9 @@
     <div class="container">
       <header>
         <h1>GitLab CI/CD Dashboard</h1>
+        <div class="header-actions">
+          <button id="clear-settings" class="secondary-button" title="Clear saved settings">Clear Saved Data</button>
+        </div>
       </header>
       <div class="controls">
         <div class="control-group">
