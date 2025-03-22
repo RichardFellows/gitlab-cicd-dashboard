@@ -16,22 +16,22 @@ loadButton.addEventListener('click', async () => {
   const token = tokenInput.value.trim();
   const groupId = groupIdInput.value.trim();
   const timeframe = parseInt(timeframeSelect.value, 10);
-  
+
   if (!token || !groupId) {
     displayError('Please provide both a GitLab token and a group ID');
     return;
   }
-  
+
   try {
     showLoading(true);
     clearError();
-    
+
     // Set the token
     gitLabService.setPrivateToken(token);
-    
+
     // Fetch metrics
     const metrics = await dashboardService.getGroupMetrics(groupId, { days: timeframe });
-    
+
     // Render dashboard
     renderDashboard(metrics);
   } catch (error) {
@@ -60,27 +60,27 @@ function clearError() {
 function renderDashboard(metrics) {
   // Clear previous content
   dashboardContainer.innerHTML = '';
-  
+
   // Create dashboard elements
   const dashboard = document.createElement('div');
   dashboard.className = 'dashboard';
-  
+
   // Add summary section
   dashboard.appendChild(createSummarySection(metrics));
-  
+
   // Add project cards
   dashboard.appendChild(createProjectsSection(metrics.projects));
-  
+
   // Append to container
   dashboardContainer.appendChild(dashboard);
 }
 
 function createSummarySection(metrics) {
   const aggregate = metrics.aggregateMetrics;
-  
+
   const section = document.createElement('section');
   section.className = 'summary-section';
-  
+
   section.innerHTML = `
     <h2>CI/CD Summary</h2>
     <div class="summary-cards">
@@ -105,7 +105,7 @@ function createSummarySection(metrics) {
       <canvas id="pipeline-status-chart"></canvas>
     </div>
   `;
-  
+
   // Add chart after the section is added to the DOM
   setTimeout(() => {
     const ctx = document.getElementById('pipeline-status-chart').getContext('2d');
@@ -134,14 +134,14 @@ function createSummarySection(metrics) {
       }
     });
   }, 0);
-  
+
   return section;
 }
 
 function createProjectsSection(projects) {
   const section = document.createElement('section');
   section.className = 'projects-section';
-  
+
   section.innerHTML = `
     <h2>Project Metrics</h2>
     <div class="project-cards">
@@ -168,7 +168,7 @@ function createProjectsSection(projects) {
               <span class="metric-label">Tests:</span>
               <span class="metric-value">${project.metrics.testMetrics.total}</span>
               <span class="test-details">
-                (${project.metrics.testMetrics.success} passed, 
+                (${project.metrics.testMetrics.success} passed,
                 ${project.metrics.testMetrics.failed} failed)
               </span>
             </div>
@@ -177,7 +177,7 @@ function createProjectsSection(projects) {
       `).join('')}
     </div>
   `;
-  
+
   return section;
 }
 
@@ -189,13 +189,13 @@ function getSuccessRateClass(rate) {
 
 function formatDuration(seconds) {
   if (!seconds) return '0s';
-  
+
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
-  
+
   if (minutes === 0) {
     return `${remainingSeconds}s`;
   }
-  
+
   return `${minutes}m ${remainingSeconds}s`;
 }
