@@ -535,8 +535,11 @@ class GitLabApiService {
       // Add with_labels_details=true to get label details
       queryParams += '&with_labels_details=true';
       
-      // Add with_pipeline=true to include pipeline info
+      // Add parameters to include pipeline info (trying both documented parameters)
       queryParams += '&include_pipeline=true';
+      queryParams += '&with_pipeline_status=true';
+      
+      console.log(`Requesting MRs for project ${projectId} with query params: ${queryParams}`);
       
       const path = `/projects/${projectId}/merge_requests`;
       const url = this.getApiUrl(path, queryParams);
@@ -551,8 +554,79 @@ class GitLabApiService {
         throw new Error(`Error fetching merge requests: ${response.statusText}`);
       }
 
-      // Get MRs with pipeline details
-      const mergeRequests = await response.json();
+      // Try different approach to get pipelines for MRs
+      console.log('Adding direct pipeline lookup for merge requests...');
+      
+      // Loop through merge requests to collect pipeline data
+      for (let i = 0; i < mergeRequests.length; i++) {
+        const mr = mergeRequests[i];
+        
+        if (!mr.head_pipeline) {
+          console.log(`MR ${mr.iid} (${mr.title.substring(0, 20)}...) has no head_pipeline, trying direct lookup`);
+          
+          try {
+            // Try to get pipelines for the MR directly
+            const mrPipelinesPath = `/projects/${projectId}/merge_requests/${mr.iid}/pipelines`;
+            const mrPipelinesUrl = this.getApiUrl(mrPipelinesPath, '');
+            
+            const mrPipelinesResponse = await fetch(mrPipelinesUrl, {
+              headers: {
+                "PRIVATE-TOKEN": this.privateToken,
+              },
+            });
+            
+            if (mrPipelinesResponse.ok) {
+              const mrPipelines = await mrPipelinesResponse.json();
+              console.log(`Found ${mrPipelines.length} pipelines for MR ${mr.iid} via direct API call`);
+              
+              if (mrPipelines.length > 0) {
+                // Add the first pipeline as the head_pipeline
+                mergeRequests[i].head_pipeline = mrPipelines[0];
+                console.log(`Added pipeline ${mrPipelines[0].id} to MR ${mr.iid}`);
+              }
+            } else {
+              console.log(`Error fetching pipelines for MR ${mr.iid}: ${mrPipelinesResponse.statusText}`);
+            }
+          } catch (error) {
+            console.error(`Error in direct pipeline lookup for MR ${mr.iid}:`, error);
+          }
+        }
+      }
+      
+      console.log(`Retrieved ${mergeRequests.length} merge requests for project ${projectId}`);
+      
+      // Log first MR to inspect properties
+      if (mergeRequests.length > 0) {
+        console.log('First merge request structure:', {
+          iid: mergeRequests[0].iid,
+          title: mergeRequests[0].title,
+          has_head_pipeline: !!mergeRequests[0].head_pipeline,
+          pipeline_id: mergeRequests[0].head_pipeline ? mergeRequests[0].head_pipeline.id : 'none',
+          source_branch: mergeRequests[0].source_branch,
+          web_url: mergeRequests[0].web_url
+        });
+        
+        // Log all MR pipeline info
+        console.log('All MR pipeline info:', mergeRequests.map(mr => ({
+          iid: mr.iid,
+          title: mr.title.substring(0, 30) + (mr.title.length > 30 ? '...' : ''),
+          has_pipeline: !!mr.head_pipeline,
+          pipeline_id: mr.head_pipeline ? mr.head_pipeline.id : 'none'
+        })));
+      }
+      
+      // Log the first MR to see its structure and pipeline data
+      if (mergeRequests.length > 0) {
+        console.log(`First merge request data for project ${projectId}:`, {
+          id: mergeRequests[0].id,
+          iid: mergeRequests[0].iid,
+          title: mergeRequests[0].title,
+          head_pipeline: mergeRequests[0].head_pipeline,
+          has_pipeline: !!mergeRequests[0].head_pipeline
+        });
+      } else {
+        console.log(`No merge requests found for project ${projectId}`);
+      }
       
       // For each MR, get the head pipeline details and recent commits if available
       const detailedMRs = await Promise.all(
@@ -570,10 +644,32 @@ class GitLabApiService {
           }
           
           // Get pipeline details if available
-          if (mr.head_pipeline) {
-            try {
-              // Only fetch details if we have a pipeline
-              const pipelineDetails = await this.getPipelineDetails(projectId, mr.head_pipeline.id);
+          console.log(`MR ${mr.iid} (${mr.title}): head_pipeline =`, mr.head_pipeline);
+          
+          // If we have a head_pipeline object, check if it has necessary properties
+          if (mr.head_pipeline && typeof mr.head_pipeline === 'object') {
+            // Check if it has an ID, which is required for fetching details
+            if (!mr.head_pipeline.id) {
+              console.warn(`MR ${mr.iid} has head_pipeline object but missing ID:`, mr.head_pipeline);
+              // Add a minimal placeholder to ensure UI shows something
+              enhancedMR.head_pipeline = {
+                ...mr.head_pipeline,
+                id: 'unknown',
+                status: 'unknown', 
+                web_url: mr.web_url
+              };
+            } else {
+              try {
+                // Only fetch details if we have a valid pipeline ID
+                console.log(`Fetching pipeline details for MR ${mr.iid}, pipeline ID: ${mr.head_pipeline.id}`);
+                const pipelineDetails = await this.getPipelineDetails(projectId, mr.head_pipeline.id);
+                
+                console.log(`Got pipeline details for MR ${mr.iid}:`, {
+                  pipeline_id: pipelineDetails.id,
+                  status: pipelineDetails.status,
+                  duration: pipelineDetails.duration || 'N/A',
+                  web_url: pipelineDetails.web_url
+                });
               
               // Return MR with enhanced pipeline info
               enhancedMR.head_pipeline = {

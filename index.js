@@ -677,6 +677,14 @@ async function showProjectDetails(projectId) {
     // Fetch the project's merge requests with pipeline info
     const mergeRequests = await gitLabService.getProjectMergeRequests(projectId);
     
+    console.log(`Retrieved ${mergeRequests.length} merge requests for project details view`);
+    console.log('MR Pipeline Status Check:', mergeRequests.map(mr => ({
+      iid: mr.iid, 
+      title: mr.title.substring(0, 25) + (mr.title.length > 25 ? '...' : ''),
+      has_pipeline: !!mr.head_pipeline,
+      pipeline_status: mr.head_pipeline ? mr.head_pipeline.status : 'no pipeline'
+    })));
+    
     // Create the project detail view
     const detailView = createProjectDetailView(project, mergeRequests);
     
