@@ -249,9 +249,9 @@ function createProjectsSection(projects) {
               <h4>Pipeline Status</h4>
               <div class="metric-item">
                 <span class="metric-label">Main Branch:</span>
-                <span class="metric-value ${getPipelineStatusClass(project.metrics.mainBranchPipeline.status)}">
-                  ${formatPipelineStatus(project.metrics.mainBranchPipeline.status)}
-                  ${project.metrics.mainBranchPipeline.web_url ? 
+                <span class="metric-value ${project.metrics.mainBranchPipeline.available ? getPipelineStatusClass(project.metrics.mainBranchPipeline.status) : ''}">
+                  ${formatPipelineStatus(project.metrics.mainBranchPipeline.status, project.metrics.mainBranchPipeline.available)}
+                  ${project.metrics.mainBranchPipeline.available && project.metrics.mainBranchPipeline.web_url ? 
                     `<a href="${project.metrics.mainBranchPipeline.web_url}" target="_blank" title="View pipeline">
                       <i class="icon">🔍</i>
                      </a>` : ''}
@@ -267,7 +267,7 @@ function createProjectsSection(projects) {
               </div>
               <div class="metric-item">
                 <span class="metric-label">Code Coverage:</span>
-                <span class="metric-value">${formatCoverage(project.metrics.codeCoverage.coverage)}</span>
+                <span class="metric-value">${formatCoverage(project.metrics.codeCoverage.coverage, project.metrics.codeCoverage.available)}</span>
               </div>
             </div>
             
@@ -293,11 +293,14 @@ function createProjectsSection(projects) {
               <h4>Test Results</h4>
               <div class="metric-item">
                 <span class="metric-label">Tests:</span>
-                <span class="metric-value">${project.metrics.testMetrics.total}</span>
-                <span class="test-details">
-                  (${project.metrics.testMetrics.success} passed,
-                  ${project.metrics.testMetrics.failed} failed)
-                </span>
+                ${project.metrics.testMetrics.available ?
+                  `<span class="metric-value">${project.metrics.testMetrics.total}</span>
+                   <span class="test-details">
+                     (${project.metrics.testMetrics.success} passed,
+                     ${project.metrics.testMetrics.failed} failed)
+                   </span>` :
+                  `<span class="metric-value">No Test Data Available</span>`
+                }
               </div>
             </div>
           </div>
@@ -345,15 +348,16 @@ function getPipelineStatusClass(status) {
   }
 }
 
-function formatPipelineStatus(status) {
-  if (!status || status === 'unknown') return 'Unknown';
+function formatPipelineStatus(status, available) {
+  if (!status || status === 'unknown' || available === false) return 'No Pipeline Data';
   
   // Capitalize first letter
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function formatCoverage(coverage) {
-  if (coverage === null || coverage === undefined) return 'N/A';
+function formatCoverage(coverage, available) {
+  if (available === false) return 'Not Available';
+  if (coverage === null || coverage === undefined) return 'No Coverage Data';
   return `${coverage.toFixed(2)}%`;
 }
 

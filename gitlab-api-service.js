@@ -136,6 +136,13 @@ class GitLabApiService {
    */
   async getTestReports(projectId) {
     try {
+      // First check if project has any pipelines
+      const pipelines = await this.getProjectPipelines(projectId, { per_page: 1 });
+      if (!pipelines || pipelines.length === 0) {
+        console.log(`No pipelines found for project ${projectId}, cannot fetch test reports`);
+        return { total: 0, success: 0, failed: 0, skipped: 0, available: false };
+      }
+
       const response = await fetch(
         `${this.baseUrl}/projects/${projectId}/pipelines/latest/test_report`,
         {
@@ -147,20 +154,22 @@ class GitLabApiService {
 
       if (!response.ok) {
         // Test reports might not be enabled for all projects
-        if (response.status === 404) {
-          return { total: 0, success: 0, failed: 0, skipped: 0 };
+        if (response.status === 404 || response.status === 400) {
+          console.log(`Test reports not available for project ${projectId} (status ${response.status})`);
+          return { total: 0, success: 0, failed: 0, skipped: 0, available: false };
         }
         throw new Error(`Error fetching test reports: ${response.statusText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      return { ...data, available: true };
     } catch (error) {
       console.error(
         `Failed to fetch test reports for project ${projectId}:`,
         error
       );
       // Return empty metrics in case of error
-      return { total: 0, success: 0, failed: 0, skipped: 0 };
+      return { total: 0, success: 0, failed: 0, skipped: 0, available: false };
     }
   }
   
@@ -186,22 +195,32 @@ class GitLabApiService {
       );
 
       if (!response.ok) {
-        throw new Error(`Error fetching main branch pipeline: ${response.statusText}`);
-      }
-
-      const pipelines = await response.json();
-      
-      if (pipelines.length === 0) {
+        console.log(`Error fetching main branch pipeline for project ${projectId}: ${response.statusText}`);
         return {
           status: 'unknown',
           id: null,
           web_url: null,
           created_at: null,
-          updated_at: null
+          updated_at: null,
+          available: false
+        };
+      }
+
+      const pipelines = await response.json();
+      
+      if (!pipelines || pipelines.length === 0) {
+        console.log(`No pipelines found for the main branch of project ${projectId}`);
+        return {
+          status: 'unknown',
+          id: null,
+          web_url: null,
+          created_at: null,
+          updated_at: null,
+          available: false
         };
       }
       
-      return pipelines[0];
+      return {...pipelines[0], available: true};
     } catch (error) {
       console.error(
         `Failed to fetch main branch pipeline for project ${projectId}:`,
@@ -212,7 +231,8 @@ class GitLabApiService {
         id: null,
         web_url: null,
         created_at: null,
-        updated_at: null
+        updated_at: null,
+        available: false
       };
     }
   }
@@ -261,8 +281,9 @@ class GitLabApiService {
       // Get the latest pipeline for the default branch
       const pipelines = await this.getProjectPipelines(projectId, { ref: defaultBranch, per_page: 1 });
       
-      if (pipelines.length === 0) {
-        return { coverage: null };
+      if (!pipelines || pipelines.length === 0) {
+        console.log(`No pipelines found for project ${projectId}, cannot fetch code coverage`);
+        return { coverage: null, available: false };
       }
       
       const pipelineId = pipelines[0].id;
@@ -270,17 +291,28 @@ class GitLabApiService {
       // Get pipeline details including coverage
       const pipelineDetails = await this.getPipelineDetails(projectId, pipelineId);
       
-      return { 
-        coverage: pipelineDetails.coverage || null,
-        pipelineId: pipelineId,
-        pipelineUrl: pipelines[0].web_url 
-      };
+      if (pipelineDetails && pipelineDetails.coverage !== undefined) {
+        return { 
+          coverage: pipelineDetails.coverage,
+          pipelineId: pipelineId,
+          pipelineUrl: pipelines[0].web_url,
+          available: true
+        };
+      } else {
+        console.log(`Code coverage not available for project ${projectId}`);
+        return { 
+          coverage: null, 
+          pipelineId: pipelineId,
+          pipelineUrl: pipelines[0].web_url,
+          available: false 
+        };
+      }
     } catch (error) {
       console.error(
         `Failed to fetch code coverage for project ${projectId}:`,
         error
       );
-      return { coverage: null };
+      return { coverage: null, available: false };
     }
   }
   
