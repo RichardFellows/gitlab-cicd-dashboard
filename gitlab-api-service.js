@@ -335,11 +335,25 @@ class GitLabApiService {
       const pipelineDetails = await this.getPipelineDetails(projectId, pipelineId);
       
       if (pipelineDetails && pipelineDetails.coverage !== undefined) {
+        // Normalize coverage to be a number
+        let coverageValue;
+        try {
+          // Coverage might be a string like "75.5%" or a number like 75.5
+          coverageValue = parseFloat(pipelineDetails.coverage);
+          if (isNaN(coverageValue)) {
+            console.log(`Invalid coverage format for project ${projectId}: ${pipelineDetails.coverage}`);
+            coverageValue = null;
+          }
+        } catch (e) {
+          console.log(`Error parsing coverage for project ${projectId}: ${e.message}`);
+          coverageValue = null;
+        }
+        
         return { 
-          coverage: pipelineDetails.coverage,
+          coverage: coverageValue,
           pipelineId: pipelineId,
           pipelineUrl: pipelines[0].web_url,
-          available: true
+          available: coverageValue !== null
         };
       } else {
         console.log(`Code coverage not available for project ${projectId}`);

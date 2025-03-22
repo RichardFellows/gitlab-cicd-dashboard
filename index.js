@@ -98,9 +98,64 @@ async function loadDashboard() {
     // Fetch metrics
     const metrics = await dashboardService.getGroupMetrics(groupId, { days: timeframe });
 
+    // Add more validation for the metrics data
+    if (!metrics || !metrics.projects) {
+      throw new Error('Invalid metrics data received from API');
+    }
+
+    // Ensure all projects have valid metrics
+    metrics.projects = metrics.projects.map(project => {
+      try {
+        // Ensure the project has a metrics object
+        if (!project.metrics) {
+          console.warn(`Project ${project.name} has no metrics, creating empty object`);
+          project.metrics = {};
+        }
+
+        // Ensure all required properties exist
+        if (!project.metrics.mainBranchPipeline) {
+          project.metrics.mainBranchPipeline = { available: false };
+        }
+        
+        if (!project.metrics.codeCoverage) {
+          project.metrics.codeCoverage = { coverage: null, available: false };
+        }
+        
+        if (!project.metrics.testMetrics) {
+          project.metrics.testMetrics = { total: 0, success: 0, failed: 0, skipped: 0, available: false };
+        }
+        
+        if (!project.metrics.recentCommits) {
+          project.metrics.recentCommits = [];
+        }
+        
+        // Provide default values for numerical properties
+        project.metrics.successRate = project.metrics.successRate || 0;
+        project.metrics.avgDuration = project.metrics.avgDuration || 0;
+        
+        return project;
+      } catch (err) {
+        console.error(`Error processing project ${project.name || 'unknown'}:`, err);
+        // Return a minimal valid project to avoid breaking the dashboard
+        return {
+          name: project.name || 'Unknown Project',
+          webUrl: project.webUrl || '#',
+          metrics: {
+            mainBranchPipeline: { available: false },
+            codeCoverage: { coverage: null, available: false },
+            testMetrics: { total: 0, success: 0, failed: 0, skipped: 0, available: false },
+            recentCommits: [],
+            successRate: 0,
+            avgDuration: 0
+          }
+        };
+      }
+    });
+
     // Render dashboard
     renderDashboard(metrics);
   } catch (error) {
+    console.error('Dashboard loading error:', error);
     displayError(`Failed to load dashboard data: ${error.message}`);
   } finally {
     showLoading(false);
@@ -467,7 +522,15 @@ function formatPipelineStatus(status, available) {
 function formatCoverage(coverage, available) {
   if (available === false) return 'Not Available';
   if (coverage === null || coverage === undefined) return 'No Coverage Data';
-  return `${coverage.toFixed(2)}%`;
+  
+  // Make sure coverage is a number
+  let coverageNum = parseFloat(coverage);
+  if (isNaN(coverageNum)) {
+    console.warn('Invalid coverage value:', coverage);
+    return 'Invalid Data';
+  }
+  
+  return `${coverageNum.toFixed(2)}%`;
 }
 
 function formatDate(dateString) {
