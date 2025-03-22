@@ -536,7 +536,11 @@ class GitLabApiService {
       queryParams += '&with_labels_details=true';
       
       // Add parameters to include pipeline info (trying both documented parameters)
+      // Add parameters to include pipeline info (trying both documented parameters)
       queryParams += '&include_pipeline=true';
+      queryParams += '&with_pipeline_status=true';
+      
+      console.log(`Requesting MRs for project ${projectId} with query params: ${queryParams}`);
       queryParams += '&with_pipeline_status=true';
       
       console.log(`Requesting MRs for project ${projectId} with query params: ${queryParams}`);
