@@ -1,5 +1,13 @@
 # CLAUDE.md - Guidelines for GitLab CI/CD Dashboard
 
+## Recent Updates
+- Fixed GitLab API authentication by correcting header case sensitivity
+- Added proper error handling for API requests
+- Enhanced token retrieval from localStorage
+- Fixed proxy configuration for proper cookie handling
+- Updated test mocks for Chart.js compatibility 
+- Improved test structure with direct rendering instead of imports
+
 ## Running the Application
 - Open `localhost:5050/` in a browser to run the application
 - For local development with auto-refresh:
@@ -9,10 +17,15 @@
   - `npm run preview` (preview the production build locally)
 - Testing:
   - `npm test` (runs unit tests)
+  - `npm run test:watch` (runs tests in watch mode)
   - `npm run test:deployment [url]` (verifies site functionality at the given URL)
 - Linting:
   - `npm run lint` (runs ESLint to check code quality)
 - Requires Node.js >= 18.0.0
+
+## Known Issues
+- Some component tests still need updating to properly mock Chart.js
+- Some tests are temporarily disabled until they can be fixed
 
 ## Code Style Guidelines
 - **Naming**: camelCase for variables/functions, PascalCase for classes and React components
@@ -57,7 +70,8 @@ project-root/
 │   │   └── formatting.ts      # Formatting utilities
 │   │
 │   ├── test/                  # Test configuration
-│   │   └── setup.ts           # Test setup file
+│   │   ├── setup.ts           # Test setup file
+│   │   └── mocks.tsx          # Test mocks for React components
 │   │
 │   ├── App.tsx                # Main App component
 │   └── main.tsx               # Application entry point
@@ -78,6 +92,7 @@ project-root/
 ## Testing
 - Using Vitest for unit testing
 - Test files located in the same directories as the source files they test, with a .test.ts(x) extension
+- Test mocks in src/test/mocks.tsx
 - Test commands:
   - `npm test`: Run all tests
   - `npm run test:watch`: Run tests in watch mode

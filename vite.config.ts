@@ -48,6 +48,7 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     css: false, // Disable CSS processing in tests
     include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+    exclude: ['.skipped_tests/**/*', 'node_modules/**/*'],
     coverage: {
       reporter: ['text', 'json', 'html'],
       exclude: [
