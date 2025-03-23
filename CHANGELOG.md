@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added GitHub Actions workflow for automatic deployment to GitHub Pages
+- Added build script to copy necessary files from src to public directory for deployment
+
 ### Changed
 - Reorganized project structure for better maintainability:
   - Created `src/` directory with subdirectories for components, services, and utils
