@@ -59,10 +59,10 @@ const tableView = (() => {
    */
   function createProjectRow(project) {
     const row = document.createElement('tr');
-    
+
     // Determine project category based on pipeline status
     const category = categorizeProject(project);
-    
+
     row.className = `project-row ${category}`;
     row.setAttribute('data-project-id', project.id);
 
@@ -71,16 +71,16 @@ const tableView = (() => {
       project.metrics.mainBranchPipeline.status,
       project.metrics.mainBranchPipeline.available
     );
-    
+
     const successRate = project.metrics.successRate.toFixed(2) + '%';
     const duration = formatDuration(project.metrics.avgDuration);
-    
+
     const mrCount = project.metrics.mergeRequestCounts.totalOpen;
     const draftCount = project.metrics.mergeRequestCounts.drafts;
-    const mrDisplay = mrCount > 0 
+    const mrDisplay = mrCount > 0
       ? `${mrCount} ${draftCount > 0 ? `(${draftCount} draft${draftCount !== 1 ? 's' : ''})` : ''}`
       : '0';
-    
+
     const coverage = project.metrics.codeCoverage.available
       ? project.metrics.codeCoverage.coverage.toFixed(2) + '%'
       : 'N/A';
@@ -110,13 +110,13 @@ const tableView = (() => {
   function createProjectDetailsRow(project) {
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'project-details';
-    
+
     // Create metrics summary
     const metricsSummary = `
       <div class="metrics-bar">
         <div class="metric">
           <div class="metric-label">Total Pipelines</div>
-          <div class="metric-value">${project.metrics.totalPipelines}</div>
+          <div class="metric-value">${project.metrics.totalPipelines || 0}</div>
         </div>
         <div class="metric">
           <div class="metric-label">Success Rate</div>
@@ -131,7 +131,7 @@ const tableView = (() => {
         <div class="metric">
           <div class="metric-label">Code Coverage</div>
           <div class="metric-value">
-            ${project.metrics.codeCoverage.available 
+            ${project.metrics.codeCoverage.available
               ? project.metrics.codeCoverage.coverage.toFixed(2) + '%'
               : 'Not Available'}
           </div>
@@ -158,15 +158,15 @@ const tableView = (() => {
     }
 
     // Create a failed jobs section if the main branch pipeline failed
-    if (project.metrics.mainBranchPipeline.available && 
-        (project.metrics.mainBranchPipeline.status === 'failed' || 
+    if (project.metrics.mainBranchPipeline.available &&
+        (project.metrics.mainBranchPipeline.status === 'failed' ||
          project.metrics.mainBranchPipeline.status === 'canceled') &&
-        project.metrics.mainBranchPipeline.failedJobs && 
+        project.metrics.mainBranchPipeline.failedJobs &&
         project.metrics.mainBranchPipeline.failedJobs.length > 0) {
-      
+
       const failedJobsSection = document.createElement('div');
       failedJobsSection.className = 'failed-jobs-section';
-      
+
       const failedJobsList = project.metrics.mainBranchPipeline.failedJobs.map(job => `
         <div class="job-item failed">
           <div class="job-header">
@@ -181,14 +181,14 @@ const tableView = (() => {
           </div>
         </div>
       `).join('');
-      
+
       failedJobsSection.innerHTML = `
         <h3>Failed Jobs (${project.metrics.mainBranchPipeline.failedJobs.length})</h3>
         <div class="failed-jobs-list">
           ${failedJobsList}
         </div>
       `;
-      
+
       detailsContent.appendChild(failedJobsSection);
     }
 
@@ -196,8 +196,8 @@ const tableView = (() => {
     if (project.metrics.recentCommits && project.metrics.recentCommits.length > 0) {
       const commitsSection = document.createElement('div');
       commitsSection.className = 'commits-section';
-      
-      const commitsList = project.metrics.recentCommits.map(commit => `
+
+      const commitsList = project.metrics.recentCommits.slice(0, 3).map(commit => `
         <div class="commit-item">
           <div class="commit-header">
             <span class="commit-id">${commit.short_id}</span>
@@ -206,14 +206,14 @@ const tableView = (() => {
           <div class="commit-message">${escapeHtml(commit.title)}</div>
         </div>
       `).join('');
-      
+
       commitsSection.innerHTML = `
         <h3>Recent Commits</h3>
         <div class="commits-list">
           ${commitsList}
         </div>
       `;
-      
+
       detailsContent.appendChild(commitsSection);
     }
 
@@ -235,10 +235,10 @@ const tableView = (() => {
     }
 
     const mrRows = mergeRequests.map(mr => {
-      const pipelineStatus = mr.head_pipeline ? 
-        `<span class="status-indicator ${getPipelineStatusClass(mr.head_pipeline.status)}"></span> ${formatPipelineStatus(mr.head_pipeline.status, true)}` : 
+      const pipelineStatus = mr.head_pipeline ?
+        `<span class="status-indicator ${getPipelineStatusClass(mr.head_pipeline.status)}"></span> ${formatPipelineStatus(mr.head_pipeline.status, true)}` :
         'No pipeline';
-      
+
       return `
         <tr>
           <td>
@@ -279,23 +279,23 @@ const tableView = (() => {
       row.addEventListener('click', function() {
         // Toggle expanded class on the row
         this.classList.toggle('expanded');
-        
+
         // Toggle visibility of details row
         const detailsRow = this.nextElementSibling;
         if (detailsRow && detailsRow.classList.contains('project-details')) {
           detailsRow.classList.toggle('open');
-          
+
           // Update expand button
           const expandBtn = this.querySelector('.expand-btn');
           if (expandBtn) {
             expandBtn.textContent = detailsRow.classList.contains('open') ? '▲' : '▼';
           }
-          
+
           // Load merge requests for the project if needed
           if (detailsRow.classList.contains('open')) {
             const projectId = this.getAttribute('data-project-id');
             const mrContainer = document.getElementById(`mr-table-container-${projectId}`);
-            
+
             if (mrContainer && mrContainer.querySelector('.loading-indicator')) {
               loadMergeRequests(projectId, mrContainer);
             }
@@ -303,7 +303,7 @@ const tableView = (() => {
         }
       });
     });
-    
+
     // Prevent propagation when clicking directly on the expand button
     document.querySelectorAll('.expand-btn').forEach(btn => {
       btn.addEventListener('click', function(e) {
@@ -326,6 +326,97 @@ const tableView = (() => {
       console.error(`Failed to load merge requests for project ${projectId}:`, error);
       container.innerHTML = '<div class="error-message">Failed to load merge requests</div>';
     }
+  }
+
+  // Helper functions (copied from index.js to make the module self-contained)
+  
+  function categorizeProject(project) {
+    // Check if pipeline exists
+    if (!project.metrics.mainBranchPipeline.available) {
+      return 'no-pipeline';
+    }
+
+    // Check pipeline status
+    const status = project.metrics.mainBranchPipeline.status;
+    if (status === 'failed' || status === 'canceled') {
+      return 'failed';
+    }
+
+    if (status === 'running' || status === 'pending') {
+      return 'warning';
+    }
+
+    if (status === 'success') {
+      // Even if pipeline is successful, we may want to warn about low success rates
+      if (project.metrics.successRate < 75) {
+        return 'warning';
+      }
+      return 'success';
+    }
+
+    // Default case for unknown statuses
+    return 'warning';
+  }
+
+  function getSuccessRateClass(rate) {
+    if (rate >= 90) return 'success';
+    if (rate >= 75) return 'warning';
+    return 'danger';
+  }
+
+  function formatDuration(seconds) {
+    if (!seconds) return '0s';
+
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    if (minutes === 0) {
+      return `${remainingSeconds}s`;
+    }
+
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+
+  function getPipelineStatusClass(status) {
+    switch (status) {
+      case 'success':
+        return 'success';
+      case 'failed':
+        return 'danger';
+      case 'running':
+        return 'warning';
+      case 'canceled':
+        return 'danger';
+      case 'pending':
+        return 'warning';
+      default:
+        return '';
+    }
+  }
+
+  function formatPipelineStatus(status, available) {
+    if (!status || status === 'unknown' || available === false) return 'No Pipeline Data';
+
+    // Capitalize first letter
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  }
+
+  function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   // Return public API
