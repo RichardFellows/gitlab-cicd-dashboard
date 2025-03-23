@@ -11,6 +11,12 @@ const STORAGE_KEYS = {
   VIEW_TYPE: 'gitlab_cicd_dashboard_view_type'
 };
 
+// View types
+const VIEW_TYPES = {
+  CARD: 'card',
+  TABLE: 'table'
+};
+
 // DOM elements
 const gitlabUrlInput = document.getElementById('gitlab-url');
 const tokenInput = document.getElementById('gitlab-token');
@@ -20,6 +26,8 @@ const loadButton = document.getElementById('load-data');
 const dashboardContainer = document.getElementById('dashboard-container');
 const loadingIndicator = document.getElementById('loading-indicator');
 const errorContainer = document.getElementById('error-container');
+const cardViewBtn = document.getElementById('card-view-btn');
+const tableViewBtn = document.getElementById('table-view-btn');
 
 // Load saved values from localStorage
 loadSavedSettings();
@@ -49,6 +57,7 @@ function loadSavedSettings() {
   const savedGroupId = localStorage.getItem(STORAGE_KEYS.GROUP_ID);
   const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
   const savedTimeframe = localStorage.getItem(STORAGE_KEYS.TIMEFRAME);
+  const savedViewType = localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) || VIEW_TYPES.CARD;
   
   if (savedUrl) {
     gitlabUrlInput.value = savedUrl;
@@ -226,6 +235,24 @@ function displayError(message) {
 function clearError() {
   errorContainer.textContent = '';
   errorContainer.style.display = 'none';
+}
+
+/**
+ * Set the active view type and update UI
+ * @param {string} viewType - The view type (card or table)
+ */
+function setActiveViewType(viewType) {
+  // Update active button state
+  if (viewType === VIEW_TYPES.TABLE) {
+    cardViewBtn.classList.remove('active');
+    tableViewBtn.classList.add('active');
+  } else {
+    cardViewBtn.classList.add('active');
+    tableViewBtn.classList.remove('active');
+  }
+  
+  // Save the preference
+  localStorage.setItem(STORAGE_KEYS.VIEW_TYPE, viewType);
 }
 
 function renderDashboard(metrics) {
