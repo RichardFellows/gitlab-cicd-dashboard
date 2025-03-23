@@ -10,7 +10,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "build": "node scripts/build.js",
-    "test:deployment": "node scripts/test-deployment.js"
+    "test:deployment": "node scripts/test-deployment.js",
+    "build:serve": "node scripts/build-and-serve.js"
   },
   "repository": {
     "type": "git",

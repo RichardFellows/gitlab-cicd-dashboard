@@ -30,41 +30,57 @@ function ensureDirectoryExists(dir) {
 
 // Copy a file, creating directories as needed
 function copyFile(source, dest) {
-  const destDir = path.dirname(dest);
-  ensureDirectoryExists(destDir);
-  
-  fs.copyFile(source, dest, (err) => {
-    if (err) {
-      console.error(`Error copying ${source} to ${dest}:`, err);
-      process.exit(1);
-    }
-    console.log(`Copied: ${source} → ${dest}`);
+  return new Promise((resolve, reject) => {
+    const destDir = path.dirname(dest);
+    ensureDirectoryExists(destDir);
+    
+    fs.copyFile(source, dest, (err) => {
+      if (err) {
+        console.error(`Error copying ${source} to ${dest}:`, err);
+        reject(err);
+        return;
+      }
+      console.log(`Copied: ${source} → ${dest}`);
+      resolve();
+    });
   });
 }
 
 // Main build process
-function build() {
+async function build() {
   console.log('Building GitLab CI/CD Dashboard for deployment...');
   
   // Make sure the public directory exists
   ensureDirectoryExists(publicDir);
   
-  // Copy all files from src to public
-  filesToCopy.forEach(file => {
-    const srcFile = path.join(srcDir, file);
-    const destFile = path.join(publicDir, file.replace(/^components\/table-view\//, ''));
+  try {
+    // Copy all files from src to public
+    const copyPromises = filesToCopy.map(file => {
+      const srcFile = path.join(srcDir, file);
+      // Extract just the file name for the destination to flatten the structure
+      const fileName = path.basename(file);
+      const destFile = path.join(publicDir, fileName);
+
+      // Check if source file exists
+      if (!fs.existsSync(srcFile)) {
+        throw new Error(`Source file ${srcFile} does not exist!`);
+      }
+
+      return copyFile(srcFile, destFile);
+    });
     
-    // Check if source file exists
-    if (!fs.existsSync(srcFile)) {
-      console.error(`Error: Source file ${srcFile} does not exist!`);
-      process.exit(1);
-    }
+    // Wait for all files to be copied
+    await Promise.all(copyPromises);
     
-    copyFile(srcFile, destFile);
-  });
-  
-  console.log('Build completed successfully!');
+    console.log('Build completed successfully!');
+  } catch (error) {
+    console.error('Build failed:', error.message);
+    process.exit(1);
+  }
 }
 
 // Run the build
-build();
+build().catch(err => {
+  console.error('Unhandled error during build:', err);
+  process.exit(1);
+});

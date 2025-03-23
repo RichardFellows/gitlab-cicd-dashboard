@@ -8,6 +8,7 @@
   - `npm run proxy` (runs the scripts/proxy.js for API requests)
 - Build process:
   - `npm run build` (copies necessary files from src to public)
+  - `npm run build:serve` (builds and then serves the built app locally)
 - Testing:
   - `npm test` (runs unit tests)
   - `npm run test:deployment [url]` (verifies site functionality at the given URL)
@@ -51,8 +52,11 @@ project-root/
 │   └── index.js               # Application entry point
 │
 ├── scripts/                   # Development scripts
+│   ├── build.js               # Build script for deployment
+│   ├── build-and-serve.js     # Build and locally serve the app
 │   ├── proxy.js               # Proxy server for API requests
-│   └── start.js               # Development server
+│   ├── start.js               # Development server
+│   └── test-deployment.js     # Post-deployment test script
 │
 ├── tests/                     # Test files
 │   ├── components/            # Component tests

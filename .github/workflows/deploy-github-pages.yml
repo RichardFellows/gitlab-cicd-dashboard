@@ -39,6 +39,17 @@ jobs:
         
       - name: Build project
         run: npm run build
+        
+      - name: Verify build output
+        run: |
+          echo "Verifying build output in public directory..."
+          ls -la public/
+          echo "Checking for critical JS files..."
+          if [ ! -f public/gitlab-api-service.js ] || [ ! -f public/dashboard-data-service.js ] || [ ! -f public/pipeline-performance.js ]; then
+            echo "Error: Required JS files not found in public directory!"
+            exit 1
+          fi
+          echo "Build verification completed successfully."
       
       - name: Setup Pages
         uses: actions/configure-pages@v4

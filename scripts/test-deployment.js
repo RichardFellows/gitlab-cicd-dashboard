@@ -10,7 +10,7 @@ const url = require('url');
 // Configuration
 const config = {
   // This will be overridden by command-line argument or environment variable
-  siteUrl: process.env.SITE_URL || 'https://richardfellows.github.io/gitlab-cicd-dashboard/',
+  siteUrl: process.env.SITE_URL || 'http://localhost:5050/',
   // Critical resources that should be available
   criticalResources: [
     '',                      // The main page
