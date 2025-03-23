@@ -96,7 +96,7 @@ const tableView = (() => {
       <td>${duration}</td>
       <td>${mrDisplay}</td>
       <td>${coverage}</td>
-      <td><button class="expand-btn">▼</button></td>
+      <td><button class="expand-btn" aria-label="Toggle details" title="Show details">↓</button></td>
     `;
 
     return row;
@@ -283,12 +283,18 @@ const tableView = (() => {
         // Toggle visibility of details row
         const detailsRow = this.nextElementSibling;
         if (detailsRow && detailsRow.classList.contains('project-details')) {
+          // Toggle the hidden class
           detailsRow.classList.toggle('hidden');
 
-          // Update expand button
+          // Update expand button icon and attributes
           const expandBtn = this.querySelector('.expand-btn');
           if (expandBtn) {
-            expandBtn.textContent = detailsRow.classList.contains('hidden') ? '▼' : '▲';
+            const isExpanded = !detailsRow.classList.contains('hidden');
+            // No need to change textContent as we're using CSS transform now
+            // Add aria-expanded attribute for accessibility
+            expandBtn.setAttribute('aria-expanded', isExpanded);
+            // Update the title for tooltip
+            expandBtn.setAttribute('title', isExpanded ? 'Hide details' : 'Show details');
           }
 
           // Load merge requests for the project if needed
@@ -310,6 +316,8 @@ const tableView = (() => {
         e.stopPropagation();
         this.closest('.project-row').click();
       });
+      // Initialize the aria-expanded attribute to false
+      btn.setAttribute('aria-expanded', 'false');
     });
   }
 
