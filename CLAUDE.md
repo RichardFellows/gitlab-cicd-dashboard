@@ -1,7 +1,7 @@
 # CLAUDE.md - Guidelines for GitLab CI/CD Dashboard
 
 ## Running the Application
-- Open `public/index.html` in a browser to run the application
+- Open `localhost:5050/` in a browser to run the application
 - For local development with auto-refresh:
   - `npm run serve` (serves at localhost:5050)
   - `npm run start` (uses the scripts/start.js script)
