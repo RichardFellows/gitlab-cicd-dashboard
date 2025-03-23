@@ -27,6 +27,12 @@ const ControlPanel: FC<ControlPanelProps> = ({
 }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Don't submit if required fields are missing
+    if (!token || !groupId) {
+      return;
+    }
+    
     onLoad(gitlabUrl, token, groupId, timeframe);
   };
 
@@ -40,6 +46,7 @@ const ControlPanel: FC<ControlPanelProps> = ({
           placeholder="https://gitlab.com/api/v4"
           value={gitlabUrl}
           onChange={(e) => onGitlabUrlChange(e.target.value)}
+          disabled={loading}
         />
       </div>
       <div className="control-group">
@@ -50,6 +57,7 @@ const ControlPanel: FC<ControlPanelProps> = ({
           placeholder="Enter your GitLab token"
           value={token}
           onChange={(e) => onTokenChange(e.target.value)}
+          disabled={loading}
         />
       </div>
       <div className="control-group">
@@ -60,6 +68,7 @@ const ControlPanel: FC<ControlPanelProps> = ({
           placeholder="Enter group ID" 
           value={groupId}
           onChange={(e) => onGroupIdChange(e.target.value)}
+          disabled={loading}
         />
       </div>
       <div className="control-group">
@@ -68,6 +77,7 @@ const ControlPanel: FC<ControlPanelProps> = ({
           id="timeframe" 
           value={timeframe}
           onChange={(e) => onTimeframeChange(parseInt(e.target.value, 10))}
+          disabled={loading}
         >
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>

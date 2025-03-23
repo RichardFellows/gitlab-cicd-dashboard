@@ -46,5 +46,14 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    css: false, // Disable CSS processing in tests
+    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+    coverage: {
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/test/setup.ts',
+      ]
+    }
   }
 })
