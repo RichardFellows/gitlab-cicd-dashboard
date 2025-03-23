@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made the table view the default view instead of card view
 - Removed duplicated metrics in the expanded rows of the table view
 
+### Fixed
+- Updated `start.js` to correctly serve files from the new folder structure
+- Fixed server paths to properly serve files from both `public/` and `src/` directories
+
 ## [1.0.0] - 2025-03-23
 
 ### Added

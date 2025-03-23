@@ -1,6 +1,6 @@
 /**
  * Combined development start script for GitLab CI/CD Dashboard
- * 
+ *
  * This script:
  * 1. Finds a free port for the proxy server
  * 2. Starts the proxy server on that port
@@ -50,13 +50,23 @@ function createHttpServer(port) {
   const server = http.createServer((req, res) => {
     // Get the URL path
     const parsedUrl = url.parse(req.url);
-    let pathname = path.join(__dirname, parsedUrl.pathname);
-    
+    // Base directory is the project root
+    const rootDir = path.join(__dirname, '..');
+    let pathname;
+
+    // Check if this is a request for source files
+    if (parsedUrl.pathname.startsWith('/src/')) {
+      pathname = path.join(rootDir, parsedUrl.pathname);
+    } else {
+      // Otherwise serve from public directory
+      pathname = path.join(rootDir, 'public', parsedUrl.pathname);
+    }
+
     // Default to index.html for root
     if (parsedUrl.pathname === '/' || parsedUrl.pathname === '') {
-      pathname = path.join(__dirname, 'index.html');
+      pathname = path.join(rootDir, 'public', 'index.html');
     }
-    
+
     // Read the file
     fs.readFile(pathname, (err, data) => {
       if (err) {
@@ -66,17 +76,17 @@ function createHttpServer(port) {
           res.end('404 Not Found');
           return;
         }
-        
+
         // For other errors, return 500
         res.writeHead(500, { 'Content-Type': 'text/plain' });
         res.end(`Error loading ${pathname}`);
         return;
       }
-      
+
       // Set content type based on file extension
       const ext = path.parse(pathname).ext;
       let contentType = 'text/plain';
-      
+
       switch (ext) {
         case '.html':
           contentType = 'text/html';
@@ -98,7 +108,7 @@ function createHttpServer(port) {
           contentType = 'image/jpeg';
           break;
       }
-      
+
       // Dynamically replace the proxy port in GitLabApiService.js
       if (ext === '.js' && pathname.endsWith('gitlab-api-service.js')) {
         const content = data.toString();
@@ -110,18 +120,18 @@ function createHttpServer(port) {
         res.end(updatedContent);
         return;
       }
-      
+
       // Return the file content
       res.writeHead(200, { 'Content-Type': contentType });
       res.end(data);
     });
   });
-  
+
   server.listen(port, () => {
     console.log(`HTTP server running at http://localhost:${port}/`);
     console.log(`Open your browser to http://localhost:${port}/ to view the dashboard`);
   });
-  
+
   return server;
 }
 
@@ -133,31 +143,31 @@ function createProxyServer(port) {
       // Parse the GitLab API path from the query parameter
       const parsedUrl = url.parse(req.url, true);
       const apiPath = parsedUrl.query.path;
-      
+
       if (!apiPath) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Missing "path" query parameter' }));
         return;
       }
-      
+
       // Get the GitLab token from the request headers
       const token = req.headers['private-token'];
-      
+
       if (!token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Missing "PRIVATE-TOKEN" header' }));
         return;
       }
-      
+
       // Build the GitLab API URL
       const gitlabUrl = `${GITLAB_BASE_URL}${apiPath}`;
       console.log(`Proxying request to: ${gitlabUrl}`);
-      
+
       // Set up CORS headers to allow requests from anywhere
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, PRIVATE-TOKEN');
-      
+
       // Make request to GitLab API
       const gitlabReq = https.request(
         gitlabUrl,
@@ -171,25 +181,25 @@ function createProxyServer(port) {
         (gitlabRes) => {
           // Forward the status code
           res.writeHead(gitlabRes.statusCode, { 'Content-Type': 'application/json' });
-          
+
           // Forward the response data
           let data = '';
           gitlabRes.on('data', (chunk) => {
             data += chunk;
           });
-          
+
           gitlabRes.on('end', () => {
             res.end(data);
           });
         }
       );
-      
+
       gitlabReq.on('error', (error) => {
         console.error('Error making request to GitLab API:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Error making request to GitLab API' }));
       });
-      
+
       gitlabReq.end();
     } else if (req.method === 'OPTIONS') {
       // Handle preflight requests
@@ -204,11 +214,11 @@ function createProxyServer(port) {
       res.end(JSON.stringify({ error: 'Not found' }));
     }
   });
-  
+
   server.listen(port, () => {
     console.log(`GitLab API proxy server running on http://localhost:${port}`);
   });
-  
+
   return server;
 }
 
@@ -216,7 +226,7 @@ function createProxyServer(port) {
 function openBrowser(url) {
   try {
     let command;
-    
+
     switch (process.platform) {
       case 'darwin':  // macOS
         command = `open "${url}"`;
@@ -228,7 +238,7 @@ function openBrowser(url) {
         command = `xdg-open "${url}"`;
         break;
     }
-    
+
     execSync(command);
     console.log(`Browser opened to ${url}`);
   } catch (err) {
@@ -239,23 +249,23 @@ function openBrowser(url) {
 // Main function to start the dev environment
 async function start() {
   console.log('Starting GitLab CI/CD Dashboard development environment...');
-  
+
   try {
     // Find a free port for the proxy server
     PROXY_PORT = await findFreePort(PROXY_PORT);
     console.log(`Found free port ${PROXY_PORT} for proxy server`);
-    
+
     // Start the proxy server
     const proxyServer = createProxyServer(PROXY_PORT);
-    
+
     // Start the HTTP server
     const httpServer = createHttpServer(HTTP_PORT);
-    
+
     // Wait a moment for servers to start, then open the browser
     setTimeout(() => {
       openBrowser(`http://localhost:${HTTP_PORT}`);
     }, 1000);
-    
+
     // Handle graceful shutdown
     process.on('SIGINT', () => {
       console.log('\nShutting down servers...');
@@ -263,7 +273,7 @@ async function start() {
       httpServer.close();
       process.exit(0);
     });
-    
+
   } catch (error) {
     console.error('Error starting development environment:', error);
     process.exit(1);

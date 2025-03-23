@@ -4,8 +4,8 @@
   "description": "A dashboard to visualize CI/CD metrics for GitLab repositories",
   "main": "index.js",
   "scripts": {
-    "start": "node start.js",
-    "proxy": "node proxy.js",
+    "start": "node scripts/start.js",
+    "proxy": "node scripts/proxy.js",
     "serve": "python -m http.server 5050",
     "test": "jest",
     "test:watch": "jest --watch"
