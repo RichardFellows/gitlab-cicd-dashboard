@@ -8,6 +8,9 @@
   - `npm run proxy` (runs the scripts/proxy.js for API requests)
 - Build process:
   - `npm run build` (copies necessary files from src to public)
+- Testing:
+  - `npm test` (runs unit tests)
+  - `npm run test:deployment [url]` (verifies site functionality at the given URL)
 - Requires Node.js >= 12.0.0
 
 ## Code Style Guidelines
@@ -82,8 +85,10 @@ project-root/
   4. Run tests
   5. Run build process to copy necessary files from src to public
   6. Publish the contents of the `public/` directory to GitHub Pages
+  7. Run post-deployment tests to verify site functionality
 - Deployment configuration is in `.github/workflows/deploy-github-pages.yml`
 - Build script is in `scripts/build.js`
+- Post-deployment test script is in `scripts/test-deployment.js`
 
 ## Data Flow
 API Token → GitLabApiService → DashboardDataService → UI Components (TableView)

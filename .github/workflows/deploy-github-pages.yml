@@ -52,3 +52,24 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+  
+  post-deployment-test:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Wait for deployment
+        run: sleep 60  # Wait to make sure the deployment is fully propagated
+      
+      - name: Run post-deployment tests
+        run: npm run test:deployment ${{ needs.deploy.outputs.page_url || 'https://richardfellows.github.io/gitlab-cicd-dashboard/' }}
