@@ -59,6 +59,7 @@
 /* Project row styles */
 .project-row {
   transition: background-color 0.2s;
+  cursor: pointer;
 }
 .project-row.success {
   border-left: 4px solid var(--success-color);
@@ -74,6 +75,17 @@
 }
 .project-row td:first-child {
   font-weight: 500;
+}
+.project-details.hidden {
+  display: none;
+}
+.project-details:not(.hidden) {
+  display: table-row;
+  animation: fadeIn 0.3s ease-in;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Status indicators */

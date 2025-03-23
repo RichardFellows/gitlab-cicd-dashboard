@@ -125,7 +125,7 @@ beforeEach(() => {
         
         // Create details row
         const detailsRow = document.createElement('tr');
-        detailsRow.className = 'project-details';
+        detailsRow.className = 'project-details hidden';
         detailsRow.innerHTML = '<td colspan="7">Project details content</td>';
         
         tbody.appendChild(projectRow);

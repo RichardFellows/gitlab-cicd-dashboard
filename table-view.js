@@ -109,7 +109,7 @@ const tableView = (() => {
    */
   function createProjectDetailsRow(project) {
     const detailsRow = document.createElement('tr');
-    detailsRow.className = 'project-details';
+    detailsRow.className = 'project-details hidden';
 
     // Create metrics summary
     const metricsSummary = `
@@ -283,16 +283,16 @@ const tableView = (() => {
         // Toggle visibility of details row
         const detailsRow = this.nextElementSibling;
         if (detailsRow && detailsRow.classList.contains('project-details')) {
-          detailsRow.classList.toggle('open');
+          detailsRow.classList.toggle('hidden');
 
           // Update expand button
           const expandBtn = this.querySelector('.expand-btn');
           if (expandBtn) {
-            expandBtn.textContent = detailsRow.classList.contains('open') ? '▲' : '▼';
+            expandBtn.textContent = detailsRow.classList.contains('hidden') ? '▼' : '▲';
           }
 
           // Load merge requests for the project if needed
-          if (detailsRow.classList.contains('open')) {
+          if (!detailsRow.classList.contains('hidden')) {
             const projectId = this.getAttribute('data-project-id');
             const mrContainer = document.getElementById(`mr-table-container-${projectId}`);
 
