@@ -197,6 +197,21 @@ async function loadDashboard() {
 // Event listeners
 loadButton.addEventListener('click', loadDashboard);
 
+// Add event handlers for view toggle buttons
+cardViewBtn.addEventListener('click', function() {
+  if (window.dashboardMetrics) {
+    renderDashboard(window.dashboardMetrics, VIEW_TYPES.CARD);
+  }
+  setActiveViewType(VIEW_TYPES.CARD);
+});
+
+tableViewBtn.addEventListener('click', function() {
+  if (window.dashboardMetrics) {
+    renderDashboard(window.dashboardMetrics, VIEW_TYPES.TABLE);
+  }
+  setActiveViewType(VIEW_TYPES.TABLE);
+});
+
 // Add event handler for clearing saved settings
 const clearSettingsButton = document.getElementById('clear-settings');
 if (clearSettingsButton) {
@@ -255,16 +270,20 @@ function setActiveViewType(viewType) {
   localStorage.setItem(STORAGE_KEYS.VIEW_TYPE, viewType);
 }
 
-function renderDashboard(metrics) {
+function renderDashboard(metrics, viewType) {
   // Clear previous content
   dashboardContainer.innerHTML = '';
 
+  // Store metrics in a global variable for later use
+  window.dashboardMetrics = metrics;
+  
+  // Get the preferred view type
+  const currentViewType = viewType || localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) || VIEW_TYPES.CARD;
+  setActiveViewType(currentViewType);
+  
   // Create dashboard elements
   const dashboard = document.createElement('div');
   dashboard.className = 'dashboard';
-
-  // Store metrics in a global variable for later use
-  window.dashboardMetrics = metrics;
   
   // Update browser history if not already on the dashboard view
   if (window.location.hash !== '' && window.location.hash !== '#dashboard') {
@@ -274,14 +293,34 @@ function renderDashboard(metrics) {
   // Add summary section
   dashboard.appendChild(createSummarySection(metrics));
 
-  // Add project cards
-  dashboard.appendChild(createProjectsSection(metrics.projects));
-
-  // Append to container
-  dashboardContainer.appendChild(dashboard);
-
-  // Add event listeners for project detail links
-  addProjectDetailEventListeners();
+  // Create content based on view type
+  if (currentViewType === VIEW_TYPES.TABLE) {
+    // Create table view
+    const projectsSection = document.createElement('section');
+    projectsSection.className = 'projects-section';
+    projectsSection.innerHTML = '<h2>Project Metrics</h2>';
+    
+    // Generate the table view
+    const tableElement = tableView.createTableView(metrics.projects);
+    projectsSection.appendChild(tableElement);
+    
+    dashboard.appendChild(projectsSection);
+    
+    // Append to container
+    dashboardContainer.appendChild(dashboard);
+    
+    // Setup table event handlers
+    tableView.setupEventHandlers();
+  } else {
+    // Add project cards (card view is default)
+    dashboard.appendChild(createProjectsSection(metrics.projects));
+    
+    // Append to container
+    dashboardContainer.appendChild(dashboard);
+    
+    // Add event listeners for project detail links
+    addProjectDetailEventListeners();
+  }
 }
 
 function createSummarySection(metrics) {
@@ -688,7 +727,7 @@ function addProjectDetailEventListeners() {
  * Show detailed view for a specific project
  * @param {string} projectId - The project ID
  */
-async function showProjectDetails(projectId) {
+window.showProjectDetails = async function(projectId) {
   try {
     showLoading(true);
     
