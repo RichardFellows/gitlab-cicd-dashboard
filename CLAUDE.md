@@ -21,6 +21,10 @@
 ## Project Structure
 ```
 project-root/
+├── .github/                   # GitHub related files
+│   └── workflows/             # GitHub Actions workflows
+│       └── deploy-github-pages.yml # GitHub Pages deployment workflow
+│
 ├── public/                    # Static assets
 │   ├── index.html             # Dashboard UI
 │   ├── assets/
@@ -64,6 +68,18 @@ project-root/
 - Test commands:
   - `npm test`: Run all tests
   - `npm run test:watch`: Run tests in watch mode
+  
+## Deployment
+- Automated deployment to GitHub Pages via GitHub Actions
+- The workflow is triggered on:
+  - Pushes to the main branch
+  - Manual dispatch from the GitHub Actions UI
+- The deployment process:
+  1. Checkout the repository
+  2. Setup Node.js environment
+  3. Install dependencies
+  4. Run tests
+  5. Publish the contents of the `public/` directory to GitHub Pages
 
 ## Data Flow
 API Token → GitLabApiService → DashboardDataService → UI Components (TableView)
