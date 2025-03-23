@@ -3,25 +3,25 @@
 ## Running the Application
 - Open `localhost:5050/` in a browser to run the application
 - For local development with auto-refresh:
-  - `npm run serve` (serves at localhost:5050)
-  - `npm run start` (uses the scripts/start.js script)
-  - `npm run proxy` (runs the scripts/proxy.js for API requests)
+  - `npm run dev` (starts Vite dev server at localhost:5050)
 - Build process:
-  - `npm run build` (copies necessary files from src to public)
-  - `npm run build:serve` (builds and then serves the built app locally)
+  - `npm run build` (builds the React app for production)
+  - `npm run preview` (preview the production build locally)
 - Testing:
   - `npm test` (runs unit tests)
   - `npm run test:deployment [url]` (verifies site functionality at the given URL)
-- Requires Node.js >= 12.0.0
+- Linting:
+  - `npm run lint` (runs ESLint to check code quality)
+- Requires Node.js >= 18.0.0
 
 ## Code Style Guidelines
-- **Naming**: camelCase for variables/functions, PascalCase for classes
+- **Naming**: camelCase for variables/functions, PascalCase for classes and React components
 - **Indentation**: 2 spaces
 - **Strings**: Use single quotes for string literals
 - **Semicolons**: Required at end of statements
 - **Documentation**: JSDoc comments for functions/classes
 - **Error Handling**: Use try/catch blocks, log with console.error()
-- **Module Pattern**: Class-based modules for services and IIFE module pattern
+- **Components**: Function components with React hooks
 
 ## Project Structure
 ```
@@ -30,52 +30,58 @@ project-root/
 │   └── workflows/             # GitHub Actions workflows
 │       └── deploy-github-pages.yml # GitHub Pages deployment workflow
 │
-├── public/                    # Static assets
-│   ├── index.html             # Dashboard UI
-│   ├── assets/
-│   │   └── images/            # Image assets
-│   └── styles/                # Global styles
+├── public/                    # Static assets that aren't processed by Vite
 │
 ├── src/                       # Source code
-│   ├── components/            # UI components
-│   │   └── table-view/
-│   │       ├── table-view.js  # Table component
-│   │       └── table-view.css # Component-specific styles
+│   ├── components/            # React components
+│   │   ├── CardView.tsx       # Card view component
+│   │   ├── ControlPanel.tsx   # Control panel component
+│   │   ├── Dashboard.tsx      # Main dashboard component
+│   │   ├── ProjectDetails.tsx # Project details component
+│   │   ├── SummarySection.tsx # Summary section component
+│   │   └── TableView.tsx      # Table view component
 │   │
 │   ├── services/              # API and data services
-│   │   ├── gitlab-api-service.js  # GitLab API communication
-│   │   └── dashboard-data-service.js  # Dashboard data processing
+│   │   ├── GitLabApiService.ts # GitLab API communication
+│   │   └── DashboardDataService.ts # Dashboard data processing
+│   │
+│   ├── styles/                # CSS files for components
+│   │   ├── index.css          # Global styles
+│   │   ├── TableView.css      # Table view styles
+│   │   └── CardView.css       # Card view styles
+│   │
+│   ├── types/                 # TypeScript type definitions
+│   │   └── index.ts           # Shared type definitions
 │   │
 │   ├── utils/                 # Utilities and helpers
-│   │   └── pipeline-performance.js  # Pipeline metrics calculations
+│   │   └── formatting.ts      # Formatting utilities
 │   │
-│   └── index.js               # Application entry point
+│   ├── test/                  # Test configuration
+│   │   └── setup.ts           # Test setup file
+│   │
+│   ├── App.tsx                # Main App component
+│   └── main.tsx               # Application entry point
 │
-├── scripts/                   # Development scripts
-│   ├── build.js               # Build script for deployment
-│   ├── build-and-serve.js     # Build and locally serve the app
-│   ├── proxy.js               # Proxy server for API requests
-│   ├── start.js               # Development server
+├── scripts/                   # Development and deployment scripts
 │   └── test-deployment.js     # Post-deployment test script
 │
-├── tests/                     # Test files
-│   ├── components/            # Component tests
-│   ├── services/              # Service tests
-│   └── utils/                 # Utility tests
-│
-├── jest.config.js             # Jest configuration
-├── jest.setup.js              # Jest setup for the test environment
+├── index.html                 # HTML entry point
+├── vite.config.ts             # Vite configuration
+├── tsconfig.json              # TypeScript configuration
+├── tsconfig.node.json         # TypeScript configuration for Node.js
+├── .eslintrc.cjs              # ESLint configuration
 ├── package.json               # Project dependencies and scripts
 ├── FEATURE_IDEAS.md           # Ideas for future development
 └── CHANGELOG.md               # Project version history
 ```
 
 ## Testing
-- Using Jest for unit testing
-- Test files located in `tests/` directory, mirroring the source structure
+- Using Vitest for unit testing
+- Test files located in the same directories as the source files they test, with a .test.ts(x) extension
 - Test commands:
   - `npm test`: Run all tests
   - `npm run test:watch`: Run tests in watch mode
+  - `npm run test:coverage`: Run tests with coverage
   
 ## Deployment
 - Automated deployment to GitHub Pages via GitHub Actions
@@ -87,15 +93,14 @@ project-root/
   2. Setup Node.js environment
   3. Install dependencies
   4. Run tests
-  5. Run build process to copy necessary files from src to public
-  6. Publish the contents of the `public/` directory to GitHub Pages
+  5. Run build process (TypeScript compilation and Vite build)
+  6. Publish the contents of the `dist/` directory to GitHub Pages
   7. Run post-deployment tests to verify site functionality
 - Deployment configuration is in `.github/workflows/deploy-github-pages.yml`
-- Build script is in `scripts/build.js`
 - Post-deployment test script is in `scripts/test-deployment.js`
 
 ## Data Flow
-API Token → GitLabApiService → DashboardDataService → UI Components (TableView)
+Vite → React App → GitLabApiService → DashboardDataService → React Components (Dashboard, TableView, CardView, etc.)
 
 ## Key Features
 - Project pipeline status visualization
@@ -105,3 +110,11 @@ API Token → GitLabApiService → DashboardDataService → UI Components (Table
 - Open merge request tracking
 - Failed job analysis
 - Recent commit history
+
+## Technology Stack
+- React for the UI
+- TypeScript for type safety
+- Vite as the build tool
+- Chart.js for data visualization
+- GitHub Actions for CI/CD
+- GitHub Pages for hosting

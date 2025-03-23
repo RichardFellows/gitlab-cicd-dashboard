@@ -1,0 +1,189 @@
+[vite] connecting... client:495:9
+Firefox can’t establish a connection to the server at ws://localhost:5050/?token=QaexNWhv_Vi-. client:536:19
+Fetching group projects from: /proxy/groups/3930213/projects?include_subgroups=true&per_page=100 2 GitLabApiService.ts:51:15
+Cookie “_cfuvid” has been rejected for invalid domain. 3 projects
+Failed to fetch group projects: Error: Error fetching projects: Unauthorized
+    getGroupProjects GitLabApiService.ts:71
+    getGroupMetrics DashboardDataService.ts:28
+    loadDashboard App.tsx:103
+    loadSavedSettings App.tsx:67
+    App App.tsx:27
+    React 7
+    workLoop scheduler.development.js:266
+    flushWork scheduler.development.js:239
+    performWorkUntilDeadline scheduler.development.js:533
+    js scheduler.development.js:571
+    js scheduler.development.js:633
+    __require chunk-EQCVQC35.js:9
+    js index.js:6
+    __require chunk-EQCVQC35.js:9
+    React 2
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    <anonymous> react-dom_client.js:38
+<anonymous code>:1:145535
+Failed to get group metrics: Error: Error fetching projects: Unauthorized
+    getGroupProjects GitLabApiService.ts:71
+    getGroupMetrics DashboardDataService.ts:28
+    loadDashboard App.tsx:103
+    loadSavedSettings App.tsx:67
+    App App.tsx:27
+    React 7
+    workLoop scheduler.development.js:266
+    flushWork scheduler.development.js:239
+    performWorkUntilDeadline scheduler.development.js:533
+    js scheduler.development.js:571
+    js scheduler.development.js:633
+    __require chunk-EQCVQC35.js:9
+    js index.js:6
+    __require chunk-EQCVQC35.js:9
+    React 2
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    <anonymous> react-dom_client.js:38
+<anonymous code>:1:145535
+Dashboard loading error: Error: Error fetching projects: Unauthorized
+    getGroupProjects GitLabApiService.ts:71
+    getGroupMetrics DashboardDataService.ts:28
+    loadDashboard App.tsx:103
+    loadSavedSettings App.tsx:67
+    App App.tsx:27
+    React 7
+    workLoop scheduler.development.js:266
+    flushWork scheduler.development.js:239
+    performWorkUntilDeadline scheduler.development.js:533
+    js scheduler.development.js:571
+    js scheduler.development.js:633
+    __require chunk-EQCVQC35.js:9
+    js index.js:6
+    __require chunk-EQCVQC35.js:9
+    React 2
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    <anonymous> react-dom_client.js:38
+<anonymous code>:1:145535
+Cookie “_cfuvid” has been rejected for invalid domain. projects
+Failed to fetch group projects: Error: Error fetching projects: Unauthorized
+    getGroupProjects GitLabApiService.ts:71
+    getGroupMetrics DashboardDataService.ts:28
+    loadDashboard App.tsx:103
+    loadSavedSettings App.tsx:67
+    App App.tsx:27
+    React 8
+    workLoop scheduler.development.js:266
+    flushWork scheduler.development.js:239
+    performWorkUntilDeadline scheduler.development.js:533
+    js scheduler.development.js:571
+    js scheduler.development.js:633
+    __require chunk-EQCVQC35.js:9
+    js index.js:6
+    __require chunk-EQCVQC35.js:9
+    React 2
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    <anonymous> react-dom_client.js:38
+<anonymous code>:1:145535
+Failed to get group metrics: Error: Error fetching projects: Unauthorized
+    getGroupProjects GitLabApiService.ts:71
+    getGroupMetrics DashboardDataService.ts:28
+    loadDashboard App.tsx:103
+    loadSavedSettings App.tsx:67
+    App App.tsx:27
+    React 8
+    workLoop scheduler.development.js:266
+    flushWork scheduler.development.js:239
+    performWorkUntilDeadline scheduler.development.js:533
+    js scheduler.development.js:571
+    js scheduler.development.js:633
+    __require chunk-EQCVQC35.js:9
+    js index.js:6
+    __require chunk-EQCVQC35.js:9
+    React 2
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    <anonymous> react-dom_client.js:38
+<anonymous code>:1:145535
+Dashboard loading error: Error: Error fetching projects: Unauthorized
+    getGroupProjects GitLabApiService.ts:71
+    getGroupMetrics DashboardDataService.ts:28
+    loadDashboard App.tsx:103
+    loadSavedSettings App.tsx:67
+    App App.tsx:27
+    React 8
+    workLoop scheduler.development.js:266
+    flushWork scheduler.development.js:239
+    performWorkUntilDeadline scheduler.development.js:533
+    js scheduler.development.js:571
+    js scheduler.development.js:633
+    __require chunk-EQCVQC35.js:9
+    js index.js:6
+    __require chunk-EQCVQC35.js:9
+    React 2
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    js React
+    __require chunk-EQCVQC35.js:9
+    <anonymous> react-dom_client.js:38
+<anonymous code>:1:145535
+Firefox can’t establish a connection to the server at ws://localhost:5050/?token=QaexNWhv_Vi-. client:536:19
+[vite] failed to connect to websocket.
+your current setup:
+  (browser) localhost:5050/ <--[HTTP]--> localhost:5050/ (server)
+  (browser) localhost:5050/ <--[WebSocket (failing)]--> localhost:5050/ (server)
+Check out your Vite / network configuration and https://vite.dev/config/server-options.html#server-hmr . <anonymous code>:1:145535
+Fetching group projects from: /proxy/groups/3930213/projects?include_subgroups=true&per_page=100 GitLabApiService.ts:51:15
+Cookie “_cfuvid” has been rejected for invalid domain. 2 projects
+Failed to fetch group projects: Error: Error fetching projects: Unauthorized
+    getGroupProjects GitLabApiService.ts:71
+    getGroupMetrics DashboardDataService.ts:28
+    loadDashboard App.tsx:103
+    handleSubmit ControlPanel.tsx:30
+    React 23
+    <anonymous> main.tsx:6
+<anonymous code>:1:145535
+Failed to get group metrics: Error: Error fetching projects: Unauthorized
+    getGroupProjects GitLabApiService.ts:71
+    getGroupMetrics DashboardDataService.ts:28
+    loadDashboard App.tsx:103
+    handleSubmit ControlPanel.tsx:30
+    React 23
+    <anonymous> main.tsx:6
+<anonymous code>:1:145535
+    overrideMethod <anonymous code>:1
+    getGroupMetrics DashboardDataService.ts:56
+    loadDashboard App.tsx:103
+    handleSubmit ControlPanel.tsx:30
+    React 23
+    <anonymous> main.tsx:6
+Dashboard loading error: Error: Error fetching projects: Unauthorized
+    getGroupProjects GitLabApiService.ts:71
+    getGroupMetrics DashboardDataService.ts:28
+    loadDashboard App.tsx:103
+    handleSubmit ControlPanel.tsx:30
+    React 23
+    <anonymous> main.tsx:6
+<anonymous code>:1:145535
+Source map error: Error: JSON.parse: unexpected character at line 1 column 1 of the JSON data
+Stack in the worker:parseSourceMapInput@resource://devtools/client/shared/vendor/source-map/lib/util.js:163:15
+_factory@resource://devtools/client/shared/vendor/source-map/lib/source-map-consumer.js:1066:22
+SourceMapConsumer@resource://devtools/client/shared/vendor/source-map/lib/source-map-consumer.js:26:12
+_fetch@resource://devtools/client/shared/source-map-loader/utils/fetchSourceMap.js:83:19
+
+Resource URL: http://localhost:5050/%3Canonymous%20code%3E
+Source Map URL: installHook.js.map

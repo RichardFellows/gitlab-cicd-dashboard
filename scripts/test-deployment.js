@@ -14,12 +14,9 @@ const config = {
   // Critical resources that should be available
   criticalResources: [
     '',                      // The main page
-    'index.js',
-    'gitlab-api-service.js',
-    'dashboard-data-service.js',
-    'pipeline-performance.js',
-    'table-view.js',
-    'table-view.css'
+    'assets/index.js',       // Main JS bundle
+    'assets/index.css',      // Main CSS
+    'index.html'             // Main HTML file
   ],
   // Timeout for each request (ms)
   timeout: 10000
@@ -113,6 +110,77 @@ async function runTests() {
       console.log(`❌ FAILED: ${result.message}`);
       allPassed = false;
     }
+  }
+  
+  // Check for React-specific content in the main page
+  const mainPageUrl = config.siteUrl;
+  process.stdout.write('Checking for React app content... ');
+  
+  try {
+    const parsedUrl = new URL(mainPageUrl);
+    const client = parsedUrl.protocol === 'https:' ? https : http;
+    
+    const mainPageResult = await new Promise((resolve) => {
+      const req = client.get(mainPageUrl, { timeout: config.timeout }, (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        res.on('end', () => {
+          // Check if the page contains React-specific markers
+          const hasRootDiv = data.includes('<div id="root"></div>') || data.includes('<div id="root">');
+          const hasReactBundle = data.includes('assets/index');
+          
+          const ok = hasRootDiv && hasReactBundle;
+          resolve({
+            ok,
+            hasRootDiv,
+            hasReactBundle,
+            message: ok ? 'OK' : 'Missing React content markers'
+          });
+        });
+      });
+      
+      req.on('error', (error) => {
+        resolve({
+          ok: false,
+          message: `Request failed: ${error.message}`
+        });
+      });
+      
+      req.on('timeout', () => {
+        req.destroy();
+        resolve({
+          ok: false,
+          message: 'Request timed out'
+        });
+      });
+    });
+    
+    if (mainPageResult.ok) {
+      console.log('✅ PASSED');
+    } else {
+      console.log(`❌ FAILED: ${mainPageResult.message}`);
+      if (!mainPageResult.hasRootDiv) console.log('  - Missing React root div');
+      if (!mainPageResult.hasReactBundle) console.log('  - Missing React bundle references');
+      allPassed = false;
+    }
+    
+    results.push({ 
+      url: 'React content check', 
+      ok: mainPageResult.ok,
+      message: mainPageResult.message 
+    });
+    
+  } catch (error) {
+    console.log(`❌ FAILED: ${error.message}`);
+    results.push({ 
+      url: 'React content check', 
+      ok: false,
+      message: error.message 
+    });
+    allPassed = false;
   }
   
   // Print summary

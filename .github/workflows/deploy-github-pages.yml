@@ -28,7 +28,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '20'
           cache: 'npm'
       
       - name: Install dependencies
@@ -42,13 +42,8 @@ jobs:
         
       - name: Verify build output
         run: |
-          echo "Verifying build output in public directory..."
-          ls -la public/
-          echo "Checking for critical JS files..."
-          if [ ! -f public/gitlab-api-service.js ] || [ ! -f public/dashboard-data-service.js ] || [ ! -f public/pipeline-performance.js ]; then
-            echo "Error: Required JS files not found in public directory!"
-            exit 1
-          fi
+          echo "Verifying build output in dist directory..."
+          ls -la dist/
           echo "Build verification completed successfully."
       
       - name: Setup Pages
@@ -57,8 +52,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload the public directory
-          path: './public'
+          # Upload the dist directory
+          path: './dist'
       
       - name: Deploy to GitHub Pages
         id: deployment
@@ -74,7 +69,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '20'
       
       - name: Install dependencies
         run: npm ci

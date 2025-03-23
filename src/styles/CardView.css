@@ -1,0 +1,297 @@
+.project-group {
+  margin-bottom: 30px;
+}
+
+.group-header {
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  font-size: 18px;
+}
+
+.failed-group .group-header {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+  border-left: 4px solid var(--danger-color);
+}
+
+.warning-group .group-header {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: var(--warning-color);
+  border-left: 4px solid var(--warning-color);
+}
+
+.no-pipeline-group .group-header {
+  background-color: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+  border-left: 4px solid #6c757d;
+}
+
+.success-group .group-header {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+  border-left: 4px solid var(--success-color);
+}
+
+.project-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.project-card {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  border-left: 4px solid var(--secondary-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.project-card:hover {
+  transform: translateY(-3px);
+}
+
+.project-card.failed {
+  border-left-color: var(--danger-color);
+}
+
+.project-card.warning {
+  border-left-color: var(--warning-color);
+}
+
+.project-card.no-pipeline {
+  border-left-color: #6c757d;
+}
+
+.project-card.success {
+  border-left-color: var(--success-color);
+}
+
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.project-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.project-name-link {
+  color: var(--text-color);
+  text-decoration: none;
+  position: relative;
+  display: inline-block;
+}
+
+.project-name-link:hover {
+  color: var(--primary-color);
+}
+
+.project-name-link:hover::after {
+  content: '→';
+  position: absolute;
+  margin-left: 5px;
+  font-size: 90%;
+}
+
+.gitlab-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(110, 73, 203, 0.1);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.gitlab-link:hover {
+  background-color: rgba(110, 73, 203, 0.2);
+}
+
+.gitlab-icon {
+  font-size: 16px;
+}
+
+.project-metrics {
+  display: grid;
+  gap: 15px;
+}
+
+.metric-section {
+  background: #fafafa;
+  border-radius: 6px;
+  padding: 10px 15px;
+  margin-bottom: 5px;
+}
+
+.metric-section h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+  font-size: 14px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.metric-label {
+  font-weight: 500;
+  width: 120px;
+}
+
+.metric-value {
+  font-weight: 500;
+}
+
+.metric-value.success {
+  color: var(--success-color);
+}
+
+.metric-value.warning {
+  color: var(--warning-color);
+}
+
+.metric-value.danger {
+  color: var(--danger-color);
+}
+
+.metric-value a {
+  text-decoration: none;
+  margin-left: 5px;
+}
+
+.recent-commits {
+  font-size: 13px;
+}
+
+.commit-item {
+  border-left: 3px solid var(--secondary-color);
+  padding-left: 8px;
+  margin-bottom: 8px;
+}
+
+.commit-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 3px;
+}
+
+.commit-id {
+  font-family: monospace;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.commit-date {
+  color: #666;
+  font-size: 12px;
+}
+
+.commit-message {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.no-data {
+  color: #999;
+  font-style: italic;
+}
+
+.failed-jobs {
+  margin-top: 8px;
+  margin-bottom: 15px;
+}
+
+.failed-jobs-summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--danger-color);
+  margin-left: 120px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: rgba(220, 53, 69, 0.1);
+  display: inline-block;
+}
+
+.failed-jobs-list {
+  margin-top: 8px;
+  margin-left: 120px;
+  border-left: 2px solid var(--danger-color);
+  padding-left: 10px;
+}
+
+.job-item {
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: rgba(220, 53, 69, 0.05);
+}
+
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.job-name {
+  font-weight: 600;
+}
+
+.job-stage {
+  color: #666;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: #f0f0f0;
+}
+
+.job-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.job-reason {
+  color: var(--danger-color);
+}
+
+.job-link {
+  display: inline-block;
+  padding: 2px 6px;
+  background-color: var(--primary-color);
+  color: white;
+  text-decoration: none;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.job-link:hover {
+  background-color: #5a3da8;
+}
+
+.test-details, .mr-details {
+  font-size: 14px;
+  color: #6c757d;
+  margin-left: 5px;
+}
+
+@media (max-width: 768px) {
+  .project-cards {
+    grid-template-columns: 1fr;
+  }
+}
