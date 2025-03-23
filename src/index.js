@@ -57,7 +57,7 @@ function loadSavedSettings() {
   const savedGroupId = localStorage.getItem(STORAGE_KEYS.GROUP_ID);
   const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
   const savedTimeframe = localStorage.getItem(STORAGE_KEYS.TIMEFRAME);
-  const savedViewType = localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) || VIEW_TYPES.CARD;
+  const savedViewType = localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) || VIEW_TYPES.TABLE;
   
   if (savedUrl) {
     gitlabUrlInput.value = savedUrl;
@@ -278,7 +278,7 @@ function renderDashboard(metrics, viewType) {
   window.dashboardMetrics = metrics;
   
   // Get the preferred view type
-  const currentViewType = viewType || localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) || VIEW_TYPES.CARD;
+  const currentViewType = viewType || localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) || VIEW_TYPES.TABLE;
   setActiveViewType(currentViewType);
   
   // Create dashboard elements

@@ -111,30 +111,12 @@ const tableView = (() => {
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'project-details hidden';
 
-    // Create metrics summary
+    // Create metrics summary with only metrics not shown in the main row
     const metricsSummary = `
       <div class="metrics-bar">
         <div class="metric">
           <div class="metric-label">Total Pipelines</div>
           <div class="metric-value">${project.metrics.totalPipelines || 0}</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Success Rate</div>
-          <div class="metric-value ${getSuccessRateClass(project.metrics.successRate)}">
-            ${project.metrics.successRate.toFixed(2)}%
-          </div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Avg Duration</div>
-          <div class="metric-value">${formatDuration(project.metrics.avgDuration)}</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Code Coverage</div>
-          <div class="metric-value">
-            ${project.metrics.codeCoverage.available
-              ? project.metrics.codeCoverage.coverage.toFixed(2) + '%'
-              : 'Not Available'}
-          </div>
         </div>
       </div>
     `;

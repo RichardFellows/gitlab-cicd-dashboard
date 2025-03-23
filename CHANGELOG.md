@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created `scripts/` directory for development scripts
   - Created `tests/` directory that mirrors the source structure
   - Updated file paths accordingly
+- Made the table view the default view instead of card view
+- Removed duplicated metrics in the expanded rows of the table view
 
 ## [1.0.0] - 2025-03-23
 
