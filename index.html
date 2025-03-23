@@ -411,7 +411,7 @@
       .job-link:hover {
         background-color: #5a3da8;
       }
-      
+
       /* Project Detail View Styles */
       .project-detail-view {
         display: flex;
@@ -463,7 +463,7 @@
         border-radius: 6px;
         padding: 15px;
       }
-      
+
       /* Merge Requests Styles */
       .merge-requests-list {
         display: flex;
@@ -556,7 +556,7 @@
       .pipeline-link:hover {
         background-color: #5a3da8;
       }
-      
+
       /* MR Commits Styles */
       .mr-commits {
         margin-top: 10px;
@@ -591,7 +591,7 @@
         margin-top: 8px;
         margin-bottom: 8px;
       }
-      
+
       /* Details element for collapsible content */
       details {
         margin-top: 8px;
@@ -639,14 +639,14 @@
     <link rel="stylesheet" href="table-view.css">
   </head>
   <body>
-<div class="view-toggle">
-  <button id="card-view-btn" class="view-btn active">Card View</button>
-  <button id="table-view-btn" class="view-btn">Table View</button>
-</div>
     <div class="container">
       <header>
         <h1>GitLab CI/CD Dashboard</h1>
         <div class="header-actions">
+          <div class="view-toggle">
+            <button id="card-view-btn" class="view-btn active">Card View</button>
+            <button id="table-view-btn" class="view-btn">Table View</button>
+          </div>
           <button id="clear-settings" class="secondary-button" title="Clear saved settings">Clear Saved Data</button>
         </div>
       </header>
@@ -688,12 +688,7 @@
       </div>
       <div id="error-container"></div>
       <div id="loading-indicator">Loading dashboard data...</div>
-      
-      <div id="view-toggle" class="view-toggle" style="display: none;">
-        <button id="card-view-btn" class="active">Card View</button>
-        <button id="table-view-btn">Table View</button>
-      </div>
-      
+
       <div id="dashboard-container">
         <!-- Dashboard content will be dynamically inserted here -->
       </div>
@@ -702,6 +697,7 @@
     <script src="gitlab-api-service.js"></script>
     <script src="dashboard-data-service.js"></script>
     <script src="pipeline-performance.js"></script>
+    <script src="table-view.js"></script>
     <script src="index.js"></script>
   </body>
 </html>
