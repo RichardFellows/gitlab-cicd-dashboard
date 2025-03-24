@@ -63,15 +63,23 @@ class GitLabApiService {
    */
   getAuthHeaders(): HeadersInit {
     const headers: HeadersInit = {
-      "private-token": this.privateToken,
       // Add additional headers to prevent cookie issues
       "Accept": "application/json",
       "Content-Type": "application/json",
     };
     
+    // GitLab API is case-sensitive for token header
+    // The proper header for GitLab API v4 is "PRIVATE-TOKEN" (uppercase)
+    if (this.privateToken) {
+      // Use only the uppercase version which is the official GitLab API specification
+      headers["PRIVATE-TOKEN"] = this.privateToken;
+    }
+    
     console.log('Using authentication headers:', { 
       privateTokenLength: this.privateToken ? this.privateToken.length : 0,
-      hasToken: !!this.privateToken
+      hasToken: !!this.privateToken,
+      headerKeys: Object.keys(headers),
+      tokenValue: this.privateToken ? this.privateToken.substring(0, 4) + '...' : 'none'
     });
     
     return headers;
@@ -89,18 +97,72 @@ class GitLabApiService {
       const url = this.getApiUrl(path, queryParams);
 
       console.log(`Fetching group projects from: ${url}`);
+      console.log('Using headers:', JSON.stringify({
+        privateTokenLength: this.privateToken ? this.privateToken.length : 0,
+        hasToken: !!this.privateToken,
+        headers: Object.keys(this.getAuthHeaders())
+      }));
 
-      const response = await fetch(url, {
+      // When using a proxy, we should not use CORS mode or credentials
+      const fetchOptions: RequestInit = {
         headers: this.getAuthHeaders(),
-      });
+      };
+      
+      // Log the final request configuration
+      console.log('Request configuration:', { url, options: { ...fetchOptions, headers: Object.keys(fetchOptions.headers || {}) } });
+      
+      const response = await fetch(url, fetchOptions);
 
+      console.log('API Response status:', response.status, response.statusText);
+      
       if (!response.ok) {
-        throw new Error(`Error fetching projects: ${response.statusText}`);
+        console.error('API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          type: response.type,
+          redirected: response.redirected
+        });
+        
+        // Specific handling for common error codes
+        if (response.status === 401) {
+          console.error('Authentication error (401): Token is invalid or missing. Check your GitLab access token.');
+          console.error('IMPORTANT: Make sure you have the right token format. GitLab API tokens should start with "glpat-"');
+          
+          // Check if using the proxy
+          if (this.useProxy) {
+            console.error('Using proxy - make sure the proxy is correctly forwarding the authentication headers');
+          }
+        }
+        
+        // Try to get error details
+        let errorDetails = '';
+        try {
+          const errorText = await response.text();
+          errorDetails = errorText.substring(0, 1000); // Limit size
+          console.error('API Error Response body:', errorDetails);
+        } catch (e) {
+          console.error('Could not read error response body');
+        }
+        
+        // Throw with extra info for authentication errors
+        if (response.status === 401) {
+          throw new Error(`Authentication failed (401): Please check that your GitLab access token is valid. ${errorDetails}`);
+        } else {
+          throw new Error(`Error fetching projects: ${response.statusText} (${response.status}) - ${errorDetails}`);
+        }
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log(`Received ${data.length} projects from API`);
+      return data;
     } catch (error) {
       console.error("Failed to fetch group projects:", error);
+      console.error("Error details:", {
+        name: error instanceof Error ? error.name : 'Not an Error object',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
       throw error;
     }
   }
@@ -638,7 +700,7 @@ class GitLabApiService {
           try {
             const commits = await this.getMergeRequestCommits(projectId, mr.iid);
             // Add the commits to the MR object (limited to 3 most recent commits)
-            enhancedMR.recent_commits = commits.slice(0, 3);
+            enhancedMR.recent_commits = commits.slice(0, 3) as any;
           } catch (error) {
             console.error(`Failed to fetch commits for MR ${mr.iid}:`, error);
           }

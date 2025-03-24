@@ -35,7 +35,7 @@ vi.mock('./TableView', () => {
       </table>
     )
   };
-}, { virtual: true });
+});
 
 // Mock data for testing
 const mockProjects = [

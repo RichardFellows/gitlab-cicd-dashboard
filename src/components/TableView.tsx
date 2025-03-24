@@ -18,8 +18,10 @@ interface TableViewProps {
 
 const TableView: FC<TableViewProps> = ({ projects, onProjectSelect }) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-  const [mergeRequestsData, setMergeRequestsData] = useState<Record<number, MergeRequest[]>>({});
-  const [loadingMRs, setLoadingMRs] = useState<Record<number, boolean>>({});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [mergeRequestsData] = useState<Record<number, MergeRequest[]>>({});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [loadingMRs] = useState<Record<number, boolean>>({});
 
   // Toggle row expansion
   const toggleRow = (projectId: number) => {

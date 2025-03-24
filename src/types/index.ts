@@ -17,8 +17,10 @@ export interface Pipeline {
   updated_at: string;
   finished_at?: string;
   duration?: number;
+  coverage?: string | number;
   available?: boolean;
   failedJobs?: Job[];
+  jobs?: Job[];
 }
 
 export interface Job {
@@ -45,8 +47,8 @@ export interface TestMetrics {
 export interface CodeCoverage {
   coverage: number | null;
   available: boolean;
-  pipelineId?: number;
-  pipelineUrl?: string;
+  pipelineId?: number | undefined;
+  pipelineUrl?: string | undefined;
 }
 
 export interface MergeRequestCounts {
@@ -76,6 +78,7 @@ export interface MergeRequest {
   source_branch: string;
   target_branch: string;
   web_url: string;
+  draft?: boolean;
   author?: {
     id: number;
     name: string;

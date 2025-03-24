@@ -1,12 +1,15 @@
 # CLAUDE.md - Guidelines for GitLab CI/CD Dashboard
 
 ## Recent Updates
-- Fixed GitLab API authentication by correcting header case sensitivity
-- Added proper error handling for API requests
-- Enhanced token retrieval from localStorage
-- Fixed proxy configuration for proper cookie handling
-- Updated test mocks for Chart.js compatibility 
-- Improved test structure with direct rendering instead of imports
+- Fixed TypeScript type issues for successful build process:
+  - Added `draft` property to MergeRequest interface
+  - Added `coverage` property to Pipeline interface  
+  - Added `jobs` property to Pipeline interface
+  - Fixed test mocks for proper TypeScript compatibility
+- Enhanced GitLab API authentication with proper header case sensitivity
+- Improved proxy configuration for proper API token handling
+- Added detailed logging for API request debugging
+- Enhanced token retrieval and validation from localStorage
 
 ## Running the Application
 - Open `localhost:5050/` in a browser to run the application
@@ -133,3 +136,4 @@ Vite → React App → GitLabApiService → DashboardDataService → React Compo
 - Chart.js for data visualization
 - GitHub Actions for CI/CD
 - GitHub Pages for hosting
+

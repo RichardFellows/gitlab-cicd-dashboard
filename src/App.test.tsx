@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 // Create a mock for App
@@ -12,7 +12,7 @@ vi.mock('./App', () => {
       );
     }
   };
-}, { virtual: true });
+});
 
 describe('App Component', () => {
   test('renders the app title', () => {

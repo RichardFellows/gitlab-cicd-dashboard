@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added build script to copy necessary files from src to public directory for deployment
 - Added post-deployment test to verify site functionality after deployment
 - Added build-and-serve script to build and immediately serve the app locally
+- Added detailed logging for API authentication and request debugging
 
 ### Changed
 - Reorganized project structure for better maintainability:
@@ -22,8 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated file paths accordingly
 - Made the table view the default view instead of card view
 - Removed duplicated metrics in the expanded rows of the table view
+- Enhanced GitLab API Service with improved error handling
+- Updated proxy configuration for better CORS and token handling
 
 ### Fixed
+- Fixed TypeScript type issues for successful build process:
+  - Added `draft` property to MergeRequest interface
+  - Added `coverage` property to Pipeline interface
+  - Added `jobs` property to Pipeline interface
+  - Fixed test mocks for proper TypeScript compatibility
+- Updated Canvas mocking for Chart.js in test environment
+- Fixed header case sensitivity issue in GitLab API authentication
+- Enhanced token retrieval from localStorage
 - Updated `start.js` to correctly serve files from the new folder structure
 - Fixed server paths to properly serve files from both `public/` and `src/` directories
 

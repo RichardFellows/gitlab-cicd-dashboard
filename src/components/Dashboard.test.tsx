@@ -44,7 +44,7 @@ vi.mock('./Dashboard', () => {
       );
     }
   };
-}, { virtual: true });
+});
 
 // Mock data for testing
 const mockMetrics = {

@@ -16,10 +16,30 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/proxy/, ''),
         configure: (proxy, _options) => {
           proxy.on('proxyReq', (proxyReq, req, _res) => {
-            // Forward the PRIVATE-TOKEN header to GitLab API
-            if (req.headers['private-token']) {
-              proxyReq.setHeader('PRIVATE-TOKEN', req.headers['private-token']);
+            // GitLab API requires the token in the "PRIVATE-TOKEN" header (uppercase)
+            // Check for all possible case variations
+            const tokenValue = 
+              req.headers['private-token'] || 
+              req.headers['PRIVATE-TOKEN'] || 
+              req.headers['Private-Token'];
+            
+            if (tokenValue) {
+              // Always set as uppercase for GitLab API
+              proxyReq.setHeader('PRIVATE-TOKEN', tokenValue);
+              console.log('Added PRIVATE-TOKEN header to proxy request', {
+                tokenLength: typeof tokenValue === 'string' ? tokenValue.length : 'not a string',
+                firstChars: typeof tokenValue === 'string' ? `${tokenValue.substring(0, 4)}...` : ''
+              });
+            } else {
+              console.warn('No Private-Token header found in the request');
             }
+            
+            // Log request info for debugging
+            console.log('Proxy request: ', {
+              url: req.url,
+              method: req.method,
+              headers: Object.keys(req.headers)
+            });
           });
           
           // Handle cookies properly

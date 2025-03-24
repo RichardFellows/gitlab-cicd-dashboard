@@ -1,4 +1,3 @@
-import React from 'react';
 import { vi } from 'vitest';
 import { ViewType } from '../types';
 
@@ -54,7 +53,7 @@ vi.mock('../components/Dashboard', () => ({
 
 // Mock ProjectDetails to avoid async issues
 vi.mock('../components/ProjectDetails', () => ({
-  default: ({ project, onBack, gitLabService }: any) => {
+  default: ({ project, onBack }: any) => {
     if (!project) {
       return (
         <div>

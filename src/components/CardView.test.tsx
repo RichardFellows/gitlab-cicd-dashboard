@@ -27,7 +27,7 @@ vi.mock('./CardView', () => {
       </div>
     )
   };
-}, { virtual: true });
+});
 
 // Mock data for testing
 const mockProjects = [

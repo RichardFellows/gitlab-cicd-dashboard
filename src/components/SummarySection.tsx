@@ -1,5 +1,5 @@
-import { FC, useEffect, useRef } from 'react';
-import { DashboardMetrics, Project } from '../types';
+import { FC } from 'react';
+import { DashboardMetrics } from '../types';
 import { formatDuration, getSuccessRateClass, categorizeProject } from '../utils/formatting';
 import { Chart, registerables } from 'chart.js';
 import { Pie } from 'react-chartjs-2';

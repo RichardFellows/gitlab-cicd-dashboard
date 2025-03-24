@@ -64,7 +64,17 @@ const App = () => {
     
     // Auto-load dashboard if we have all required values
     if (savedUrl && savedGroupId && savedToken) {
-      loadDashboard(savedUrl, savedToken, savedGroupId, parseInt(savedTimeframe || '30', 10));
+      console.log('Auto-loading dashboard with saved settings');
+      // Use setTimeout to ensure DOM is fully loaded before initiating API calls
+      setTimeout(() => {
+        loadDashboard(savedUrl, savedToken, savedGroupId, parseInt(savedTimeframe || '30', 10));
+      }, 500);
+    } else {
+      console.log('Not auto-loading dashboard, missing required values:', {
+        hasUrl: !!savedUrl,
+        hasGroupId: !!savedGroupId,
+        hasToken: !!savedToken
+      });
     }
   };
 
@@ -83,23 +93,46 @@ const App = () => {
     group: string,
     days: number
   ) => {
+    console.log('Load Dashboard called with:', { 
+      baseUrl, 
+      tokenLength: privateToken ? privateToken.length : 0, 
+      hasToken: !!privateToken,
+      group, 
+      days 
+    });
+    
     if (!baseUrl || !privateToken || !group) {
       setError('Please provide GitLab URL, token, and group ID');
+      console.error('Missing required fields:', { hasUrl: !!baseUrl, hasToken: !!privateToken, hasGroup: !!group });
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
+      console.log('Starting dashboard loading process...');
 
       // Save settings to localStorage
       saveSettings(baseUrl, privateToken, group, days);
+      console.log('Settings saved to localStorage');
 
       // Update GitLab API base URL and token
       gitLabService.baseUrl = baseUrl.endsWith('/api/v4') ? baseUrl : `${baseUrl}/api/v4`;
-      gitLabService.setPrivateToken(privateToken);
+      
+      // Clean up token (remove whitespace that might have been copied)
+      const cleanToken = privateToken.trim();
+      gitLabService.setPrivateToken(cleanToken);
+      
+      console.log('GitLab service configured with:', { 
+        baseUrl: gitLabService.baseUrl,
+        tokenLength: cleanToken.length,
+        tokenFirstChars: cleanToken.substring(0, 4) + '...',
+        useProxy: gitLabService.useProxy,
+        proxyUrl: gitLabService.proxyUrl
+      });
 
       // Fetch metrics
+      console.log('Attempting to fetch metrics for group:', group);
       const dashboardMetrics = await dashboardService.getGroupMetrics(group, { days });
 
       // Validate metrics
@@ -178,8 +211,14 @@ const App = () => {
       setMetrics(validatedMetrics);
     } catch (error) {
       console.error('Dashboard loading error:', error);
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Not an Error object',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
       setError(`Failed to load dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
+      console.log('Finished loadDashboard function, loading state:', !loading);
       setLoading(false);
     }
   };
