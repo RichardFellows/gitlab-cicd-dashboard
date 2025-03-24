@@ -14,8 +14,6 @@ const config = {
   // Critical resources that should be available
   criticalResources: [
     '',                      // The main page
-    'assets/index.js',       // Main JS bundle
-    'assets/index.css',      // Main CSS
     'index.html'             // Main HTML file
   ],
   // Timeout for each request (ms)
@@ -112,7 +110,7 @@ async function runTests() {
     }
   }
   
-  // Check for React-specific content in the main page
+  // Check for React/Vite-specific content in the main page
   const mainPageUrl = config.siteUrl;
   process.stdout.write('Checking for React app content... ');
   
@@ -128,16 +126,26 @@ async function runTests() {
         });
         
         res.on('end', () => {
-          // Check if the page contains React-specific markers
-          const hasRootDiv = data.includes('<div id="root"></div>') || data.includes('<div id="root">');
-          const hasReactBundle = data.includes('assets/index');
+          // Check if the page contains React/Vite-specific markers
+          const hasRootDiv = data.includes('<div id="root">') || data.includes('<div id="root"></div>');
           
-          const ok = hasRootDiv && hasReactBundle;
+          // Vite usually includes assets with hash in the filename
+          const hasJsAsset = data.includes('/assets/') && data.includes('.js');
+          const hasCssAsset = data.includes('/assets/') && data.includes('.css');
+          
+          // Check for React and GitLab CI/CD Dashboard specific content
+          const hasReactContent = data.includes('React') || data.includes('react') || data.includes('createRoot');
+          const hasDashboardContent = data.includes('GitLab CI/CD Dashboard') || data.includes('gitlab-cicd-dashboard');
+          
+          const ok = hasRootDiv && (hasJsAsset || hasCssAsset) && (hasReactContent || hasDashboardContent);
           resolve({
             ok,
             hasRootDiv,
-            hasReactBundle,
-            message: ok ? 'OK' : 'Missing React content markers'
+            hasJsAsset,
+            hasCssAsset,
+            hasReactContent,
+            hasDashboardContent,
+            message: ok ? 'OK' : 'Missing React/Vite content markers'
           });
         });
       });
@@ -163,7 +171,10 @@ async function runTests() {
     } else {
       console.log(`❌ FAILED: ${mainPageResult.message}`);
       if (!mainPageResult.hasRootDiv) console.log('  - Missing React root div');
-      if (!mainPageResult.hasReactBundle) console.log('  - Missing React bundle references');
+      if (!mainPageResult.hasJsAsset) console.log('  - Missing JavaScript asset references');
+      if (!mainPageResult.hasCssAsset) console.log('  - Missing CSS asset references');
+      if (!mainPageResult.hasReactContent) console.log('  - No React-related content found');
+      if (!mainPageResult.hasDashboardContent) console.log('  - No GitLab CI/CD Dashboard content found');
       allPassed = false;
     }
     
