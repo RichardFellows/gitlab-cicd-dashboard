@@ -3,9 +3,9 @@
  * This script tests if the deployed site is accessible and if critical resources are loading correctly
  */
 
-const https = require('https');
-const http = require('http');
-const url = require('url');
+import https from 'https';
+import http from 'http';
+import { URL } from 'url';
 
 // Configuration
 const config = {
