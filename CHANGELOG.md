@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added post-deployment test to verify site functionality after deployment
 - Added build-and-serve script to build and immediately serve the app locally
 - Added detailed logging for API authentication and request debugging
+- Added retry with exponential backoff pattern for faster post-deployment tests
 
 ### Changed
 - Reorganized project structure for better maintainability:
