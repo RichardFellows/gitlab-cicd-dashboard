@@ -1,4 +1,4 @@
-import { MergeRequest, Pipeline, Commit, Job, STORAGE_KEYS } from '../types';
+import { MergeRequest, Pipeline, Commit, Job, TestMetrics, STORAGE_KEYS } from '../types';
 
 class GitLabApiService {
   baseUrl: string;
@@ -90,7 +90,7 @@ class GitLabApiService {
    * @param {string|number} groupId - The GitLab group ID
    * @returns {Promise<Array>} - List of projects
    */
-  async getGroupProjects(groupId: string | number): Promise<any[]> {
+  async getGroupProjects(groupId: string | number): Promise<Record<string, unknown>[]> {
     try {
       const path = `/groups/${groupId}/projects`;
       const queryParams = '?include_subgroups=true&per_page=100';
@@ -277,7 +277,7 @@ class GitLabApiService {
    * @param {string|number} projectId - The GitLab project ID
    * @returns {Promise<Object>} - Test metrics
    */
-  async getTestReports(projectId: string | number): Promise<any> {
+  async getTestReports(projectId: string | number): Promise<TestMetrics> {
     try {
       // First check if project has any pipelines
       const pipelines = await this.getProjectPipelines(projectId, { per_page: 1 });
@@ -477,7 +477,7 @@ class GitLabApiService {
    * @param {string|number} projectId - The GitLab project ID
    * @returns {Promise<Object>} - Project details
    */
-  async getProjectDetails(projectId: string | number): Promise<any> {
+  async getProjectDetails(projectId: string | number): Promise<Record<string, unknown>> {
     try {
       const path = `/projects/${projectId}`;
       const url = this.getApiUrl(path, '');
@@ -700,7 +700,7 @@ class GitLabApiService {
           try {
             const commits = await this.getMergeRequestCommits(projectId, mr.iid);
             // Add the commits to the MR object (limited to 3 most recent commits)
-            enhancedMR.recent_commits = commits.slice(0, 3) as any;
+            enhancedMR.recent_commits = commits.slice(0, 3);
           } catch (error) {
             console.error(`Failed to fetch commits for MR ${mr.iid}:`, error);
           }

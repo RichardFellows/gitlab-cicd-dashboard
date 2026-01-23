@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
 import ControlPanel from './components/ControlPanel';
 import ProjectDetails from './components/ProjectDetails';
-import { DashboardMetrics, Project, STORAGE_KEYS, ViewType } from './types';
+import { DashboardMetrics, Project, ProjectMetrics, STORAGE_KEYS, ViewType } from './types';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
 import './styles/index.css';
@@ -32,6 +32,7 @@ const App = () => {
     return () => {
       window.removeEventListener('hashchange', checkUrlHash);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Check URL hash for navigation
@@ -146,7 +147,7 @@ const App = () => {
           // Ensure the project has a metrics object
           if (!project.metrics) {
             console.warn(`Project ${project.name} has no metrics, creating empty object`);
-            project.metrics = {} as any;
+            project.metrics = {} as ProjectMetrics;
           }
 
           // Ensure all required properties exist

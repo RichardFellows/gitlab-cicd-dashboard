@@ -1,5 +1,5 @@
 import GitLabApiService from './GitLabApiService';
-import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis } from '../types';
+import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics } from '../types';
 
 class DashboardDataService {
   gitLabService: GitLabApiService;
@@ -98,7 +98,7 @@ class DashboardDataService {
           ...pipeline,
           web_url: undefined,  // Explicitly set to undefined to match the type
           available: pipeline.available || false,
-          failedJobs: (pipeline.failedJobs || []) as any
+          failedJobs: pipeline.failedJobs || []
         };
       } catch (error) {
         // Silently fail if we can't get main branch pipeline
@@ -129,7 +129,7 @@ class DashboardDataService {
       }
       
       // Get recent commits
-      let recentCommits: any[] = [];
+      let recentCommits: Commit[] = [];
       
       try {
         recentCommits = await this.gitLabService.getRecentCommits(projectId, 3);
@@ -245,7 +245,7 @@ class DashboardDataService {
    * @param {Array} projectMetrics - Metrics from all projects
    * @returns {Object} - Aggregate metrics
    */
-  calculateAggregateMetrics(projectMetrics: any[]) {
+  calculateAggregateMetrics(projectMetrics: ProjectMetrics[]) {
     const aggregate = {
       totalPipelines: 0,
       successfulPipelines: 0,

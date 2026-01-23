@@ -14,8 +14,8 @@ export default defineConfig({
         secure: true,
         cookieDomainRewrite: 'localhost',
         rewrite: (path) => path.replace(/^\/proxy/, ''),
-        configure: (proxy, _options) => {
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
             // GitLab API requires the token in the "PRIVATE-TOKEN" header (uppercase)
             // Check for all possible case variations
             const tokenValue = 
@@ -43,7 +43,7 @@ export default defineConfig({
           });
           
           // Handle cookies properly
-          proxy.on('proxyRes', (proxyRes, req, res) => {
+          proxy.on('proxyRes', (proxyRes) => {
             // Remove or modify problematic cookies
             const setCookieHeaders = proxyRes.headers['set-cookie'];
             if (setCookieHeaders) {

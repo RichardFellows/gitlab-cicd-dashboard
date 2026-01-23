@@ -26,6 +26,7 @@ const ProjectDetails: FC<ProjectDetailsProps> = ({ project, onBack, gitLabServic
     if (project) {
       loadMergeRequests(project.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project]);
 
   const loadMergeRequests = async (projectId: number) => {

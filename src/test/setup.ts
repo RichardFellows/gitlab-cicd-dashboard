@@ -139,8 +139,8 @@ const mockContext = {
   createImageData: vi.fn(),
 };
 
-// @ts-ignore - Ignore type checking for this mock
-HTMLCanvasElement.prototype.getContext = function(contextId) {
+// @ts-expect-error - Ignore type checking for this mock
+HTMLCanvasElement.prototype.getContext = function(contextId: string) {
   if (contextId === '2d') {
     return mockContext as unknown as CanvasRenderingContext2D;
   }
