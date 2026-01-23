@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/RichardFellows/gitlab-cicd-dashboard.git"
+    "url": "git+https://gitlab.com/richard2/gitlab-cicd-dashboard.git"
   },
   "keywords": [
     "gitlab",
@@ -28,9 +28,9 @@
   "author": "Richard Fellows",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/RichardFellows/gitlab-cicd-dashboard/issues"
+    "url": "https://gitlab.com/richard2/gitlab-cicd-dashboard/-/issues"
   },
-  "homepage": "https://github.com/RichardFellows/gitlab-cicd-dashboard#readme",
+  "homepage": "https://gitlab.com/richard2/gitlab-cicd-dashboard#readme",
   "engines": {
     "node": ">=18.0.0"
   },

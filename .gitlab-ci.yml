@@ -1,0 +1,85 @@
+# GitLab CI/CD Pipeline for gitlab-cicd-dashboard
+# Runs tests, builds the project, and deploys to GitLab Pages
+
+image: node:20
+
+# Cache node_modules between jobs
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+
+stages:
+  - test
+  - build
+  - deploy
+  - post-deploy
+
+# Install dependencies (shared script)
+.install_dependencies: &install_dependencies
+  - npm ci
+
+# Run unit tests
+test:
+  stage: test
+  script:
+    - *install_dependencies
+    - npm test
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+# Run linting
+lint:
+  stage: test
+  script:
+    - *install_dependencies
+    - npm run lint
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+# Build the project
+build:
+  stage: build
+  script:
+    - *install_dependencies
+    - npm run build
+    - echo "Build output:"
+    - ls -la dist/
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+# Deploy to GitLab Pages (only on main branch)
+# GitLab Pages requires the job to be named 'pages' and artifacts in 'public/'
+pages:
+  stage: deploy
+  script:
+    - mv dist public
+    - echo "Deploying to GitLab Pages..."
+    - ls -la public/
+  artifacts:
+    paths:
+      - public
+  dependencies:
+    - build
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  environment:
+    name: production
+    url: https://richard2.gitlab.io/gitlab-cicd-dashboard
+
+# Post-deployment verification
+post-deploy-test:
+  stage: post-deploy
+  script:
+    - *install_dependencies
+    - npm run test:deployment https://richard2.gitlab.io/gitlab-cicd-dashboard
+  dependencies: []
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - job: pages
+      artifacts: false
