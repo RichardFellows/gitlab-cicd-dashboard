@@ -1,4 +1,19 @@
 // GitLab API Types
+
+// Raw GitLab API project response (before adding metrics)
+export interface GitLabApiProject {
+  id: number;
+  name: string;
+  path_with_namespace?: string;
+  path?: string;
+  web_url: string;
+  default_branch?: string;
+}
+
+// Partial project details (for error cases)
+export type PartialGitLabApiProject = Partial<GitLabApiProject> & { default_branch?: string };
+
+// Project with computed metrics (used in dashboard)
 export interface Project {
   id: number;
   name: string;

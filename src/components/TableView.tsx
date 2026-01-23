@@ -18,6 +18,8 @@ interface TableViewProps {
 
 const TableView: FC<TableViewProps> = ({ projects, onProjectSelect }) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const [mergeRequestsData] = useState<Record<number, MergeRequest[]>>({});
+  const [loadingMRs] = useState<Record<number, boolean>>({});
 
   // Toggle row expansion
   const toggleRow = (projectId: number) => {

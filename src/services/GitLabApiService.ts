@@ -1,4 +1,4 @@
-import { MergeRequest, Pipeline, Commit, Job, TestMetrics, STORAGE_KEYS } from '../types';
+import { MergeRequest, Pipeline, Commit, Job, TestMetrics, GitLabApiProject, PartialGitLabApiProject, STORAGE_KEYS } from '../types';
 
 class GitLabApiService {
   baseUrl: string;
@@ -90,7 +90,7 @@ class GitLabApiService {
    * @param {string|number} groupId - The GitLab group ID
    * @returns {Promise<Array>} - List of projects
    */
-  async getGroupProjects(groupId: string | number): Promise<Record<string, unknown>[]> {
+  async getGroupProjects(groupId: string | number): Promise<GitLabApiProject[]> {
     try {
       const path = `/groups/${groupId}/projects`;
       const queryParams = '?include_subgroups=true&per_page=100';
@@ -477,7 +477,7 @@ class GitLabApiService {
    * @param {string|number} projectId - The GitLab project ID
    * @returns {Promise<Object>} - Project details
    */
-  async getProjectDetails(projectId: string | number): Promise<Record<string, unknown>> {
+  async getProjectDetails(projectId: string | number): Promise<PartialGitLabApiProject> {
     try {
       const path = `/projects/${projectId}`;
       const url = this.getApiUrl(path, '');
@@ -694,7 +694,7 @@ class GitLabApiService {
       const detailedMRs = await Promise.all(
         mergeRequests.map(async mr => {
           // Create an enhanced MR object
-          const enhancedMR = {...mr, recent_commits: []};
+          const enhancedMR: MergeRequest = {...mr, recent_commits: [] as Commit[]};
 
           // Get recent commits for the MR
           try {

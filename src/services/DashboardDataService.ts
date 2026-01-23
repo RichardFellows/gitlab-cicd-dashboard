@@ -1,5 +1,5 @@
 import GitLabApiService from './GitLabApiService';
-import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics } from '../types';
+import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job } from '../types';
 
 class DashboardDataService {
   gitLabService: GitLabApiService;
@@ -82,14 +82,14 @@ class DashboardDataService {
       }
       
       // Get main branch pipeline status
-      let mainBranchPipeline = { 
+      let mainBranchPipeline: Pipeline = {
         id: 0,
         status: 'unknown',
         web_url: undefined,
         created_at: '',
         updated_at: '',
         available: false,
-        failedJobs: []
+        failedJobs: [] as Job[]
       };
       
       try {
