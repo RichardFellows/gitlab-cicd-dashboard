@@ -54,7 +54,7 @@ project-root/
 │   └── workflows/             # GitHub Actions workflows
 │       └── deploy-github-pages.yml # GitHub Pages deployment workflow
 │
-├── public/                    # Static assets that aren't processed by Vite
+├── .gitlab-ci.yml             # GitLab CI/CD pipeline configuration
 │
 ├── src/                       # Source code
 │   ├── components/            # React components
@@ -109,6 +109,35 @@ project-root/
   - `npm run test:watch`: Run tests in watch mode
   - `npm run test:coverage`: Run tests with coverage
   
+## Test Data (GitLab Group)
+
+A test group is available on GitLab for testing the dashboard with realistic data:
+
+- **Group ID**: `122839760`
+- **Group Path**: `test-group6330604`
+- **Group URL**: https://gitlab.com/groups/test-group6330604
+
+### Test Projects
+
+| Project | Description | Pipeline State | Open MRs |
+|---------|-------------|----------------|----------|
+| api-service | Backend API service | ✅ success | 0 |
+| frontend-app | React frontend | ❌ failed (test failure) | 1 |
+| data-processor | Data processing service | ✅ success | 0 |
+| auth-service | Authentication microservice | ✅ success | 0 |
+| notification-service | Notification service | ✅ success | 2 (1 draft) |
+
+### Test Merge Requests
+- **notification-service**: 2 open MRs (email notifications feature, Slack integration draft)
+- **frontend-app**: 1 open MR (bug fix for failing tests)
+
+### Usage
+To test the dashboard locally with this group:
+1. Run `npm run dev`
+2. Enter GitLab URL: `https://gitlab.com`
+3. Enter Group ID: `122839760`
+4. Enter your GitLab Personal Access Token
+
 ## Deployment
 
 ### GitLab CI/CD (Primary)
