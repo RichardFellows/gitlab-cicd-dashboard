@@ -30,6 +30,14 @@
 - Some component tests still need updating to properly mock Chart.js
 - Some tests are temporarily disabled until they can be fixed
 
+## Pre-Push Checklist
+Before pushing any changes to remote, always verify locally:
+1. `npm run lint` - Ensure no linting errors
+2. `npm run build` - Ensure TypeScript compiles and Vite builds successfully
+3. `npm test` - Ensure all tests pass
+
+Only push after all three checks pass.
+
 ## Code Style Guidelines
 - **Naming**: camelCase for variables/functions, PascalCase for classes and React components
 - **Indentation**: 2 spaces
@@ -102,6 +110,14 @@ project-root/
   - `npm run test:coverage`: Run tests with coverage
   
 ## Deployment
+
+### GitLab CI/CD (Primary)
+- Automated deployment to GitLab Pages via `.gitlab-ci.yml`
+- Pipeline stages: test → build → deploy → post-deploy
+- Triggered on pushes to any branch (deploy only on main)
+- GitLab Pages URL: https://richard2.gitlab.io/gitlab-cicd-dashboard
+
+### GitHub Actions (Legacy)
 - Automated deployment to GitHub Pages via GitHub Actions
 - The workflow is triggered on:
   - Pushes to the main branch
@@ -134,6 +150,8 @@ Vite → React App → GitLabApiService → DashboardDataService → React Compo
 - TypeScript for type safety
 - Vite as the build tool
 - Chart.js for data visualization
-- GitHub Actions for CI/CD
-- GitHub Pages for hosting
+- GitLab CI/CD for pipelines (primary)
+- GitLab Pages for hosting (primary)
+- GitHub Actions for CI/CD (legacy)
+- GitHub Pages for hosting (legacy)
 
