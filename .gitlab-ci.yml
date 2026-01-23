@@ -57,6 +57,7 @@ build:
 pages:
   stage: deploy
   script:
+    - rm -rf public
     - mv dist public
     - echo "Deploying to GitLab Pages..."
     - ls -la public/
@@ -69,14 +70,14 @@ pages:
     - if: $CI_COMMIT_BRANCH == "main"
   environment:
     name: production
-    url: https://richard2.gitlab.io/gitlab-cicd-dashboard
+    url: $CI_PAGES_URL
 
 # Post-deployment verification
 post-deploy-test:
   stage: post-deploy
   script:
     - *install_dependencies
-    - npm run test:deployment https://richard2.gitlab.io/gitlab-cicd-dashboard
+    - npm run test:deployment $CI_PAGES_URL
   dependencies: []
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
