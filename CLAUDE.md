@@ -88,20 +88,21 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 Do NOT merge to main directly. Push feature branches for review first.
 
 ### Review Apps (Cloudflare Pages)
-Each MR automatically deploys a public preview to Cloudflare Pages:
+Every branch automatically deploys a public preview to Cloudflare Pages:
 - **Production**: https://gitlab-cicd-dashboard.pages.dev (main branch)
-- **MR Previews**: https://mr-{MR_ID}.gitlab-cicd-dashboard.pages.dev
-- Review environments auto-expire after 1 week
-- Preview URL is shown in the MR environment section
+- **Branch Previews**: https://{branch-slug}.gitlab-cicd-dashboard.pages.dev
+- Example: `feature/multi-source-config` -> https://feature-multi-source-config.gitlab-cicd-dashboard.pages.dev
+- Preview URL is shown in the GitLab environment section
 
 ### Cloudflare Pages Setup
 CI/CD variables required in GitLab (Settings > CI/CD > Variables):
-- `CLOUDFLARE_API_TOKEN` - Cloudflare API token (masked)
+- `CLOUDFLARE_API_TOKEN` - Cloudflare Global API Key (masked)
 - `CLOUDFLARE_ACCOUNT_ID` - Cloudflare account ID
+- `CLOUDFLARE_EMAIL` - Cloudflare account email
 
 Local `.env` file (not committed):
 ```
-CLOUDFLARE_API_TOKEN=<token>
+CLOUDFLARE_API_TOKEN=<global_api_key>
 CLOUDFLARE_ACCOUNT_EMAIL=<email>
 CLOUDFLARE_ACCOUNT_ID=<account_id>
 ```
