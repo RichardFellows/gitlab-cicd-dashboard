@@ -38,6 +38,36 @@ Before pushing any changes to remote, always verify locally:
 
 Only push after all three checks pass.
 
+## Feature Branch Workflow
+When completing a feature, always create a feature branch and push to GitLab for review:
+
+1. **Create feature branch**: `git checkout -b feature/<feature-name>`
+2. **Run verification checks**: lint, build, and test (see Pre-Push Checklist)
+3. **Commit changes**: Use conventional commit format (e.g., `feat:`, `fix:`, `docs:`)
+4. **Push to GitLab**: `git push -u origin feature/<feature-name>`
+5. **Provide MR link**: Share the merge request URL for review
+
+### Branch Naming Convention
+- `feature/<name>` - New features
+- `fix/<name>` - Bug fixes
+- `refactor/<name>` - Code refactoring
+- `docs/<name>` - Documentation updates
+
+### Commit Message Format
+Use conventional commits:
+```
+feat: add multi-source dashboard configuration
+
+Brief description of changes.
+
+- Bullet point details
+- More details
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+```
+
+Do NOT merge to main directly. Push feature branches for review first.
+
 ## Code Style Guidelines
 - **Naming**: camelCase for variables/functions, PascalCase for classes and React components
 - **Indentation**: 2 spaces
@@ -62,6 +92,8 @@ project-root/
 │   │   ├── ControlPanel.tsx   # Control panel component
 │   │   ├── Dashboard.tsx      # Main dashboard component
 │   │   ├── ProjectDetails.tsx # Project details component
+│   │   ├── SourceChip.tsx     # Chip component for group/project display
+│   │   ├── SourceManager.tsx  # Multi-source group/project manager
 │   │   ├── SummarySection.tsx # Summary section component
 │   │   └── TableView.tsx      # Table view component
 │   │
@@ -71,13 +103,15 @@ project-root/
 │   │
 │   ├── styles/                # CSS files for components
 │   │   ├── index.css          # Global styles
-│   │   ├── TableView.css      # Table view styles
-│   │   └── CardView.css       # Card view styles
+│   │   ├── CardView.css       # Card view styles
+│   │   ├── SourceManager.css  # Source manager styles
+│   │   └── TableView.css      # Table view styles
 │   │
 │   ├── types/                 # TypeScript type definitions
 │   │   └── index.ts           # Shared type definitions
 │   │
 │   ├── utils/                 # Utilities and helpers
+│   │   ├── configMigration.ts # Config migration and persistence
 │   │   └── formatting.ts      # Formatting utilities
 │   │
 │   ├── test/                  # Test configuration
