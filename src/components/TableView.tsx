@@ -9,6 +9,8 @@ import {
   escapeHtml,
   getPipelineStatusClass
 } from '../utils/formatting';
+import MetricAlert from './MetricAlert';
+import { shouldShowFailureRateAlert, shouldShowCoverageAlert } from '../utils/constants';
 import '../styles/TableView.css';
 
 interface TableViewProps {
@@ -52,7 +54,18 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect }) => {
           {projects.map(project => {
             const category = categorizeProject(project);
             const isExpanded = expandedRows[project.id] || false;
-            
+
+            // Calculate failure rate for alerts
+            const failureRate = project.metrics.totalPipelines > 0
+              ? (project.metrics.failedPipelines / project.metrics.totalPipelines) * 100
+              : 0;
+
+            const showFailureAlert = shouldShowFailureRateAlert(failureRate);
+            const showCoverageAlert = shouldShowCoverageAlert(
+              project.metrics.codeCoverage.coverage,
+              project.metrics.codeCoverage.available
+            );
+
             return (
               <>
                 <tr 
@@ -62,8 +75,8 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect }) => {
                 >
                   <td>
                     <span className={`status-indicator ${category}`}></span>
-                    <a 
-                      href="#" 
+                    <a
+                      href="#"
                       onClick={(e) => {
                         e.preventDefault();
                         handleProjectClick(project.id);
@@ -72,6 +85,16 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect }) => {
                     >
                       {project.name}
                     </a>
+                    {(showFailureAlert || showCoverageAlert) && (
+                      <span className="metric-alerts table-alerts">
+                        {showFailureAlert && (
+                          <MetricAlert type="high-failure-rate" value={failureRate} compact />
+                        )}
+                        {showCoverageAlert && project.metrics.codeCoverage.coverage !== null && (
+                          <MetricAlert type="low-coverage" value={project.metrics.codeCoverage.coverage} compact />
+                        )}
+                      </span>
+                    )}
                   </td>
                   <td>
                     {formatPipelineStatus(

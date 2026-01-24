@@ -1,0 +1,62 @@
+/* TrendChart component styles */
+
+.trend-chart {
+  background-color: var(--card-bg-color);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+.trend-chart.compact {
+  padding: 12px;
+}
+
+.trend-chart .chart-title {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.trend-chart.compact .chart-title {
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trend-chart .chart-wrapper {
+  position: relative;
+}
+
+.trend-chart .no-data-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background-color);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* Dark mode adjustments */
+.dark-mode .trend-chart {
+  background-color: var(--card-bg-color);
+}
+
+.dark-mode .trend-chart .no-data-placeholder {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .trend-chart {
+    padding: 12px;
+  }
+
+  .trend-chart .chart-title {
+    font-size: 13px;
+  }
+}

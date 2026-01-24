@@ -10,6 +10,8 @@ import {
   formatDate,
   escapeHtml
 } from '../utils/formatting';
+import MetricAlert from './MetricAlert';
+import { shouldShowFailureRateAlert, shouldShowCoverageAlert } from '../utils/constants';
 import '../styles/CardView.css';
 
 interface CardViewProps {
@@ -110,6 +112,17 @@ interface ProjectCardProps {
 
 const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
   const category = categorizeProject(project);
+
+  // Calculate failure rate for alerts
+  const failureRate = project.metrics.totalPipelines > 0
+    ? (project.metrics.failedPipelines / project.metrics.totalPipelines) * 100
+    : 0;
+
+  const showFailureAlert = shouldShowFailureRateAlert(failureRate);
+  const showCoverageAlert = shouldShowCoverageAlert(
+    project.metrics.codeCoverage.coverage,
+    project.metrics.codeCoverage.available
+  );
   
   // Determine which commits to show
   const getCommitsToShow = () => {
@@ -156,16 +169,29 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
             {project.name}
           </a>
         </h3>
-        <a 
-          href={project.web_url} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="gitlab-link" 
+        <a
+          href={project.web_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="gitlab-link"
           title="Open in GitLab"
         >
           <i className="gitlab-icon">↗️</i>
         </a>
       </div>
+
+      {/* Metric Alerts */}
+      {(showFailureAlert || showCoverageAlert) && (
+        <div className="metric-alerts">
+          {showFailureAlert && (
+            <MetricAlert type="high-failure-rate" value={failureRate} />
+          )}
+          {showCoverageAlert && project.metrics.codeCoverage.coverage !== null && (
+            <MetricAlert type="low-coverage" value={project.metrics.codeCoverage.coverage} />
+          )}
+        </div>
+      )}
+
       <div className="project-metrics">
         <div className="metric-section">
           <h4>Pipeline Status</h4>

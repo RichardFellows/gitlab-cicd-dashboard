@@ -2,7 +2,7 @@ import { FC, useMemo } from 'react';
 import SummarySection from './SummarySection';
 import TableView from './TableView';
 import CardView from './CardView';
-import { DashboardMetrics, Project, ProjectStatusFilter, ViewType } from '../types';
+import { DashboardMetrics, Project, ProjectStatusFilter, ViewType, AggregatedTrend } from '../types';
 import { categorizeProject } from '../utils/formatting';
 
 interface DashboardProps {
@@ -12,6 +12,9 @@ interface DashboardProps {
   statusFilter: ProjectStatusFilter;
   searchQuery: string;
   onStatusFilterChange: (filter: ProjectStatusFilter) => void;
+  aggregateTrends?: AggregatedTrend[];
+  trendsLoading?: boolean;
+  darkMode?: boolean;
 }
 
 const Dashboard: FC<DashboardProps> = ({
@@ -20,7 +23,10 @@ const Dashboard: FC<DashboardProps> = ({
   onProjectSelect,
   statusFilter,
   searchQuery,
-  onStatusFilterChange
+  onStatusFilterChange,
+  aggregateTrends = [],
+  trendsLoading = false,
+  darkMode = false
 }) => {
   // Filter projects based on status and search query
   const filteredProjects = useMemo(() => {
@@ -53,6 +59,9 @@ const Dashboard: FC<DashboardProps> = ({
         metrics={metrics}
         activeFilter={statusFilter}
         onFilterChange={onStatusFilterChange}
+        aggregateTrends={aggregateTrends}
+        trendsLoading={trendsLoading}
+        darkMode={darkMode}
       />
 
       <section className="projects-section">

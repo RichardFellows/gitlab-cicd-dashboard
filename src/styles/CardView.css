@@ -75,7 +75,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
+}
+
+/* Metric alerts in card view */
+.project-card .metric-alerts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .project-header h3 {

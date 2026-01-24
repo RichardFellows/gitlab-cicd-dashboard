@@ -1,8 +1,9 @@
 import { FC } from 'react';
-import { DashboardMetrics, ProjectStatusFilter } from '../types';
+import { DashboardMetrics, ProjectStatusFilter, AggregatedTrend } from '../types';
 import { formatDuration, getSuccessRateClass, categorizeProject } from '../utils/formatting';
 import { Chart, registerables } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
+import MetricsPanel from './MetricsPanel';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -11,9 +12,19 @@ interface SummarySectionProps {
   metrics: DashboardMetrics;
   activeFilter: ProjectStatusFilter;
   onFilterChange: (filter: ProjectStatusFilter) => void;
+  aggregateTrends?: AggregatedTrend[];
+  trendsLoading?: boolean;
+  darkMode?: boolean;
 }
 
-const SummarySection: FC<SummarySectionProps> = ({ metrics, activeFilter, onFilterChange }) => {
+const SummarySection: FC<SummarySectionProps> = ({
+  metrics,
+  activeFilter,
+  onFilterChange,
+  aggregateTrends = [],
+  trendsLoading = false,
+  darkMode = false
+}) => {
   // Count projects by their pipeline status
   const projectStatusCounts = {
     success: 0,
@@ -138,6 +149,13 @@ const SummarySection: FC<SummarySectionProps> = ({ metrics, activeFilter, onFilt
           </div>
         </div>
       </div>
+
+      {/* Aggregate Trend Charts */}
+      <MetricsPanel
+        trends={aggregateTrends}
+        loading={trendsLoading}
+        darkMode={darkMode}
+      />
     </section>
   );
 };

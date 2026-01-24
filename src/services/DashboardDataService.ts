@@ -1,5 +1,6 @@
 import GitLabApiService from './GitLabApiService';
-import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject } from '../types';
+import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject, MainBranchTrend, CoverageTrend, AggregatedTrend, CoverageStatus } from '../types';
+import { METRICS_THRESHOLDS } from '../utils/constants';
 
 class DashboardDataService {
   gitLabService: GitLabApiService;
@@ -647,6 +648,260 @@ class DashboardDataService {
         pipelineDetails: []
       };
     }
+  }
+
+  /**
+   * Get main branch pipeline trends for a project
+   * @param projectId - The GitLab project ID
+   * @param params - Parameters like date range
+   * @returns Main branch trend data grouped by day
+   */
+  async getMainBranchTrends(
+    projectId: string | number,
+    params: { startDate?: string; endDate?: string }
+  ): Promise<MainBranchTrend[]> {
+    try {
+      // Get the project's default branch
+      const projectDetails = await this.gitLabService.getProjectDetails(projectId);
+      const defaultBranch = projectDetails.default_branch || 'main';
+
+      // Get pipelines for the default branch only
+      const pipelines = await this.gitLabService.getProjectPipelines(projectId, {
+        ...params,
+        ref: defaultBranch,
+        per_page: 100
+      });
+
+      // Group pipelines by day
+      const pipelinesByDay: Record<string, {
+        date: string;
+        total: number;
+        failed: number;
+        duration: number;
+        pipelinesWithDuration: number;
+      }> = {};
+
+      for (const pipeline of pipelines) {
+        const date = new Date(pipeline.created_at).toISOString().split('T')[0];
+
+        if (!pipelinesByDay[date]) {
+          pipelinesByDay[date] = {
+            date,
+            total: 0,
+            failed: 0,
+            duration: 0,
+            pipelinesWithDuration: 0
+          };
+        }
+
+        pipelinesByDay[date].total++;
+
+        if (pipeline.status === 'failed') {
+          pipelinesByDay[date].failed++;
+        }
+
+        if (pipeline.duration) {
+          pipelinesByDay[date].duration += pipeline.duration;
+          pipelinesByDay[date].pipelinesWithDuration++;
+        }
+      }
+
+      // Convert to array and calculate rates
+      const trends = Object.values(pipelinesByDay).map(day => ({
+        date: day.date,
+        total: day.total,
+        failed: day.failed,
+        failureRate: day.total > 0 ? (day.failed / day.total) * 100 : 0,
+        avgDuration: day.pipelinesWithDuration > 0 ? day.duration / day.pipelinesWithDuration : 0
+      }));
+
+      return trends.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    } catch (error) {
+      console.error(`Failed to get main branch trends for project ${projectId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get code coverage trends for a project over time
+   * @param projectId - The GitLab project ID
+   * @param params - Parameters like date range
+   * @returns Coverage trend data grouped by day
+   */
+  async getCoverageTrends(
+    projectId: string | number,
+    params: { startDate?: string; endDate?: string }
+  ): Promise<CoverageTrend[]> {
+    try {
+      // Get the project's default branch
+      const projectDetails = await this.gitLabService.getProjectDetails(projectId);
+      const defaultBranch = projectDetails.default_branch || 'main';
+
+      // Get pipelines for the default branch
+      const pipelines = await this.gitLabService.getProjectPipelines(projectId, {
+        ...params,
+        ref: defaultBranch,
+        per_page: 100
+      });
+
+      // Get coverage for each pipeline - we need pipeline details
+      const coverageByDay: Record<string, { date: string; coverage: number | null; count: number }> = {};
+
+      for (const pipeline of pipelines) {
+        const date = new Date(pipeline.created_at).toISOString().split('T')[0];
+
+        // Get pipeline details to get coverage
+        try {
+          const details = await this.gitLabService.getPipelineDetails(projectId, pipeline.id);
+
+          if (!coverageByDay[date]) {
+            coverageByDay[date] = { date, coverage: null, count: 0 };
+          }
+
+          if (details.coverage !== undefined && details.coverage !== null) {
+            const coverageValue = typeof details.coverage === 'string'
+              ? parseFloat(details.coverage)
+              : details.coverage;
+
+            if (!isNaN(coverageValue)) {
+              if (coverageByDay[date].coverage === null) {
+                coverageByDay[date].coverage = coverageValue;
+                coverageByDay[date].count = 1;
+              } else {
+                // Average coverage for the day
+                coverageByDay[date].coverage =
+                  ((coverageByDay[date].coverage || 0) * coverageByDay[date].count + coverageValue) /
+                  (coverageByDay[date].count + 1);
+                coverageByDay[date].count++;
+              }
+            }
+          }
+        } catch (error) {
+          // Skip pipelines where we can't get details
+          console.debug(`Couldn't get details for pipeline ${pipeline.id}`);
+        }
+      }
+
+      // Convert to array
+      const trends = Object.values(coverageByDay).map(day => ({
+        date: day.date,
+        coverage: day.coverage
+      }));
+
+      return trends.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    } catch (error) {
+      console.error(`Failed to get coverage trends for project ${projectId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get aggregated trends across multiple projects
+   * @param projectIds - Array of project IDs
+   * @param params - Parameters like date range
+   * @returns Aggregated trend data for dashboard-level charts
+   */
+  async getAggregatedTrends(
+    projectIds: (string | number)[],
+    params: { startDate?: string; endDate?: string }
+  ): Promise<AggregatedTrend[]> {
+    try {
+      // Get trends for all projects in parallel
+      const allTrends = await Promise.all(
+        projectIds.map(projectId => this.getMainBranchTrends(projectId, params))
+      );
+
+      // Get coverage trends for all projects
+      const allCoverageTrends = await Promise.all(
+        projectIds.map(projectId => this.getCoverageTrends(projectId, params))
+      );
+
+      // Aggregate by date
+      const aggregatedByDay: Record<string, {
+        date: string;
+        failureRates: number[];
+        durations: number[];
+        coverages: number[];
+      }> = {};
+
+      // Process main branch trends
+      allTrends.forEach(projectTrends => {
+        projectTrends.forEach(trend => {
+          if (!aggregatedByDay[trend.date]) {
+            aggregatedByDay[trend.date] = {
+              date: trend.date,
+              failureRates: [],
+              durations: [],
+              coverages: []
+            };
+          }
+
+          if (trend.total > 0) {
+            aggregatedByDay[trend.date].failureRates.push(trend.failureRate);
+          }
+          if (trend.avgDuration > 0) {
+            aggregatedByDay[trend.date].durations.push(trend.avgDuration);
+          }
+        });
+      });
+
+      // Process coverage trends
+      allCoverageTrends.forEach(projectCoverage => {
+        projectCoverage.forEach(coverage => {
+          if (!aggregatedByDay[coverage.date]) {
+            aggregatedByDay[coverage.date] = {
+              date: coverage.date,
+              failureRates: [],
+              durations: [],
+              coverages: []
+            };
+          }
+
+          if (coverage.coverage !== null) {
+            aggregatedByDay[coverage.date].coverages.push(coverage.coverage);
+          }
+        });
+      });
+
+      // Calculate averages
+      const trends = Object.values(aggregatedByDay).map(day => ({
+        date: day.date,
+        avgFailureRate: day.failureRates.length > 0
+          ? day.failureRates.reduce((a, b) => a + b, 0) / day.failureRates.length
+          : 0,
+        avgDuration: day.durations.length > 0
+          ? day.durations.reduce((a, b) => a + b, 0) / day.durations.length
+          : 0,
+        avgCoverage: day.coverages.length > 0
+          ? day.coverages.reduce((a, b) => a + b, 0) / day.coverages.length
+          : null
+      }));
+
+      return trends.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    } catch (error) {
+      console.error('Failed to get aggregated trends:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Calculate coverage status relative to threshold
+   * @param coverage - The coverage value
+   * @returns Coverage status
+   */
+  getCoverageStatus(coverage: number | null): CoverageStatus {
+    if (coverage === null) return 'none';
+    return coverage >= METRICS_THRESHOLDS.COVERAGE_TARGET ? 'above' : 'below';
+  }
+
+  /**
+   * Calculate main branch failure rate from metrics
+   * @param metrics - Project metrics
+   * @returns Failure rate percentage
+   */
+  getMainBranchFailureRate(metrics: ProjectMetrics): number {
+    if (metrics.totalPipelines === 0) return 0;
+    return (metrics.failedPipelines / metrics.totalPipelines) * 100;
   }
 }
 

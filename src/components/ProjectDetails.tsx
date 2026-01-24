@@ -1,6 +1,8 @@
 import { FC, useState, useEffect } from 'react';
 import { Project, MergeRequest, STORAGE_KEYS } from '../types';
 import GitLabApiService from '../services/GitLabApiService';
+import DashboardDataService from '../services/DashboardDataService';
+import ProjectMetricsTrends from './ProjectMetricsTrends';
 import {
   formatPipelineStatus,
   getPipelineStatusClass,
@@ -15,9 +17,19 @@ interface ProjectDetailsProps {
   project?: Project;
   onBack: () => void;
   gitLabService: GitLabApiService;
+  dashboardService: DashboardDataService;
+  timeframe: number;
+  darkMode?: boolean;
 }
 
-const ProjectDetails: FC<ProjectDetailsProps> = ({ project, onBack, gitLabService }) => {
+const ProjectDetails: FC<ProjectDetailsProps> = ({
+  project,
+  onBack,
+  gitLabService,
+  dashboardService,
+  timeframe,
+  darkMode = false
+}) => {
   const [mergeRequests, setMergeRequests] = useState<MergeRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -263,6 +275,16 @@ const ProjectDetails: FC<ProjectDetailsProps> = ({ project, onBack, gitLabServic
               <div className="no-data">No active merge requests</div>
             )}
           </div>
+        </div>
+
+        {/* Pipeline Trends Section */}
+        <div className="detail-section trends-section">
+          <ProjectMetricsTrends
+            projectId={project.id}
+            dashboardService={dashboardService}
+            timeframe={timeframe}
+            darkMode={darkMode}
+          />
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Dashboard from './components/Dashboard';
 import ControlPanel from './components/ControlPanel';
 import ProjectDetails from './components/ProjectDetails';
-import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource } from './types';
+import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend } from './types';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
 import { loadConfig, saveConfig, clearConfig, isConfigReady, createDefaultConfig } from './utils/configMigration';
@@ -31,6 +31,10 @@ const App = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [statusFilter, setStatusFilter] = useState<ProjectStatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Trend data state
+  const [aggregateTrends, setAggregateTrends] = useState<AggregatedTrend[]>([]);
+  const [trendsLoading, setTrendsLoading] = useState(false);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -354,11 +358,40 @@ const App = () => {
       setLastUpdated(new Date());
       setSettingsCollapsed(true);
       localStorage.setItem(STORAGE_KEYS.SETTINGS_COLLAPSED, 'true');
+
+      // Fetch aggregate trends after main metrics
+      fetchAggregateTrends(validatedMetrics.projects, cfg.timeframe);
     } catch (error) {
       console.error('Dashboard loading error:', error);
       setError(`Failed to load dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch aggregate trends for the dashboard
+  const fetchAggregateTrends = async (projects: Project[], timeframe: number) => {
+    try {
+      setTrendsLoading(true);
+
+      const endDate = new Date().toISOString();
+      const startDate = new Date(
+        Date.now() - timeframe * 24 * 60 * 60 * 1000
+      ).toISOString();
+
+      const projectIds = projects.map(p => p.id);
+      const trends = await dashboardService.getAggregatedTrends(
+        projectIds,
+        { startDate, endDate }
+      );
+
+      setAggregateTrends(trends);
+      console.log(`Loaded ${trends.length} aggregate trend data points`);
+    } catch (error) {
+      console.error('Failed to fetch aggregate trends:', error);
+      // Don't set error state - trends are optional
+    } finally {
+      setTrendsLoading(false);
     }
   };
 
@@ -574,6 +607,9 @@ const App = () => {
             statusFilter={statusFilter}
             searchQuery={searchQuery}
             onStatusFilterChange={handleStatusFilterChange}
+            aggregateTrends={aggregateTrends}
+            trendsLoading={trendsLoading}
+            darkMode={darkMode}
           />
         </>
       )}
@@ -586,6 +622,9 @@ const App = () => {
             window.location.hash = '';
           }}
           gitLabService={gitLabService}
+          dashboardService={dashboardService}
+          timeframe={config.timeframe}
+          darkMode={darkMode}
         />
       )}
     </div>
