@@ -1,14 +1,6 @@
 # GitLab CI/CD Pipeline for gitlab-cicd-dashboard
 # Runs tests, builds the project, and deploys to Cloudflare Pages
 
-# Workflow rules to enable both branch and MR pipelines
-workflow:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
-      when: never  # Avoid duplicate pipelines
-    - if: $CI_COMMIT_BRANCH
-
 image: node:20
 
 # Cache node_modules between jobs
@@ -35,7 +27,6 @@ test:
     - npm test
   rules:
     - if: $CI_COMMIT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 # Run linting
 lint:
@@ -45,7 +36,6 @@ lint:
     - npm run lint
   rules:
     - if: $CI_COMMIT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 # Build the project
 build:
@@ -61,51 +51,23 @@ build:
     expire_in: 1 week
   rules:
     - if: $CI_COMMIT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-# Deploy to Cloudflare Pages (production - main branch)
-deploy_production:
+# Deploy to Cloudflare Pages
+# - main branch -> production (gitlab-cicd-dashboard.pages.dev)
+# - other branches -> preview ({branch}.gitlab-cicd-dashboard.pages.dev)
+deploy:
   stage: deploy
   script:
     - npm install -g wrangler
-    - wrangler pages deploy dist --project-name=gitlab-cicd-dashboard --branch=main
+    - echo "Deploying branch ${CI_COMMIT_BRANCH} to Cloudflare Pages..."
+    - wrangler pages deploy dist --project-name=gitlab-cicd-dashboard --branch=${CI_COMMIT_BRANCH}
   dependencies:
     - build
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH
   environment:
-    name: production
-    url: https://gitlab-cicd-dashboard.pages.dev
-
-# Deploy review app to Cloudflare Pages (merge requests)
-deploy_review:
-  stage: deploy
-  script:
-    - npm install -g wrangler
-    - echo "Deploying review app for MR !${CI_MERGE_REQUEST_IID}..."
-    - wrangler pages deploy dist --project-name=gitlab-cicd-dashboard --branch=mr-${CI_MERGE_REQUEST_IID}
-  dependencies:
-    - build
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  environment:
-    name: review/$CI_MERGE_REQUEST_IID
-    url: https://mr-${CI_MERGE_REQUEST_IID}.gitlab-cicd-dashboard.pages.dev
-    on_stop: stop_review
-    auto_stop_in: 1 week
-
-# Stop review app (manual action)
-stop_review:
-  stage: deploy
-  script:
-    - echo "Review environment for MR !${CI_MERGE_REQUEST_IID} will expire automatically"
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
-      allow_failure: true
-  environment:
-    name: review/$CI_MERGE_REQUEST_IID
-    action: stop
+    name: $CI_COMMIT_BRANCH
+    url: https://${CI_COMMIT_REF_SLUG}.gitlab-cicd-dashboard.pages.dev
 
 # Post-deployment verification (production only)
 post-deploy-test:
@@ -117,6 +79,5 @@ post-deploy-test:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
   needs:
-    - job: deploy_production
+    - job: deploy
       artifacts: false
-
