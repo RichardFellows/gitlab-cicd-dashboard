@@ -22,14 +22,16 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
   const groupedProjects: Record<string, Project[]> = {
     failed: [],
     warning: [],
-    'no-pipeline': [],
+    inactive: [],
     success: []
   };
-  
+
   // Categorize and group each project
   projects.forEach(project => {
     const category = categorizeProject(project);
-    groupedProjects[category].push(project);
+    // Map 'no-pipeline' to 'inactive'
+    const mappedCategory = category === 'no-pipeline' ? 'inactive' : category;
+    groupedProjects[mappedCategory].push(project);
   });
 
   return (
@@ -40,10 +42,10 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
           <h3 className="group-header">Failed Pipelines ({groupedProjects.failed.length})</h3>
           <div className="project-cards">
             {groupedProjects.failed.map(project => (
-              <ProjectCard 
-                key={project.id} 
-                project={project} 
-                onProjectSelect={onProjectSelect} 
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onProjectSelect={onProjectSelect}
               />
             ))}
           </div>
@@ -56,26 +58,26 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
           <h3 className="group-header">Warning ({groupedProjects.warning.length})</h3>
           <div className="project-cards">
             {groupedProjects.warning.map(project => (
-              <ProjectCard 
-                key={project.id} 
-                project={project} 
-                onProjectSelect={onProjectSelect} 
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onProjectSelect={onProjectSelect}
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* No Pipeline Projects Group */}
-      {groupedProjects['no-pipeline'].length > 0 && (
-        <div className="project-group no-pipeline-group">
-          <h3 className="group-header">No Pipelines ({groupedProjects['no-pipeline'].length})</h3>
+      {/* Inactive Projects Group */}
+      {groupedProjects.inactive.length > 0 && (
+        <div className="project-group inactive-group">
+          <h3 className="group-header">Inactive ({groupedProjects.inactive.length})</h3>
           <div className="project-cards">
-            {groupedProjects['no-pipeline'].map(project => (
-              <ProjectCard 
-                key={project.id} 
-                project={project} 
-                onProjectSelect={onProjectSelect} 
+            {groupedProjects.inactive.map(project => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onProjectSelect={onProjectSelect}
               />
             ))}
           </div>
@@ -88,10 +90,10 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
           <h3 className="group-header">Successful ({groupedProjects.success.length})</h3>
           <div className="project-cards">
             {groupedProjects.success.map(project => (
-              <ProjectCard 
-                key={project.id} 
-                project={project} 
-                onProjectSelect={onProjectSelect} 
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onProjectSelect={onProjectSelect}
               />
             ))}
           </div>

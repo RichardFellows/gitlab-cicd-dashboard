@@ -5,7 +5,7 @@
 .projects-table {
   width: 100%;
   border-collapse: collapse;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px var(--shadow-color);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -22,8 +22,8 @@
 }
 
 .projects-table tbody tr {
-  background-color: white;
-  border-bottom: 1px solid #f1f1f1;
+  background-color: var(--card-bg-color);
+  border-bottom: 1px solid var(--border-color);
   transition: background-color 0.2s;
 }
 
@@ -32,7 +32,7 @@
 }
 
 .projects-table tbody tr:hover {
-  background-color: #f9f9f9;
+  background-color: var(--background-color);
 }
 
 .project-row {
@@ -51,8 +51,9 @@
   background-color: var(--danger-color);
 }
 
-.project-row.no-pipeline .status-indicator {
-  background-color: #6c757d;
+.project-row.no-pipeline .status-indicator,
+.project-row.inactive .status-indicator {
+  background-color: var(--inactive-color);
 }
 
 .status-indicator {
@@ -109,9 +110,9 @@
   justify-content: space-around;
   margin-bottom: 15px;
   padding: 10px;
-  background-color: white;
+  background-color: var(--card-bg-color);
   border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px var(--shadow-color);
 }
 
 .metric {
@@ -120,7 +121,7 @@
 
 .metric-label {
   font-size: 14px;
-  color: #666;
+  color: var(--text-muted);
   margin-bottom: 5px;
 }
 
@@ -143,7 +144,7 @@
   margin-bottom: 10px;
   color: var(--primary-color);
   padding-bottom: 5px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .mr-table {
@@ -156,13 +157,13 @@
 .mr-table td {
   padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .mr-table th {
   font-weight: 500;
-  color: #333;
-  background-color: #f0f0f0;
+  color: var(--text-color);
+  background-color: var(--background-color);
 }
 
 .failed-jobs-list {
@@ -175,7 +176,7 @@
 .job-item {
   padding: 10px;
   border-radius: 4px;
-  background-color: #f0f0f0;
+  background-color: var(--background-color);
 }
 
 .job-item.failed {
@@ -195,7 +196,7 @@
 .job-stage {
   font-size: 12px;
   padding: 2px 6px;
-  background-color: #e0e0e0;
+  background-color: var(--border-color);
   border-radius: 3px;
 }
 
@@ -232,7 +233,7 @@
   padding: 10px;
   margin-bottom: 8px;
   border-left: 3px solid var(--secondary-color);
-  background-color: white;
+  background-color: var(--card-bg-color);
 }
 
 .commit-header {
@@ -249,7 +250,7 @@
 
 .commit-date {
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .commit-message {
@@ -260,7 +261,7 @@
 .loading-indicator {
   padding: 15px;
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
   font-style: italic;
 }
 

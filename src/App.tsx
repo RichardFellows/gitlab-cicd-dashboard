@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
 import ControlPanel from './components/ControlPanel';
 import ProjectDetails from './components/ProjectDetails';
-import { DashboardMetrics, Project, ProjectMetrics, STORAGE_KEYS, ViewType } from './types';
+import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType } from './types';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
 import './styles/index.css';
@@ -21,6 +21,16 @@ const App = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [viewType, setViewType] = useState<ViewType>(ViewType.TABLE);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [settingsCollapsed, setSettingsCollapsed] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [statusFilter, setStatusFilter] = useState<ProjectStatusFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Apply dark mode class to body
+  useEffect(() => {
+    document.body.classList.toggle('dark-mode', darkMode);
+  }, [darkMode]);
 
   // Load saved settings on mount
   useEffect(() => {
@@ -56,13 +66,17 @@ const App = () => {
     const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
     const savedTimeframe = localStorage.getItem(STORAGE_KEYS.TIMEFRAME);
     const savedViewType = localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) as ViewType || ViewType.TABLE;
-    
+    const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
+    const savedSettingsCollapsed = localStorage.getItem(STORAGE_KEYS.SETTINGS_COLLAPSED) === 'true';
+
     if (savedUrl) setGitlabUrl(savedUrl);
     if (savedGroupId) setGroupId(savedGroupId);
     if (savedToken) setToken(savedToken);
     if (savedTimeframe) setTimeframe(parseInt(savedTimeframe, 10));
     if (savedViewType) setViewType(savedViewType);
-    
+    setDarkMode(savedDarkMode);
+    setSettingsCollapsed(savedSettingsCollapsed);
+
     // Auto-load dashboard if we have all required values
     if (savedUrl && savedGroupId && savedToken) {
       console.log('Auto-loading dashboard with saved settings');
@@ -210,6 +224,10 @@ const App = () => {
       };
 
       setMetrics(validatedMetrics);
+      setLastUpdated(new Date());
+      // Auto-collapse settings after successful load
+      setSettingsCollapsed(true);
+      localStorage.setItem(STORAGE_KEYS.SETTINGS_COLLAPSED, 'true');
     } catch (error) {
       console.error('Dashboard loading error:', error);
       console.error('Error details:', {
@@ -236,72 +254,198 @@ const App = () => {
     window.location.hash = `project/${projectId}`;
   };
 
+  // Handle dark mode toggle
+  const handleDarkModeToggle = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(newDarkMode));
+  };
+
+  // Handle settings collapse toggle
+  const handleSettingsToggle = () => {
+    const newCollapsed = !settingsCollapsed;
+    setSettingsCollapsed(newCollapsed);
+    localStorage.setItem(STORAGE_KEYS.SETTINGS_COLLAPSED, String(newCollapsed));
+  };
+
+  // Handle refresh - reload data with current settings
+  const handleRefresh = () => {
+    if (gitlabUrl && token && groupId) {
+      loadDashboard(gitlabUrl, token, groupId, timeframe);
+    }
+  };
+
+  // Handle status filter change (from summary cards)
+  const handleStatusFilterChange = (filter: ProjectStatusFilter) => {
+    setStatusFilter(filter);
+  };
+
+  // Format last updated time
+  const formatLastUpdated = () => {
+    if (!lastUpdated) return '';
+    const now = new Date();
+    const diffMs = now.getTime() - lastUpdated.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins === 1) return '1 minute ago';
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours === 1) return '1 hour ago';
+    return `${diffHours} hours ago`;
+  };
+
   // Clear saved settings
   const clearSettings = () => {
     localStorage.removeItem(STORAGE_KEYS.GITLAB_URL);
     localStorage.removeItem(STORAGE_KEYS.GROUP_ID);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     localStorage.removeItem(STORAGE_KEYS.TIMEFRAME);
-    
+    localStorage.removeItem(STORAGE_KEYS.SETTINGS_COLLAPSED);
+
     setGitlabUrl('https://gitlab.com/api/v4');
     setToken('');
     setGroupId('');
     setTimeframe(30);
     setMetrics(null);
-    
+    setSettingsCollapsed(false);
+    setLastUpdated(null);
+    setStatusFilter('all');
+    setSearchQuery('');
+
     alert('Saved settings have been cleared.');
   };
 
   return (
-    <div className="container">
+    <div className={`container ${darkMode ? 'dark-mode' : ''}`}>
       <header>
         <h1>GitLab CI/CD Dashboard</h1>
         <div className="header-actions">
           {metrics && (
-            <div className="view-toggle">
-              <button 
-                className={`view-btn ${viewType === ViewType.CARD ? 'active' : ''}`}
-                onClick={() => handleViewTypeChange(ViewType.CARD)}
+            <>
+              <div className="view-toggle">
+                <button
+                  className={`view-btn ${viewType === ViewType.CARD ? 'active' : ''}`}
+                  onClick={() => handleViewTypeChange(ViewType.CARD)}
+                  title="Card View"
+                >
+                  Cards
+                </button>
+                <button
+                  className={`view-btn ${viewType === ViewType.TABLE ? 'active' : ''}`}
+                  onClick={() => handleViewTypeChange(ViewType.TABLE)}
+                  title="Table View"
+                >
+                  Table
+                </button>
+              </div>
+              <button
+                className="icon-btn refresh-btn"
+                onClick={handleRefresh}
+                disabled={loading}
+                title="Refresh data"
               >
-                Card View
+                &#8635;
               </button>
-              <button 
-                className={`view-btn ${viewType === ViewType.TABLE ? 'active' : ''}`}
-                onClick={() => handleViewTypeChange(ViewType.TABLE)}
-              >
-                Table View
-              </button>
-            </div>
+              {lastUpdated && (
+                <span className="last-updated" title={lastUpdated.toLocaleString()}>
+                  {formatLastUpdated()}
+                </span>
+              )}
+            </>
           )}
-          <button className="secondary-button" onClick={clearSettings}>
-            Clear Saved Data
+          <button
+            className="icon-btn settings-btn"
+            onClick={handleSettingsToggle}
+            title={settingsCollapsed ? 'Show settings' : 'Hide settings'}
+          >
+            &#9881;
+          </button>
+          <button
+            className="icon-btn theme-btn"
+            onClick={handleDarkModeToggle}
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {darkMode ? '☀️' : '🌙'}
           </button>
         </div>
       </header>
 
-      <ControlPanel
-        gitlabUrl={gitlabUrl}
-        token={token}
-        groupId={groupId}
-        timeframe={timeframe}
-        onGitlabUrlChange={setGitlabUrl}
-        onTokenChange={setToken}
-        onGroupIdChange={setGroupId}
-        onTimeframeChange={setTimeframe}
-        onLoad={loadDashboard}
-        loading={loading}
-      />
+      <div className={`settings-panel ${settingsCollapsed ? 'collapsed' : ''}`}>
+        <ControlPanel
+          gitlabUrl={gitlabUrl}
+          token={token}
+          groupId={groupId}
+          timeframe={timeframe}
+          onGitlabUrlChange={setGitlabUrl}
+          onTokenChange={setToken}
+          onGroupIdChange={setGroupId}
+          onTimeframeChange={setTimeframe}
+          onLoad={loadDashboard}
+          loading={loading}
+        />
+        <div className="settings-footer">
+          <button className="text-btn danger" onClick={clearSettings}>
+            Clear Saved Data
+          </button>
+        </div>
+      </div>
 
       {error && <div className="error-container">{error}</div>}
-      
+
       {loading && <div className="loading-indicator">Loading dashboard data...</div>}
 
       {!loading && !error && metrics && !selectedProjectId && (
-        <Dashboard
-          metrics={metrics}
-          viewType={viewType}
-          onProjectSelect={handleProjectSelect}
-        />
+        <>
+          <div className="filter-bar">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <div className="status-filters">
+              <button
+                className={`filter-chip ${statusFilter === 'all' ? 'active' : ''}`}
+                onClick={() => handleStatusFilterChange('all')}
+              >
+                All
+              </button>
+              <button
+                className={`filter-chip success ${statusFilter === 'success' ? 'active' : ''}`}
+                onClick={() => handleStatusFilterChange('success')}
+              >
+                Success
+              </button>
+              <button
+                className={`filter-chip warning ${statusFilter === 'warning' ? 'active' : ''}`}
+                onClick={() => handleStatusFilterChange('warning')}
+              >
+                Warning
+              </button>
+              <button
+                className={`filter-chip danger ${statusFilter === 'failed' ? 'active' : ''}`}
+                onClick={() => handleStatusFilterChange('failed')}
+              >
+                Failed
+              </button>
+              <button
+                className={`filter-chip inactive ${statusFilter === 'inactive' ? 'active' : ''}`}
+                onClick={() => handleStatusFilterChange('inactive')}
+              >
+                Inactive
+              </button>
+            </div>
+          </div>
+          <Dashboard
+            metrics={metrics}
+            viewType={viewType}
+            onProjectSelect={handleProjectSelect}
+            statusFilter={statusFilter}
+            searchQuery={searchQuery}
+            onStatusFilterChange={handleStatusFilterChange}
+          />
+        </>
       )}
 
       {!loading && !error && metrics && selectedProjectId && (

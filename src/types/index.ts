@@ -172,7 +172,9 @@ export const STORAGE_KEYS = {
   GROUP_ID: 'gitlab_cicd_dashboard_group_id',
   TOKEN: 'gitlab_cicd_dashboard_token',
   TIMEFRAME: 'gitlab_cicd_dashboard_timeframe',
-  VIEW_TYPE: 'gitlab_cicd_dashboard_view_type'
+  VIEW_TYPE: 'gitlab_cicd_dashboard_view_type',
+  DARK_MODE: 'gitlab_cicd_dashboard_dark_mode',
+  SETTINGS_COLLAPSED: 'gitlab_cicd_dashboard_settings_collapsed'
 };
 
 // View types enum
@@ -180,3 +182,6 @@ export enum ViewType {
   CARD = 'card',
   TABLE = 'table'
 }
+
+// Project status filter type
+export type ProjectStatusFilter = 'all' | 'success' | 'warning' | 'failed' | 'inactive';
