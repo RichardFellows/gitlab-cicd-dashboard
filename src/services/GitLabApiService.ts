@@ -605,34 +605,28 @@ class GitLabApiService {
    */
   async getProjectInfo(projectId: string | number): Promise<{ id: number; name: string; path_with_namespace: string; web_url: string } | null> {
     try {
-      const details = await this.getProjectDetails(projectId);
-      if (!details || !details.default_branch) {
-        // Check if we got a real response or just the fallback
-        const path = `/projects/${projectId}`;
-        const url = this.getApiUrl(path, '');
+      const path = `/projects/${projectId}`;
+      const url = this.getApiUrl(path, '');
 
-        const response = await fetch(url, {
-          headers: this.getAuthHeaders(),
-        });
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders(),
+      });
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            console.log(`Project ${projectId} not found`);
-            return null;
-          }
-          throw new Error(`Error fetching project info: ${response.statusText}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.log(`Project ${projectId} not found`);
+          return null;
         }
-
-        const data = await response.json();
-        return {
-          id: data.id,
-          name: data.name,
-          path_with_namespace: data.path_with_namespace,
-          web_url: data.web_url
-        };
+        throw new Error(`Error fetching project info: ${response.statusText}`);
       }
 
-      return null;
+      const data = await response.json();
+      return {
+        id: data.id,
+        name: data.name,
+        path_with_namespace: data.path_with_namespace,
+        web_url: data.web_url
+      };
     } catch (error) {
       console.error(`Failed to fetch project info for ${projectId}:`, error);
       return null;
