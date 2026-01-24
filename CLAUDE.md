@@ -87,6 +87,12 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 
 Do NOT merge to main directly. Push feature branches for review first.
 
+### Review Apps
+Each MR automatically gets a review app deployed for manual testing:
+- **URL pattern**: `https://richard2.gitlab.io/gitlab-cicd-dashboard/review/{MR_ID}/`
+- Review apps auto-stop after 1 week
+- Include the review app URL in the MR description
+
 ## Code Style Guidelines
 - **Naming**: camelCase for variables/functions, PascalCase for classes and React components
 - **Indentation**: 2 spaces
