@@ -60,11 +60,10 @@ deploy:
   variables:
     CLOUDFLARE_ACCOUNT_ID: $CLOUDFLARE_ACCOUNT_ID
     CLOUDFLARE_API_KEY: $CLOUDFLARE_API_TOKEN
-    CLOUDFLARE_EMAIL: "richard@richard-fellows.com"
   script:
     - npm install -g wrangler
     - echo "Deploying branch ${CI_COMMIT_BRANCH} to Cloudflare Pages..."
-    - CLOUDFLARE_API_KEY=$CLOUDFLARE_API_TOKEN CLOUDFLARE_EMAIL=richard@richard-fellows.com wrangler pages deploy dist --project-name=gitlab-cicd-dashboard --branch=${CI_COMMIT_BRANCH}
+    - CLOUDFLARE_API_KEY=$CLOUDFLARE_API_TOKEN CLOUDFLARE_EMAIL=$CLOUDFLARE_EMAIL wrangler pages deploy dist --project-name=gitlab-cicd-dashboard --branch=${CI_COMMIT_BRANCH}
   dependencies:
     - build
   rules:
