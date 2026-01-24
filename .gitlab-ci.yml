@@ -66,17 +66,16 @@ review:
   artifacts:
     paths:
       - public
+    expire_in: 1 week
   dependencies:
     - build
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   environment:
     name: review/$CI_MERGE_REQUEST_IID
-    url: https://richard2.gitlab.io/gitlab-cicd-dashboard/review/$CI_MERGE_REQUEST_IID/
+    url: https://gitlab.com/richard2/gitlab-cicd-dashboard/-/jobs/$CI_JOB_ID/artifacts/public/index.html
     on_stop: review_stop
     auto_stop_in: 1 week
-  pages:
-    path_prefix: review/$CI_MERGE_REQUEST_IID
 
 # Stop review app when MR is merged/closed
 review_stop:

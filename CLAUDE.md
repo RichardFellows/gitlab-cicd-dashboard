@@ -88,10 +88,12 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 Do NOT merge to main directly. Push feature branches for review first.
 
 ### Review Apps
-Each MR automatically gets a review app deployed for manual testing:
-- **URL pattern**: `https://richard2.gitlab.io/gitlab-cicd-dashboard/review/{MR_ID}/`
-- Review apps auto-stop after 1 week
-- Include the review app URL in the MR description
+Each MR creates a review environment with build artifacts for testing:
+- Environment URL links to job artifacts (requires GitLab login to view)
+- Artifacts are retained for 1 week
+- For public preview, test locally with `npm run dev`
+
+**Future enhancement**: Consider adding Surge.sh or Netlify deployment for public MR previews.
 
 ## Code Style Guidelines
 - **Naming**: camelCase for variables/functions, PascalCase for classes and React components
