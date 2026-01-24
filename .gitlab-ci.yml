@@ -1,6 +1,14 @@
 # GitLab CI/CD Pipeline for gitlab-cicd-dashboard
 # Runs tests, builds the project, and deploys to Cloudflare Pages
 
+# Workflow rules to enable both branch and MR pipelines
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never  # Avoid duplicate pipelines
+    - if: $CI_COMMIT_BRANCH
+
 image: node:20
 
 # Cache node_modules between jobs
