@@ -1,20 +1,29 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ControlPanel from './ControlPanel';
+import { GroupSource, ProjectSource } from '../types';
 
 // Mock props
-const mockProps = {
-  gitlabUrl: 'https://gitlab.com/api/v4',
+const createMockProps = (overrides = {}) => ({
+  gitlabUrl: 'https://gitlab.com',
   token: 'test-token',
-  groupId: '12345',
+  groups: [{ id: '12345', name: 'test-group', addedAt: new Date().toISOString() }] as GroupSource[],
+  projects: [] as ProjectSource[],
   timeframe: 30,
   onGitlabUrlChange: vi.fn(),
   onTokenChange: vi.fn(),
-  onGroupIdChange: vi.fn(),
+  onAddGroup: vi.fn(),
+  onRemoveGroup: vi.fn(),
+  onAddProject: vi.fn(),
+  onRemoveProject: vi.fn(),
   onTimeframeChange: vi.fn(),
   onLoad: vi.fn(),
-  loading: false
-};
+  loading: false,
+  loadingGroups: new Set<string>(),
+  loadingProjects: new Set<string>(),
+  canLoad: true,
+  ...overrides
+});
 
 describe('ControlPanel Component', () => {
   beforeEach(() => {
@@ -22,39 +31,37 @@ describe('ControlPanel Component', () => {
   });
 
   test('renders with provided props', () => {
+    const mockProps = createMockProps();
     render(<ControlPanel {...mockProps} />);
-    
+
     // Check that inputs have the correct values
-    expect(screen.getByLabelText('GitLab Instance URL')).toHaveValue('https://gitlab.com/api/v4');
+    expect(screen.getByLabelText('GitLab Instance URL')).toHaveValue('https://gitlab.com');
     expect(screen.getByLabelText('GitLab Private Token')).toHaveValue('test-token');
-    expect(screen.getByLabelText('GitLab Group ID')).toHaveValue('12345');
-    
+
     // Check timeframe select
     const timeframeSelect = screen.getByLabelText('Timeframe') as HTMLSelectElement;
     expect(timeframeSelect.value).toBe('30');
+
+    // Check that group chip is displayed
+    expect(screen.getByText('test-group')).toBeInTheDocument();
   });
 
   test('calls change handlers when inputs change', () => {
+    const mockProps = createMockProps();
     render(<ControlPanel {...mockProps} />);
-    
+
     // Change GitLab URL
     fireEvent.change(screen.getByLabelText('GitLab Instance URL'), {
-      target: { value: 'https://custom-gitlab.com/api/v4' }
+      target: { value: 'https://custom-gitlab.com' }
     });
-    expect(mockProps.onGitlabUrlChange).toHaveBeenCalledWith('https://custom-gitlab.com/api/v4');
-    
+    expect(mockProps.onGitlabUrlChange).toHaveBeenCalledWith('https://custom-gitlab.com');
+
     // Change token
     fireEvent.change(screen.getByLabelText('GitLab Private Token'), {
       target: { value: 'new-token' }
     });
     expect(mockProps.onTokenChange).toHaveBeenCalledWith('new-token');
-    
-    // Change group ID
-    fireEvent.change(screen.getByLabelText('GitLab Group ID'), {
-      target: { value: '67890' }
-    });
-    expect(mockProps.onGroupIdChange).toHaveBeenCalledWith('67890');
-    
+
     // Change timeframe
     fireEvent.change(screen.getByLabelText('Timeframe'), {
       target: { value: '90' }
@@ -63,55 +70,80 @@ describe('ControlPanel Component', () => {
   });
 
   test('calls onLoad when form is submitted', () => {
+    const mockProps = createMockProps();
     render(<ControlPanel {...mockProps} />);
-    
+
     // Submit the form by clicking the button
     fireEvent.click(screen.getByText('Load Dashboard'));
-    
-    // Check that onLoad was called with the correct params
-    expect(mockProps.onLoad).toHaveBeenCalledWith(
-      'https://gitlab.com/api/v4',
-      'test-token',
-      '12345',
-      30
-    );
+
+    // Check that onLoad was called
+    expect(mockProps.onLoad).toHaveBeenCalled();
   });
 
   test('disables form when loading is true', () => {
-    render(<ControlPanel {...mockProps} loading={true} />);
-    
-    // Check that all inputs are disabled
+    const mockProps = createMockProps({ loading: true });
+    render(<ControlPanel {...mockProps} />);
+
+    // Check that inputs are disabled
     expect(screen.getByLabelText('GitLab Instance URL')).toBeDisabled();
     expect(screen.getByLabelText('GitLab Private Token')).toBeDisabled();
-    expect(screen.getByLabelText('GitLab Group ID')).toBeDisabled();
     expect(screen.getByLabelText('Timeframe')).toBeDisabled();
-    
+
     // Check that button is disabled
     expect(screen.getByText('Loading...')).toBeDisabled();
   });
 
   test('shows loading button text when loading', () => {
-    render(<ControlPanel {...mockProps} loading={true} />);
-    
+    const mockProps = createMockProps({ loading: true });
+    render(<ControlPanel {...mockProps} />);
+
     // Check that the button text changes
     expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(screen.queryByText('Load Dashboard')).not.toBeInTheDocument();
   });
 
-  test('prevents form submission if required fields are missing', () => {
-    // Render with empty token and group ID
-    render(
-      <ControlPanel 
-        {...mockProps} 
-        token="" 
-        groupId="" 
-      />
-    );
-    
-    // Submit the form
-    fireEvent.click(screen.getByText('Load Dashboard'));
-    
-    // Check that onLoad was NOT called
-    expect(mockProps.onLoad).not.toHaveBeenCalled();
+  test('disables submit when canLoad is false', () => {
+    const mockProps = createMockProps({
+      canLoad: false,
+      groups: [],
+      token: ''
+    });
+    render(<ControlPanel {...mockProps} />);
+
+    // Check that button is disabled
+    const submitButton = screen.getByRole('button', { name: 'Load Dashboard' });
+    expect(submitButton).toBeDisabled();
+
+    // Check that hint is shown
+    expect(screen.getByText(/Add at least one group or project/)).toBeInTheDocument();
+  });
+
+  test('shows empty state for groups', () => {
+    const mockProps = createMockProps({ groups: [] });
+    render(<ControlPanel {...mockProps} />);
+
+    // Check that empty state is shown
+    expect(screen.getByText('No groups added')).toBeInTheDocument();
+  });
+
+  test('shows empty state for projects', () => {
+    const mockProps = createMockProps({ projects: [] });
+    render(<ControlPanel {...mockProps} />);
+
+    // Check that empty state is shown
+    expect(screen.getByText('No projects added')).toBeInTheDocument();
+  });
+
+  test('displays multiple groups as chips', () => {
+    const mockProps = createMockProps({
+      groups: [
+        { id: '111', name: 'group-one', addedAt: new Date().toISOString() },
+        { id: '222', name: 'group-two', addedAt: new Date().toISOString() }
+      ]
+    });
+    render(<ControlPanel {...mockProps} />);
+
+    expect(screen.getByText('group-one')).toBeInTheDocument();
+    expect(screen.getByText('group-two')).toBeInTheDocument();
   });
 });

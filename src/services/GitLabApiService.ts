@@ -565,6 +565,81 @@ class GitLabApiService {
   }
 
   /**
+   * Get group info by ID
+   * @param {string|number} groupId - The GitLab group ID
+   * @returns {Promise<Object>} - Group info with id and name
+   */
+  async getGroupInfo(groupId: string | number): Promise<{ id: number; name: string; path: string } | null> {
+    try {
+      const path = `/groups/${groupId}`;
+      const url = this.getApiUrl(path, '');
+
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.log(`Group ${groupId} not found`);
+          return null;
+        }
+        throw new Error(`Error fetching group info: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return {
+        id: data.id,
+        name: data.name,
+        path: data.full_path || data.path
+      };
+    } catch (error) {
+      console.error(`Failed to fetch group info for ${groupId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get project info by ID
+   * @param {string|number} projectId - The GitLab project ID
+   * @returns {Promise<Object>} - Project info with id, name, and path
+   */
+  async getProjectInfo(projectId: string | number): Promise<{ id: number; name: string; path_with_namespace: string; web_url: string } | null> {
+    try {
+      const details = await this.getProjectDetails(projectId);
+      if (!details || !details.default_branch) {
+        // Check if we got a real response or just the fallback
+        const path = `/projects/${projectId}`;
+        const url = this.getApiUrl(path, '');
+
+        const response = await fetch(url, {
+          headers: this.getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.log(`Project ${projectId} not found`);
+            return null;
+          }
+          throw new Error(`Error fetching project info: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return {
+          id: data.id,
+          name: data.name,
+          path_with_namespace: data.path_with_namespace,
+          web_url: data.web_url
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Failed to fetch project info for ${projectId}:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Get the last N commits for a project
    * @param {string|number} projectId - The GitLab project ID
    * @param {number} limit - Number of commits to fetch

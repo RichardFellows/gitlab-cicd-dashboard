@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Dashboard from './components/Dashboard';
 import ControlPanel from './components/ControlPanel';
 import ProjectDetails from './components/ProjectDetails';
-import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType } from './types';
+import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource } from './types';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
+import { loadConfig, saveConfig, clearConfig, isConfigReady, createDefaultConfig } from './utils/configMigration';
 import './styles/index.css';
 
 // Initialize services
@@ -12,10 +13,14 @@ const gitLabService = new GitLabApiService();
 const dashboardService = new DashboardDataService(gitLabService);
 
 const App = () => {
-  const [gitlabUrl, setGitlabUrl] = useState('https://gitlab.com/api/v4');
-  const [token, setToken] = useState('');
-  const [groupId, setGroupId] = useState('');
-  const [timeframe, setTimeframe] = useState(30);
+  // Config state
+  const [config, setConfig] = useState<DashboardConfig>(createDefaultConfig);
+
+  // Loading states for resolving names
+  const [loadingGroups, setLoadingGroups] = useState<Set<string>>(new Set());
+  const [loadingProjects, setLoadingProjects] = useState<Set<string>>(new Set());
+
+  // Dashboard state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -48,7 +53,7 @@ const App = () => {
   // Check URL hash for navigation
   const checkUrlHash = () => {
     const hash = window.location.hash;
-    
+
     if (hash.startsWith('#project/')) {
       const projectId = parseInt(hash.replace('#project/', ''), 10);
       if (!isNaN(projectId)) {
@@ -61,140 +66,263 @@ const App = () => {
 
   // Load settings from localStorage
   const loadSavedSettings = () => {
-    const savedUrl = localStorage.getItem(STORAGE_KEYS.GITLAB_URL);
-    const savedGroupId = localStorage.getItem(STORAGE_KEYS.GROUP_ID);
-    const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
-    const savedTimeframe = localStorage.getItem(STORAGE_KEYS.TIMEFRAME);
+    const savedConfig = loadConfig();
+    setConfig(savedConfig);
+
     const savedViewType = localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) as ViewType || ViewType.TABLE;
     const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
     const savedSettingsCollapsed = localStorage.getItem(STORAGE_KEYS.SETTINGS_COLLAPSED) === 'true';
 
-    if (savedUrl) setGitlabUrl(savedUrl);
-    if (savedGroupId) setGroupId(savedGroupId);
-    if (savedToken) setToken(savedToken);
-    if (savedTimeframe) setTimeframe(parseInt(savedTimeframe, 10));
     if (savedViewType) setViewType(savedViewType);
     setDarkMode(savedDarkMode);
     setSettingsCollapsed(savedSettingsCollapsed);
 
-    // Auto-load dashboard if we have all required values
-    if (savedUrl && savedGroupId && savedToken) {
-      console.log('Auto-loading dashboard with saved settings');
-      // Use setTimeout to ensure DOM is fully loaded before initiating API calls
+    // Auto-load dashboard if config is ready
+    if (isConfigReady(savedConfig)) {
+      console.log('Auto-loading dashboard with saved config');
       setTimeout(() => {
-        loadDashboard(savedUrl, savedToken, savedGroupId, parseInt(savedTimeframe || '30', 10));
+        loadDashboard(savedConfig);
       }, 500);
     } else {
-      console.log('Not auto-loading dashboard, missing required values:', {
-        hasUrl: !!savedUrl,
-        hasGroupId: !!savedGroupId,
-        hasToken: !!savedToken
-      });
+      console.log('Not auto-loading dashboard, config not ready');
     }
   };
 
-  // Save settings to localStorage
-  const saveSettings = (url: string, token: string, groupId: string, timeframe: number) => {
-    localStorage.setItem(STORAGE_KEYS.GITLAB_URL, url);
-    localStorage.setItem(STORAGE_KEYS.GROUP_ID, groupId);
-    localStorage.setItem(STORAGE_KEYS.TOKEN, token);
-    localStorage.setItem(STORAGE_KEYS.TIMEFRAME, timeframe.toString());
-  };
+  // Configure GitLab service with current config
+  const configureGitLabService = useCallback((cfg: DashboardConfig) => {
+    const baseUrl = cfg.gitlabUrl.endsWith('/api/v4')
+      ? cfg.gitlabUrl
+      : `${cfg.gitlabUrl}/api/v4`;
+    gitLabService.baseUrl = baseUrl;
+    gitLabService.setPrivateToken(cfg.token.trim());
+  }, []);
+
+  // Resolve group name
+  const resolveGroupName = useCallback(async (groupId: string, currentConfig: DashboardConfig): Promise<void> => {
+    if (!currentConfig.token) return;
+
+    setLoadingGroups(prev => new Set(prev).add(groupId));
+    configureGitLabService(currentConfig);
+
+    try {
+      const groupInfo = await gitLabService.getGroupInfo(groupId);
+      setConfig(prev => {
+        const updated = {
+          ...prev,
+          groups: prev.groups.map(g =>
+            g.id === groupId
+              ? { ...g, name: groupInfo?.name }
+              : g
+          )
+        };
+        saveConfig(updated);
+        return updated;
+      });
+    } catch (error) {
+      console.error(`Failed to resolve group name for ${groupId}:`, error);
+    } finally {
+      setLoadingGroups(prev => {
+        const next = new Set(prev);
+        next.delete(groupId);
+        return next;
+      });
+    }
+  }, [configureGitLabService]);
+
+  // Resolve project name
+  const resolveProjectName = useCallback(async (projectId: string, currentConfig: DashboardConfig): Promise<void> => {
+    if (!currentConfig.token) return;
+
+    setLoadingProjects(prev => new Set(prev).add(projectId));
+    configureGitLabService(currentConfig);
+
+    try {
+      const projectInfo = await gitLabService.getProjectInfo(projectId);
+      setConfig(prev => {
+        const updated = {
+          ...prev,
+          projects: prev.projects.map(p =>
+            p.id === projectId
+              ? { ...p, name: projectInfo?.name, path: projectInfo?.path_with_namespace }
+              : p
+          )
+        };
+        saveConfig(updated);
+        return updated;
+      });
+    } catch (error) {
+      console.error(`Failed to resolve project name for ${projectId}:`, error);
+    } finally {
+      setLoadingProjects(prev => {
+        const next = new Set(prev);
+        next.delete(projectId);
+        return next;
+      });
+    }
+  }, [configureGitLabService]);
+
+  // Handle config field changes
+  const handleGitlabUrlChange = useCallback((url: string) => {
+    setConfig(prev => {
+      const updated = { ...prev, gitlabUrl: url };
+      saveConfig(updated);
+      return updated;
+    });
+  }, []);
+
+  const handleTokenChange = useCallback((token: string) => {
+    setConfig(prev => {
+      const updated = { ...prev, token };
+      saveConfig(updated);
+      return updated;
+    });
+  }, []);
+
+  const handleTimeframeChange = useCallback((timeframe: number) => {
+    setConfig(prev => {
+      const updated = { ...prev, timeframe };
+      saveConfig(updated);
+      return updated;
+    });
+  }, []);
+
+  // Handle adding/removing groups
+  const handleAddGroup = useCallback((id: string) => {
+    setConfig(prev => {
+      if (prev.groups.some(g => g.id === id)) return prev;
+
+      const newGroup: GroupSource = {
+        id,
+        addedAt: new Date().toISOString()
+      };
+      const updated = { ...prev, groups: [...prev.groups, newGroup] };
+      saveConfig(updated);
+
+      // Resolve group name if we have a token
+      if (updated.token) {
+        resolveGroupName(id, updated);
+      }
+
+      return updated;
+    });
+  }, [resolveGroupName]);
+
+  const handleRemoveGroup = useCallback((id: string) => {
+    setConfig(prev => {
+      const updated = { ...prev, groups: prev.groups.filter(g => g.id !== id) };
+      saveConfig(updated);
+      return updated;
+    });
+  }, []);
+
+  // Handle adding/removing projects
+  const handleAddProject = useCallback((id: string) => {
+    setConfig(prev => {
+      if (prev.projects.some(p => p.id === id)) return prev;
+
+      const newProject: ProjectSource = {
+        id,
+        addedAt: new Date().toISOString()
+      };
+      const updated = { ...prev, projects: [...prev.projects, newProject] };
+      saveConfig(updated);
+
+      // Resolve project name if we have a token
+      if (updated.token) {
+        resolveProjectName(id, updated);
+      }
+
+      return updated;
+    });
+  }, [resolveProjectName]);
+
+  const handleRemoveProject = useCallback((id: string) => {
+    setConfig(prev => {
+      const updated = { ...prev, projects: prev.projects.filter(p => p.id !== id) };
+      saveConfig(updated);
+      return updated;
+    });
+  }, []);
 
   // Load dashboard data
-  const loadDashboard = async (
-    baseUrl: string,
-    privateToken: string,
-    group: string,
-    days: number
-  ) => {
-    console.log('Load Dashboard called with:', { 
-      baseUrl, 
-      tokenLength: privateToken ? privateToken.length : 0, 
-      hasToken: !!privateToken,
-      group, 
-      days 
+  const loadDashboard = async (cfg: DashboardConfig) => {
+    console.log('Load Dashboard called with config:', {
+      gitlabUrl: cfg.gitlabUrl,
+      tokenLength: cfg.token ? cfg.token.length : 0,
+      groups: cfg.groups.length,
+      projects: cfg.projects.length,
+      timeframe: cfg.timeframe
     });
-    
-    if (!baseUrl || !privateToken || !group) {
-      setError('Please provide GitLab URL, token, and group ID');
-      console.error('Missing required fields:', { hasUrl: !!baseUrl, hasToken: !!privateToken, hasGroup: !!group });
+
+    if (!cfg.token || (cfg.groups.length === 0 && cfg.projects.length === 0)) {
+      setError('Please provide a GitLab token and at least one group or project');
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      console.log('Starting dashboard loading process...');
 
-      // Save settings to localStorage
-      saveSettings(baseUrl, privateToken, group, days);
-      console.log('Settings saved to localStorage');
+      // Configure GitLab service
+      configureGitLabService(cfg);
 
-      // Update GitLab API base URL and token
-      gitLabService.baseUrl = baseUrl.endsWith('/api/v4') ? baseUrl : `${baseUrl}/api/v4`;
-      
-      // Clean up token (remove whitespace that might have been copied)
-      const cleanToken = privateToken.trim();
-      gitLabService.setPrivateToken(cleanToken);
-      
-      console.log('GitLab service configured with:', { 
-        baseUrl: gitLabService.baseUrl,
-        tokenLength: cleanToken.length,
-        tokenFirstChars: cleanToken.substring(0, 4) + '...',
-        useProxy: gitLabService.useProxy,
-        proxyUrl: gitLabService.proxyUrl
-      });
+      console.log('GitLab service configured, fetching metrics...');
 
-      // Fetch metrics
-      console.log('Attempting to fetch metrics for group:', group);
-      const dashboardMetrics = await dashboardService.getGroupMetrics(group, { days });
+      // Fetch metrics using multi-source method
+      const dashboardMetrics = await dashboardService.getMultiSourceMetrics(cfg);
 
       // Validate metrics
       if (!dashboardMetrics || !dashboardMetrics.projects) {
         throw new Error('Invalid metrics data received from API');
       }
 
+      // Log source stats
+      if (dashboardMetrics.sourceStats) {
+        console.log('Source stats:', dashboardMetrics.sourceStats);
+        if (dashboardMetrics.sourceStats.failedGroups.length > 0) {
+          console.warn('Failed to load groups:', dashboardMetrics.sourceStats.failedGroups);
+        }
+        if (dashboardMetrics.sourceStats.failedProjects.length > 0) {
+          console.warn('Failed to load projects:', dashboardMetrics.sourceStats.failedProjects);
+        }
+      }
+
       // Ensure all projects have valid metrics
       const validatedProjects = dashboardMetrics.projects.map((project: Project) => {
         try {
-          // Ensure the project has a metrics object
           if (!project.metrics) {
             console.warn(`Project ${project.name} has no metrics, creating empty object`);
             project.metrics = {} as ProjectMetrics;
           }
 
-          // Ensure all required properties exist
           if (!project.metrics.mainBranchPipeline) {
             project.metrics.mainBranchPipeline = { id: 0, status: 'unknown', available: false, failedJobs: [], created_at: '', updated_at: '' };
           } else if (!project.metrics.mainBranchPipeline.failedJobs) {
             project.metrics.mainBranchPipeline.failedJobs = [];
           }
-          
+
           if (!project.metrics.codeCoverage) {
             project.metrics.codeCoverage = { coverage: null, available: false };
           }
-          
+
           if (!project.metrics.mergeRequestCounts) {
             project.metrics.mergeRequestCounts = { totalOpen: 0, drafts: 0 };
           }
-          
+
           if (!project.metrics.testMetrics) {
             project.metrics.testMetrics = { total: 0, success: 0, failed: 0, skipped: 0, available: false };
           }
-          
+
           if (!project.metrics.recentCommits) {
             project.metrics.recentCommits = [];
           }
-          
-          // Provide default values for numerical properties
+
           project.metrics.successRate = project.metrics.successRate || 0;
           project.metrics.avgDuration = project.metrics.avgDuration || 0;
-          
+
           return project;
         } catch (err) {
           console.error(`Error processing project ${project.name || 'unknown'}:`, err);
-          // Return a minimal valid project to avoid breaking the dashboard
           return {
             id: project.id || 0,
             name: project.name || 'Unknown Project',
@@ -217,7 +345,6 @@ const App = () => {
         }
       });
 
-      // Update metrics state with validated projects
       const validatedMetrics = {
         ...dashboardMetrics,
         projects: validatedProjects
@@ -225,22 +352,21 @@ const App = () => {
 
       setMetrics(validatedMetrics);
       setLastUpdated(new Date());
-      // Auto-collapse settings after successful load
       setSettingsCollapsed(true);
       localStorage.setItem(STORAGE_KEYS.SETTINGS_COLLAPSED, 'true');
     } catch (error) {
       console.error('Dashboard loading error:', error);
-      console.error('Error details:', {
-        name: error instanceof Error ? error.name : 'Not an Error object',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : 'No stack trace'
-      });
       setError(`Failed to load dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      console.log('Finished loadDashboard function, loading state:', !loading);
       setLoading(false);
     }
   };
+
+  // Handle load button click
+  const handleLoad = useCallback(() => {
+    loadDashboard(config);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config, configureGitLabService]);
 
   // Handle view type change
   const handleViewTypeChange = (type: ViewType) => {
@@ -268,14 +394,14 @@ const App = () => {
     localStorage.setItem(STORAGE_KEYS.SETTINGS_COLLAPSED, String(newCollapsed));
   };
 
-  // Handle refresh - reload data with current settings
+  // Handle refresh
   const handleRefresh = () => {
-    if (gitlabUrl && token && groupId) {
-      loadDashboard(gitlabUrl, token, groupId, timeframe);
+    if (isConfigReady(config)) {
+      loadDashboard(config);
     }
   };
 
-  // Handle status filter change (from summary cards)
+  // Handle status filter change
   const handleStatusFilterChange = (filter: ProjectStatusFilter) => {
     setStatusFilter(filter);
   };
@@ -296,16 +422,11 @@ const App = () => {
 
   // Clear saved settings
   const clearSettings = () => {
-    localStorage.removeItem(STORAGE_KEYS.GITLAB_URL);
-    localStorage.removeItem(STORAGE_KEYS.GROUP_ID);
-    localStorage.removeItem(STORAGE_KEYS.TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.TIMEFRAME);
-    localStorage.removeItem(STORAGE_KEYS.SETTINGS_COLLAPSED);
+    clearConfig();
+    localStorage.removeItem(STORAGE_KEYS.VIEW_TYPE);
+    localStorage.removeItem(STORAGE_KEYS.DARK_MODE);
 
-    setGitlabUrl('https://gitlab.com/api/v4');
-    setToken('');
-    setGroupId('');
-    setTimeframe(30);
+    setConfig(createDefaultConfig());
     setMetrics(null);
     setSettingsCollapsed(false);
     setLastUpdated(null);
@@ -314,6 +435,8 @@ const App = () => {
 
     alert('Saved settings have been cleared.');
   };
+
+  const canLoad = isConfigReady(config);
 
   return (
     <div className={`container ${darkMode ? 'dark-mode' : ''}`}>
@@ -365,23 +488,30 @@ const App = () => {
             onClick={handleDarkModeToggle}
             title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {darkMode ? '☀️' : '🌙'}
+            {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
           </button>
         </div>
       </header>
 
       <div className={`settings-panel ${settingsCollapsed ? 'collapsed' : ''}`}>
         <ControlPanel
-          gitlabUrl={gitlabUrl}
-          token={token}
-          groupId={groupId}
-          timeframe={timeframe}
-          onGitlabUrlChange={setGitlabUrl}
-          onTokenChange={setToken}
-          onGroupIdChange={setGroupId}
-          onTimeframeChange={setTimeframe}
-          onLoad={loadDashboard}
+          gitlabUrl={config.gitlabUrl}
+          token={config.token}
+          groups={config.groups}
+          projects={config.projects}
+          timeframe={config.timeframe}
+          onGitlabUrlChange={handleGitlabUrlChange}
+          onTokenChange={handleTokenChange}
+          onAddGroup={handleAddGroup}
+          onRemoveGroup={handleRemoveGroup}
+          onAddProject={handleAddProject}
+          onRemoveProject={handleRemoveProject}
+          onTimeframeChange={handleTimeframeChange}
+          onLoad={handleLoad}
           loading={loading}
+          loadingGroups={loadingGroups}
+          loadingProjects={loadingProjects}
+          canLoad={canLoad}
         />
         <div className="settings-footer">
           <button className="text-btn danger" onClick={clearSettings}>

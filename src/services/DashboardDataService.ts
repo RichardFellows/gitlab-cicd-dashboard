@@ -1,5 +1,5 @@
 import GitLabApiService from './GitLabApiService';
-import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job } from '../types';
+import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject } from '../types';
 
 class DashboardDataService {
   gitLabService: GitLabApiService;
@@ -56,6 +56,125 @@ class DashboardDataService {
       console.error("Failed to get group metrics:", error);
       throw error;
     }
+  }
+
+  /**
+   * Get CI/CD metrics from multiple groups and individual projects
+   * @param {DashboardConfig} config - The dashboard configuration with groups and projects
+   * @returns {Promise<DashboardMetrics>} - Aggregated dashboard metrics
+   */
+  async getMultiSourceMetrics(config: DashboardConfig): Promise<DashboardMetrics> {
+    const timeframe = { days: config.timeframe || 30 };
+    const endDate = new Date().toISOString();
+    const startDate = new Date(
+      Date.now() - timeframe.days * 24 * 60 * 60 * 1000
+    ).toISOString();
+
+    const sourceStats = {
+      groupsLoaded: 0,
+      projectsLoaded: 0,
+      failedGroups: [] as string[],
+      failedProjects: [] as string[]
+    };
+
+    // Collect all projects from groups
+    const groupProjectPromises = config.groups.map(async (group) => {
+      try {
+        const projects = await this.gitLabService.getGroupProjects(group.id);
+        sourceStats.groupsLoaded++;
+        return projects.filter(project => !project.name.startsWith('DELETE-'));
+      } catch (error) {
+        console.error(`Failed to fetch projects from group ${group.id}:`, error);
+        sourceStats.failedGroups.push(group.id);
+        return [];
+      }
+    });
+
+    // Fetch individual projects
+    const individualProjectPromises = config.projects.map(async (projectSource) => {
+      try {
+        const details = await this.gitLabService.getProjectDetails(projectSource.id);
+        if (details && details.default_branch !== undefined) {
+          // Need to get full project info
+          const path = `/projects/${projectSource.id}`;
+          const url = this.gitLabService.getApiUrl(path, '');
+          const response = await fetch(url, {
+            headers: this.gitLabService.getAuthHeaders(),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch project ${projectSource.id}`);
+          }
+
+          const fullProject = await response.json() as GitLabApiProject;
+          sourceStats.projectsLoaded++;
+          return fullProject;
+        }
+        throw new Error(`Project ${projectSource.id} not found`);
+      } catch (error) {
+        console.error(`Failed to fetch project ${projectSource.id}:`, error);
+        sourceStats.failedProjects.push(projectSource.id);
+        return null;
+      }
+    });
+
+    // Wait for all group projects and individual projects
+    const [groupProjectResults, individualProjectResults] = await Promise.all([
+      Promise.all(groupProjectPromises),
+      Promise.all(individualProjectPromises)
+    ]);
+
+    // Flatten group projects
+    const groupProjects = groupProjectResults.flat();
+
+    // Filter out null individual projects
+    const individualProjects = individualProjectResults.filter(
+      (p): p is GitLabApiProject => p !== null
+    );
+
+    // Deduplicate by project ID (keep first occurrence)
+    const projectMap = new Map<number, GitLabApiProject>();
+
+    // Add group projects first
+    for (const project of groupProjects) {
+      if (!projectMap.has(project.id)) {
+        projectMap.set(project.id, project);
+      }
+    }
+
+    // Add individual projects (they won't override group projects)
+    for (const project of individualProjects) {
+      if (!projectMap.has(project.id)) {
+        projectMap.set(project.id, project);
+      }
+    }
+
+    const uniqueProjects = Array.from(projectMap.values());
+    console.log(`Fetching metrics for ${uniqueProjects.length} unique projects (from ${groupProjects.length} group projects + ${individualProjects.length} individual projects)`);
+
+    // Collect metrics for each unique project
+    const projectMetrics = await Promise.all(
+      uniqueProjects.map((project) =>
+        this.getProjectMetrics(project.id, { startDate, endDate })
+      )
+    );
+
+    // Combine all project metrics
+    const metrics: DashboardMetrics = {
+      totalProjects: uniqueProjects.length,
+      projects: uniqueProjects.map((project, index) => ({
+        id: project.id,
+        name: project.name,
+        path: project.path_with_namespace,
+        web_url: project.web_url,
+        metrics: projectMetrics[index],
+      })),
+      aggregateMetrics: this.calculateAggregateMetrics(projectMetrics),
+      sourceStats
+    };
+
+    this.metrics = metrics;
+    return metrics;
   }
 
   /**
