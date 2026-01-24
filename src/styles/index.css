@@ -215,6 +215,42 @@ select {
   box-shadow: 0 2px 4px var(--shadow-color);
 }
 
+/* Multi-source control panel layout */
+.control-panel-multi {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.control-panel-multi .control-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.control-panel-multi .control-sources {
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.control-panel-multi .control-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.control-panel-multi .control-actions button {
+  min-width: 150px;
+}
+
+.control-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .control-group {
   display: flex;
   flex-direction: column;

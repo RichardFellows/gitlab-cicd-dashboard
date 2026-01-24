@@ -1,95 +1,120 @@
 import { FC } from 'react';
+import SourceManager from './SourceManager';
+import { GroupSource, ProjectSource } from '../types';
 
 interface ControlPanelProps {
   gitlabUrl: string;
   token: string;
-  groupId: string;
+  groups: GroupSource[];
+  projects: ProjectSource[];
   timeframe: number;
   onGitlabUrlChange: (url: string) => void;
   onTokenChange: (token: string) => void;
-  onGroupIdChange: (groupId: string) => void;
+  onAddGroup: (id: string) => void;
+  onRemoveGroup: (id: string) => void;
+  onAddProject: (id: string) => void;
+  onRemoveProject: (id: string) => void;
   onTimeframeChange: (timeframe: number) => void;
-  onLoad: (gitlabUrl: string, token: string, groupId: string, timeframe: number) => void;
+  onLoad: () => void;
   loading: boolean;
+  loadingGroups: Set<string>;
+  loadingProjects: Set<string>;
+  canLoad: boolean;
 }
 
 const ControlPanel: FC<ControlPanelProps> = ({
   gitlabUrl,
   token,
-  groupId,
+  groups,
+  projects,
   timeframe,
   onGitlabUrlChange,
   onTokenChange,
-  onGroupIdChange,
+  onAddGroup,
+  onRemoveGroup,
+  onAddProject,
+  onRemoveProject,
   onTimeframeChange,
   onLoad,
-  loading
+  loading,
+  loadingGroups,
+  loadingProjects,
+  canLoad
 }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Don't submit if required fields are missing
-    if (!token || !groupId) {
+
+    if (!canLoad) {
       return;
     }
-    
-    onLoad(gitlabUrl, token, groupId, timeframe);
+
+    onLoad();
   };
 
   return (
-    <form className="controls" onSubmit={handleSubmit}>
-      <div className="control-group">
-        <label htmlFor="gitlab-url">GitLab Instance URL</label>
-        <input
-          type="text"
-          id="gitlab-url"
-          placeholder="https://gitlab.com/api/v4"
-          value={gitlabUrl}
-          onChange={(e) => onGitlabUrlChange(e.target.value)}
+    <form className="controls control-panel-multi" onSubmit={handleSubmit}>
+      <div className="control-row">
+        <div className="control-group">
+          <label htmlFor="gitlab-url">GitLab Instance URL</label>
+          <input
+            type="text"
+            id="gitlab-url"
+            placeholder="https://gitlab.com"
+            value={gitlabUrl}
+            onChange={(e) => onGitlabUrlChange(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+        <div className="control-group">
+          <label htmlFor="gitlab-token">GitLab Private Token</label>
+          <input
+            type="password"
+            id="gitlab-token"
+            placeholder="Enter your GitLab token"
+            value={token}
+            onChange={(e) => onTokenChange(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+        <div className="control-group">
+          <label htmlFor="timeframe">Timeframe</label>
+          <select
+            id="timeframe"
+            value={timeframe}
+            onChange={(e) => onTimeframeChange(parseInt(e.target.value, 10))}
+            disabled={loading}
+          >
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="180">Last 180 days</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="control-sources">
+        <SourceManager
+          groups={groups}
+          projects={projects}
+          onAddGroup={onAddGroup}
+          onRemoveGroup={onRemoveGroup}
+          onAddProject={onAddProject}
+          onRemoveProject={onRemoveProject}
+          loadingGroups={loadingGroups}
+          loadingProjects={loadingProjects}
           disabled={loading}
         />
       </div>
-      <div className="control-group">
-        <label htmlFor="gitlab-token">GitLab Private Token</label>
-        <input
-          type="password"
-          id="gitlab-token"
-          placeholder="Enter your GitLab token"
-          value={token}
-          onChange={(e) => onTokenChange(e.target.value)}
-          disabled={loading}
-        />
-      </div>
-      <div className="control-group">
-        <label htmlFor="group-id">GitLab Group ID</label>
-        <input 
-          type="text" 
-          id="group-id" 
-          placeholder="Enter group ID" 
-          value={groupId}
-          onChange={(e) => onGroupIdChange(e.target.value)}
-          disabled={loading}
-        />
-      </div>
-      <div className="control-group">
-        <label htmlFor="timeframe">Timeframe</label>
-        <select 
-          id="timeframe" 
-          value={timeframe}
-          onChange={(e) => onTimeframeChange(parseInt(e.target.value, 10))}
-          disabled={loading}
-        >
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
-          <option value="180">Last 180 days</option>
-        </select>
-      </div>
-      <div className="control-group">
-        <label>&nbsp;</label>
-        <button type="submit" disabled={loading}>
+
+      <div className="control-actions">
+        <button type="submit" disabled={loading || !canLoad}>
           {loading ? 'Loading...' : 'Load Dashboard'}
         </button>
+        {!canLoad && !loading && (
+          <span className="control-hint">
+            Add at least one group or project and provide a token
+          </span>
+        )}
       </div>
     </form>
   );

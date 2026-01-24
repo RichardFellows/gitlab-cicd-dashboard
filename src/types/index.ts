@@ -131,6 +131,12 @@ export interface DashboardMetrics {
     avgDuration: number;
     testMetrics: TestMetrics;
   };
+  sourceStats?: {
+    groupsLoaded: number;
+    projectsLoaded: number;
+    failedGroups: string[];
+    failedProjects: string[];
+  };
 }
 
 export interface PipelineTrend {
@@ -166,6 +172,29 @@ export interface PipelinePerformanceAnalysis {
   pipelineDetails: Pipeline[];
 }
 
+// Multi-source configuration types
+export interface GroupSource {
+  id: string;
+  name?: string;        // Resolved name (cached)
+  addedAt: string;      // ISO timestamp
+}
+
+export interface ProjectSource {
+  id: string;
+  name?: string;        // Resolved name (cached)
+  path?: string;        // path_with_namespace (cached)
+  addedAt: string;
+}
+
+export interface DashboardConfig {
+  version: number;      // Schema version for migrations
+  gitlabUrl: string;
+  token: string;
+  timeframe: number;
+  groups: GroupSource[];
+  projects: ProjectSource[];
+}
+
 // Storage keys for localStorage
 export const STORAGE_KEYS = {
   GITLAB_URL: 'gitlab_cicd_dashboard_url',
@@ -174,7 +203,8 @@ export const STORAGE_KEYS = {
   TIMEFRAME: 'gitlab_cicd_dashboard_timeframe',
   VIEW_TYPE: 'gitlab_cicd_dashboard_view_type',
   DARK_MODE: 'gitlab_cicd_dashboard_dark_mode',
-  SETTINGS_COLLAPSED: 'gitlab_cicd_dashboard_settings_collapsed'
+  SETTINGS_COLLAPSED: 'gitlab_cicd_dashboard_settings_collapsed',
+  DASHBOARD_CONFIG: 'gitlab_cicd_dashboard_config'
 };
 
 // View types enum

@@ -1,0 +1,196 @@
+/* Source Manager Styles */
+.source-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.source-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.source-label {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-color);
+  margin-bottom: 0;
+}
+
+.source-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.source-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: var(--card-bg-color);
+  color: var(--text-color);
+  min-width: 0;
+}
+
+.source-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(110, 73, 203, 0.2);
+}
+
+.source-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.source-add-btn {
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.source-add-btn:hover:not(:disabled) {
+  background-color: #5a3da8;
+}
+
+.source-add-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.source-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 0;
+}
+
+.source-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* Source Chip Styles */
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 12px;
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 13px;
+  max-width: 280px;
+}
+
+.source-chip.group {
+  border-left: 3px solid var(--primary-color);
+}
+
+.source-chip.project {
+  border-left: 3px solid var(--secondary-color);
+}
+
+.source-chip.error {
+  border-color: var(--danger-color);
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.source-chip.loading {
+  opacity: 0.7;
+}
+
+.chip-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.chip-name {
+  font-weight: 500;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip-id {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.chip-loading {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.chip-error {
+  color: var(--danger-color);
+}
+
+.chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.chip-remove:hover:not(:disabled) {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.chip-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dark mode adjustments */
+.dark-mode .source-chip {
+  background-color: var(--card-bg-color);
+}
+
+.dark-mode .source-chip.error {
+  background-color: rgba(244, 67, 54, 0.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .source-input-row {
+    flex-direction: column;
+  }
+
+  .source-add-btn {
+    width: 100%;
+  }
+
+  .source-chip {
+    max-width: 100%;
+  }
+}
