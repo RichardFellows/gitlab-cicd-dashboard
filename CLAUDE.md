@@ -45,7 +45,26 @@ When completing a feature, always create a feature branch and push to GitLab for
 2. **Run verification checks**: lint, build, and test (see Pre-Push Checklist)
 3. **Commit changes**: Use conventional commit format (e.g., `feat:`, `fix:`, `docs:`)
 4. **Push to GitLab**: `git push -u origin feature/<feature-name>`
-5. **Provide MR link**: Share the merge request URL for review
+5. **Create MR with details**: Use `glab mr create` with full description including:
+   - Summary of changes
+   - List of new/modified files
+   - Test evidence (lint, build, test output)
+   - Manual testing steps
+6. **Provide MR link**: Share the merge request URL for review
+
+### GitLab CLI (glab)
+Install the GitLab CLI for MR operations: https://gitlab.com/gitlab-org/cli
+
+```bash
+# Create MR with description
+glab mr create --title "feat: description" --description "## Summary..."
+
+# View MR
+glab mr view 1
+
+# List open MRs
+glab mr list
+```
 
 ### Branch Naming Convention
 - `feature/<name>` - New features
