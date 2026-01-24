@@ -27,6 +27,7 @@ test:
     - npm test
   rules:
     - if: $CI_COMMIT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 # Run linting
 lint:
@@ -36,6 +37,7 @@ lint:
     - npm run lint
   rules:
     - if: $CI_COMMIT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 # Build the project
 build:
@@ -51,6 +53,42 @@ build:
     expire_in: 1 week
   rules:
     - if: $CI_COMMIT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# Deploy review app for merge requests
+review:
+  stage: deploy
+  script:
+    - rm -rf public
+    - mv dist public
+    - echo "Deploying review app for MR !${CI_MERGE_REQUEST_IID}..."
+    - ls -la public/
+  artifacts:
+    paths:
+      - public
+  dependencies:
+    - build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  environment:
+    name: review/$CI_MERGE_REQUEST_IID
+    url: https://richard2.gitlab.io/gitlab-cicd-dashboard/review/$CI_MERGE_REQUEST_IID/
+    on_stop: review_stop
+    auto_stop_in: 1 week
+  pages:
+    path_prefix: review/$CI_MERGE_REQUEST_IID
+
+# Stop review app when MR is merged/closed
+review_stop:
+  stage: deploy
+  script:
+    - echo "Stopping review app for MR !${CI_MERGE_REQUEST_IID}"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+  environment:
+    name: review/$CI_MERGE_REQUEST_IID
+    action: stop
 
 # Deploy to GitLab Pages (only on main branch)
 # GitLab Pages requires the job to be named 'pages' and artifacts in 'public/'
