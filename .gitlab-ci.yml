@@ -64,11 +64,12 @@ deploy:
   script:
     - npm install -g wrangler
     # Create a short branch slug (max 25 chars) to avoid Cloudflare truncation
+    # Also strip trailing hyphens since Cloudflare normalizes them away
     - |
       if [ "$CI_COMMIT_BRANCH" = "main" ]; then
         BRANCH_SLUG="main"
       else
-        BRANCH_SLUG=$(echo "${CI_COMMIT_REF_SLUG}" | cut -c1-25)
+        BRANCH_SLUG=$(echo "${CI_COMMIT_REF_SLUG}" | cut -c1-25 | sed 's/-*$//')
       fi
       echo "Deploying with branch slug: $BRANCH_SLUG"
       echo "BRANCH_SLUG=$BRANCH_SLUG" >> deploy.env
