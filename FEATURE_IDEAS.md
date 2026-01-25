@@ -1,64 +1,208 @@
-# GitLab CI/CD Dashboard - Feature Ideas
+# GitLab CI/CD Dashboard - Feature Roadmap
 
-This document contains potential new features to enhance the dashboard for tracking migration progress, pipeline health, code coverage improvements, and team performance.
+This document outlines the prioritized feature roadmap based on product interviews and organizational needs.
 
-## Migration Progress Tracking
+> **Note**: See [INTERVIEW_NOTES.md](./INTERVIEW_NOTES.md) for detailed requirements and context from product discussions.
 
-1. **Migration Status Indicator**: Add a section that shows which repositories have been migrated vs. which are still pending, with progress bars or completion percentages.
+## Priority Overview
 
-2. **Before/After Comparison**: For migrated projects, display side-by-side metrics comparing the old system's performance (if you have that historical data) to GitLab's performance.
+| Priority | Category | Business Driver |
+|----------|----------|-----------------|
+| **1 (Highest)** | Pipeline Metrics | Organizational targets on failures, coverage, build times |
+| **2** | Environment Overview | Replace Nolio dashboard, deployment visibility |
+| **3** | Promotion Readiness | Ensure tested versions reach production |
+| **4** | Sign-off Display | Governance and audit trail |
 
-## Pipeline Health & Robustness Metrics
+---
 
-3. **Pipeline Stability Index**: Calculate and display a "stability score" based on factors like:
-   - Success rate over time
-   - Number of pipeline failures due to infrastructure vs. code issues
-   - Mean time between failures
+## Priority 1: Pipeline Metrics Enhancement
 
-4. **Pipeline Flakiness Detection**: Identify jobs that sometimes pass and sometimes fail with the same code, indicating unstable tests or infrastructure.
+**Goal**: Provide trending metrics to track organizational targets and spot regressions.
 
-5. **Duration Trend Analysis**: Show trends in pipeline duration over time with alerts for significant slowdowns.
+### 1.1 Main Branch Failure Tracking
+- [ ] Filter pipeline status by branch (emphasis on main/master)
+- [ ] Failure rate calculation over configurable time window (default: 30 days)
+- [ ] Trend chart showing failure rate over time
+- [ ] Visual flagging for projects with high failure rates
 
-6. **Branch Coverage**: Track which branches have CI/CD pipelines and which don't to ensure all active development is covered.
+### 1.2 Build Duration Trending
+- [ ] Track pipeline duration over time
+- [ ] Trend chart showing duration changes
+- [ ] Visual flagging for duration spikes/regressions
+- [ ] Ability to identify slowest pipelines
 
-## Code Coverage Improvements
+### 1.3 Code Coverage Display
+- [ ] Pull coverage from GitLab coverage reporting
+- [ ] Display actual coverage for all projects (including legacy with 0%)
+- [ ] 80% threshold indicator for new code
+- [ ] Coverage trend over time
 
-7. **Coverage Trend Charts**: Display line charts showing code coverage percentage over time (daily/weekly/monthly) to visualize improvement.
+### 1.4 Configurable Time Windows
+- [ ] User-configurable time window for all trending metrics
+- [ ] Default: 30 days
+- [ ] Options: 7 days, 30 days, 90 days, custom
 
-8. **Coverage Goals**: Allow setting target coverage percentages for each project and display progress towards these goals.
+---
 
-9. **Coverage Gap Analysis**: Identify files or modules with the lowest test coverage to help prioritize where to add tests.
+## Priority 2: Environment Overview
 
-10. **New Code Coverage**: Specifically track coverage for new code vs. legacy code to ensure new development follows best practices.
+**Goal**: Matrix view showing what version is deployed to each environment across all projects.
 
-## Team Performance Metrics
+> **Prerequisite**: GitLab Environments are not currently set up consistently across projects. The shared pipeline component will need to be extended to register deployments with GitLab Environments API before this feature can be fully utilized.
 
-11. **Team Leaderboards**: Show metrics by team or developer to foster friendly competition.
+### 2.1 Deployment Matrix View
+- [ ] Grid showing projects as rows, environments as columns
+- [ ] Display version number in each cell
+- [ ] Support variable environments per project (dev/sit/uat/prod)
+- [ ] Handle projects with missing environments (e.g., no prod yet)
 
-12. **PR Review Time**: Track how long PRs stay open and how quickly they get reviewed and merged.
+Example visualization:
+```
+| Project          | Dev    | SIT    | UAT    | Prod   |
+|------------------|--------|--------|--------|--------|
+| api-service      | 2.3.45 | 2.3.44 | 2.3.42 | 2.3.40 |
+| frontend-app     | 1.8.12 | 1.8.12 | 1.8.10 | 1.8.10 |
+| auth-service     | 1.0.5  | 1.0.5  | 1.0.4  | -      |
+```
 
-13. **Build Fix Time**: Measure how quickly failed pipelines get fixed.
+### 2.2 GitLab Environments Integration
+- [ ] Fetch deployment data from GitLab Environments API
+- [ ] Display deployment timestamp
+- [ ] Link to source pipeline
+- [ ] Link to commit SHA
+- [ ] Link to source branch/MR
 
-## Advanced Features
+### 2.3 Version Tracking
+- [ ] Track `$RELEASE_VERSION` from pipelines (built from `CI_PIPELINE_IID`)
+- [ ] Version matches Nexus artifact version
+- [ ] Show version progression across environments
 
-14. **Custom Alert Thresholds**: Allow teams to set custom thresholds for alerts on pipeline duration, success rates, and coverage.
+### 2.4 JIRA Integration (Optional)
+- [ ] Configurable JIRA base URL (optional)
+- [ ] Extract issue key from branch names (e.g., `feature/JIRA-123-description`)
+- [ ] Link to JIRA issue when configured
+- [ ] Display issue key as text when JIRA not configured
 
-15. **Job-Level Insights**: Drill down into specific job performance within pipelines to identify bottlenecks.
+---
 
-16. **Infrastructure Cost Analysis**: Track runner minutes used and estimate costs to optimize resource usage.
+## Priority 3: Promotion Readiness
 
-17. **Technical Debt Dashboard**: Track TODOs, FIXMEs, and deprecated API usage across codebases.
+**Goal**: Visualize whether a version has been tested in lower environments before promotion to production.
 
-18. **Weekly/Monthly Reports**: Automated report generation with key metrics and improvement suggestions.
+### 3.1 Environment Progression Tracking
+- [ ] Track which environments a version has passed through
+- [ ] Show pipeline status for each environment
+- [ ] Indicate if version skipped environments
 
-## Implementation Priority
+### 3.2 Promotion Eligibility View
+- [ ] Visual indicator: ready for promotion vs. not ready
+- [ ] List versions pending promotion per project
+- [ ] Show what's blocking promotion (failed pipeline, missing environment)
 
-To maximize value during migration from Bitbucket + TeamCity to GitLab, consider implementing these features in the following order:
+### 3.3 Version History
+- [ ] Timeline view of version deployments
+- [ ] Track promotions between environments
+- [ ] Handle rollbacks (deployment of previous version)
 
-1. Migration Status Indicator (#1)
-2. Coverage Trend Charts (#7)
-3. Pipeline Stability Index (#3)
-4. Coverage Goals (#8)
-5. Duration Trend Analysis (#5)
+---
 
-These initial features would provide the most immediate benefit for tracking migration progress and improving code quality during the transition.
+## Priority 4: Sign-off Status Display
+
+**Goal**: Display approval status captured externally in JIRA and MRs.
+
+### 4.1 Sign-off Status Indicator
+- [ ] Simple status display per version/environment
+- [ ] Manual toggle to mark as signed-off
+- [ ] Record who marked sign-off and when
+
+### 4.2 Sign-off Types
+- [ ] Technical sign-off (from Technical Product Owner)
+- [ ] Business sign-off (from key users)
+- [ ] Different badge/indicator for each type
+
+### 4.3 Future: JIRA Sign-off Integration
+- [ ] Pull sign-off status from JIRA tickets
+- [ ] Link to JIRA for evidence/details
+- [ ] Auto-update status from JIRA webhooks
+
+---
+
+## Future Enhancements
+
+These items are valuable but lower priority than the core features above.
+
+### Data & Performance
+- [ ] Historical data storage/caching for faster loads
+- [ ] Data retention beyond GitLab API limits
+- [ ] Background data refresh
+
+### SonarQube Integration
+- [ ] Direct SonarQube API integration
+- [ ] New code coverage vs. overall coverage
+- [ ] Quality gate status display
+
+### Pipeline Insights
+- [ ] Pipeline Stability Index (success rate, MTBF, infrastructure vs. code failures)
+- [ ] Pipeline flakiness detection (intermittent test failures)
+- [ ] Job-level drill-down for bottleneck identification
+
+### Team Features
+- [ ] PR/MR review time tracking
+- [ ] Build fix time metrics (time to fix failed pipelines)
+- [ ] Per-team/per-project filtering
+
+### Reporting
+- [ ] Export metrics to CSV/PDF
+- [ ] Scheduled report generation
+- [ ] Custom dashboard views
+
+---
+
+## Technical Notes
+
+### Authentication
+- Users provide their own GitLab personal access token
+- Token determines data access permissions
+- No centralized authentication required
+
+### Multi-tenancy
+- Teams configure their own GitLab groups
+- Open access across teams
+- No data segregation
+
+### Deployment Target
+- Internal deployment to OpenShift
+- Also usable with public GitLab instances (gitlab.com)
+- Desktop browsers only
+
+### Data Sources
+- GitLab API: pipelines, MRs, coverage, jobs
+- GitLab Environments API: deployment tracking
+- JIRA: issue links (optional, configurable)
+
+---
+
+## Archive: Original Feature Ideas
+
+The following ideas from the original brainstorming have been incorporated or deferred:
+
+| Original Idea | Status |
+|--------------|--------|
+| Migration Status Indicator | Deferred - migration complete |
+| Before/After Comparison | Deferred - not current priority |
+| Pipeline Stability Index | Incorporated in Future Enhancements |
+| Pipeline Flakiness Detection | Incorporated in Future Enhancements |
+| Duration Trend Analysis | **Priority 1.2** |
+| Branch Coverage | Deferred |
+| Coverage Trend Charts | **Priority 1.3** |
+| Coverage Goals | **Priority 1.3** (80% threshold) |
+| Coverage Gap Analysis | Deferred - SonarQube handles this |
+| New Code Coverage | Future - requires SonarQube integration |
+| Team Leaderboards | Deferred |
+| PR Review Time | Incorporated in Future Enhancements |
+| Build Fix Time | Incorporated in Future Enhancements |
+| Custom Alert Thresholds | Deferred - visual flagging sufficient |
+| Job-Level Insights | Incorporated in Future Enhancements |
+| Infrastructure Cost Analysis | Deferred |
+| Technical Debt Dashboard | Deferred |
+| Weekly/Monthly Reports | Incorporated in Future Enhancements |

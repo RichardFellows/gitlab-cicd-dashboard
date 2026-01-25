@@ -1,5 +1,45 @@
 # CLAUDE.md - Guidelines for GitLab CI/CD Dashboard
 
+## Ralph Wiggum Workflow (Autonomous Development)
+
+This project supports autonomous AI-driven development using the Ralph Wiggum pattern.
+
+### Quick Start
+
+```bash
+# Option 1: Simple bash loop
+./ralph.sh                    # Run until completion promise met
+./ralph.sh --max 10           # Limit to 10 iterations
+
+# Option 2: Ralphy CLI (more features)
+ralphy                        # Work through PRD.md
+ralphy "fix the e2e tests"    # Single task
+ralphy --parallel             # Multi-agent execution
+```
+
+### Files
+
+- `PROMPT.md` - Instructions for the Ralph loop (completion promise + task queue)
+- `PRD.md` - Product requirements for Ralphy CLI
+- `.ralphy/config.yaml` - Project rules and settings
+- `specs/` - Structured specifications for larger features
+
+### Completion Promise
+
+Tasks are considered DONE when:
+```bash
+npm run lint && npm run build && npm test && npx playwright test e2e/dashboard.spec.ts --project=chromium
+```
+
+### Specs Structure
+
+For larger features, specs live in `specs/<feature-name>/`:
+- `requirements.md` - User stories and acceptance criteria
+- `design.md` - Technical architecture decisions
+- `tasks.md` - POC-first task breakdown
+
+---
+
 ## Recent Updates
 - Fixed TypeScript type issues for successful build process:
   - Added `draft` property to MergeRequest interface

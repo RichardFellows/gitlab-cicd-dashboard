@@ -33,7 +33,7 @@ test.describe('Dashboard Loading', () => {
     await expect(page.locator('input[type="password"]')).toBeVisible();
 
     // Check for group/project input
-    await expect(page.locator('text=Groups')).toBeVisible();
+    await expect(page.locator('label.source-label:has-text("Groups")')).toBeVisible();
 
     // Check for timeframe selector
     await expect(page.locator('text=Timeframe')).toBeVisible();
@@ -99,7 +99,7 @@ test.describe('Settings Panel', () => {
     await page.goto('/');
 
     // Find the group input and add button
-    const groupInput = page.locator('input[placeholder*="Group ID"]');
+    const groupInput = page.locator('input[placeholder*="group ID" i]');
     await groupInput.fill(TEST_CONFIG.groupId);
 
     // Click add button
@@ -160,7 +160,7 @@ test.describe('Error Handling', () => {
     await urlInput.fill(TEST_CONFIG.gitlabUrl);
 
     // Add a group
-    const groupInput = page.locator('input[placeholder*="Group ID"]');
+    const groupInput = page.locator('input[placeholder*="group ID" i]');
     await groupInput.fill(TEST_CONFIG.groupId);
     await page.locator('button:has-text("Add")').first().click();
 
@@ -189,6 +189,6 @@ test.describe('Local Storage', () => {
     await clearBtn.click();
 
     // URL should be reset to default
-    await expect(urlInput).toHaveValue('https://gitlab.com');
+    await expect(urlInput).toHaveValue('https://gitlab.com/api/v4');
   });
 });
