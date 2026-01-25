@@ -54,7 +54,8 @@ build:
 
 # Deploy to Cloudflare Pages
 # - main branch -> production (gitlab-cicd-dashboard.pages.dev)
-# - other branches -> preview ({branch}.gitlab-cicd-dashboard.pages.dev)
+# - other branches -> preview ({branch-slug}.gitlab-cicd-dashboard.pages.dev)
+# Note: Branch slug is truncated to 25 chars to avoid Cloudflare's unpredictable truncation
 deploy:
   stage: deploy
   variables:
@@ -62,10 +63,21 @@ deploy:
     CLOUDFLARE_API_KEY: $CLOUDFLARE_API_TOKEN
   script:
     - npm install -g wrangler
-    - echo "Deploying branch ${CI_COMMIT_BRANCH} to Cloudflare Pages..."
-    - CLOUDFLARE_API_KEY=$CLOUDFLARE_API_TOKEN CLOUDFLARE_EMAIL=$CLOUDFLARE_EMAIL wrangler pages deploy dist --project-name=gitlab-cicd-dashboard --branch=${CI_COMMIT_BRANCH}
+    # Create a short branch slug (max 25 chars) to avoid Cloudflare truncation
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        BRANCH_SLUG="main"
+      else
+        BRANCH_SLUG=$(echo "${CI_COMMIT_REF_SLUG}" | cut -c1-25)
+      fi
+      echo "Deploying with branch slug: $BRANCH_SLUG"
+      echo "BRANCH_SLUG=$BRANCH_SLUG" >> deploy.env
+      CLOUDFLARE_API_KEY=$CLOUDFLARE_API_TOKEN CLOUDFLARE_EMAIL=$CLOUDFLARE_EMAIL wrangler pages deploy dist --project-name=gitlab-cicd-dashboard --branch=$BRANCH_SLUG
   dependencies:
     - build
+  artifacts:
+    reports:
+      dotenv: deploy.env
   rules:
     - if: $CI_COMMIT_BRANCH
   environment:
@@ -78,21 +90,20 @@ post-deploy-test:
   script:
     - *install_dependencies
     # Use production URL for main, branch-specific URL for others
+    # BRANCH_SLUG is passed from deploy job via dotenv artifact
     - |
       if [ "$CI_COMMIT_BRANCH" = "main" ]; then
         DEPLOY_URL="https://gitlab-cicd-dashboard.pages.dev"
       else
-        # Cloudflare truncates long branch names, so we use the slug
-        DEPLOY_URL="https://${CI_COMMIT_REF_SLUG}.gitlab-cicd-dashboard.pages.dev"
+        DEPLOY_URL="https://${BRANCH_SLUG}.gitlab-cicd-dashboard.pages.dev"
       fi
       echo "Testing deployment at: $DEPLOY_URL"
       npm run test:deployment "$DEPLOY_URL"
-  dependencies: []
   rules:
     - if: $CI_COMMIT_BRANCH
   needs:
     - job: deploy
-      artifacts: false
+      artifacts: true
 
 # E2E tests with Playwright (all branches)
 e2e-test:
@@ -100,20 +111,20 @@ e2e-test:
   image: mcr.microsoft.com/playwright:v1.40.0-jammy
   script:
     - npm ci
+    # BRANCH_SLUG is passed from deploy job via dotenv artifact
     - |
       if [ "$CI_COMMIT_BRANCH" = "main" ]; then
         export BASE_URL="https://gitlab-cicd-dashboard.pages.dev"
       else
-        export BASE_URL="https://${CI_COMMIT_REF_SLUG}.gitlab-cicd-dashboard.pages.dev"
+        export BASE_URL="https://${BRANCH_SLUG}.gitlab-cicd-dashboard.pages.dev"
       fi
       echo "Running E2E tests against: $BASE_URL"
       npx playwright test --reporter=list
-  dependencies: []
   rules:
     - if: $CI_COMMIT_BRANCH
   needs:
     - job: deploy
-      artifacts: false
+      artifacts: true
   allow_failure: true  # Don't block MR if E2E tests fail initially
   artifacts:
     when: always

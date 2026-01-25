@@ -119,14 +119,12 @@ Every branch automatically deploys a public preview to Cloudflare Pages:
 - **Production**: https://gitlab-cicd-dashboard.pages.dev (main branch)
 - **Branch Previews**: https://{branch-slug}.gitlab-cicd-dashboard.pages.dev
 
-**IMPORTANT - URL Truncation**: Cloudflare truncates long branch names to ~28 characters:
-- `feature/pipeline-metrics-enhancement` → `feature-pipeline-metrics-enh`
-- `feature/multi-source-config` → `feature-multi-source-config` (unchanged, short enough)
+**URL Slug Truncation**: Branch slugs are truncated to 25 characters to ensure consistent URLs:
+- `feature/pipeline-metrics-enhancement` → `feature-pipeline-metrics-e`
+- `feature/multi-source-config` → `feature-multi-source-confi`
+- Short branch names remain unchanged
 
-**To find the actual preview URL**:
-1. Check the GitLab pipeline's deploy job output (shows the wrangler deployment URL)
-2. Check the GitLab Environment section for the branch
-3. Look at the Cloudflare Pages dashboard
+The preview URL is shown in the deploy job output and passed to post-deploy tests automatically.
 
 ### CI/CD Pipeline Testing
 The pipeline runs these tests automatically on **all branches**:
