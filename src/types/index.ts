@@ -225,6 +225,7 @@ export interface DashboardConfig {
   timeframe: number;
   groups: GroupSource[];
   projects: ProjectSource[];
+  jiraBaseUrl?: string;  // Optional JIRA base URL for linking (e.g., "https://jira.company.com/browse")
 }
 
 // Storage keys for localStorage

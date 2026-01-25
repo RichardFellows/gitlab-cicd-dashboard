@@ -236,3 +236,100 @@ describeWithToken('Dark Mode with Data', () => {
     await expect(page.locator('.project-metrics-trends')).toBeVisible();
   });
 });
+
+describeWithToken('Environment Matrix View', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+
+    // Load data first
+    const urlInput = page.locator('input[placeholder*="gitlab.com"]');
+    await urlInput.clear();
+    await urlInput.fill(TEST_CONFIG.gitlabUrl);
+
+    const tokenInput = page.locator('input[type="password"]');
+    await tokenInput.fill(TEST_CONFIG.token);
+
+    const groupInput = page.locator('input[placeholder*="Group ID"]');
+    await groupInput.fill(TEST_CONFIG.groupId);
+    await page.locator('button:has-text("Add")').first().click();
+
+    await page.locator('button:has-text("Load Dashboard")').click();
+    await expect(page.locator('.loading-indicator')).toBeHidden({ timeout: 30000 });
+  });
+
+  test('should switch to Environment view', async ({ page }) => {
+    // Click Envs view button
+    await page.locator('button:has-text("Envs")').click();
+
+    // Environment matrix should be visible
+    await expect(page.locator('.environment-matrix')).toBeVisible();
+  });
+
+  test('should display environment columns', async ({ page }) => {
+    // Switch to Envs view
+    await page.locator('button:has-text("Envs")').click();
+    await expect(page.locator('.environment-matrix')).toBeVisible();
+
+    // Check for environment column headers
+    await expect(page.locator('.environment-matrix__header:has-text("DEV")')).toBeVisible();
+    await expect(page.locator('.environment-matrix__header:has-text("SIT")')).toBeVisible();
+    await expect(page.locator('.environment-matrix__header:has-text("UAT")')).toBeVisible();
+    await expect(page.locator('.environment-matrix__header:has-text("PROD")')).toBeVisible();
+  });
+
+  test('should display project rows in matrix', async ({ page }) => {
+    // Switch to Envs view
+    await page.locator('button:has-text("Envs")').click();
+    await expect(page.locator('.environment-matrix')).toBeVisible();
+
+    // Check for project rows
+    await expect(page.locator('.environment-matrix__row')).toHaveCount({ minimum: 1 });
+
+    // Check for project links
+    await expect(page.locator('.environment-matrix__project-link')).toHaveCount({ minimum: 1 });
+  });
+
+  test('should hide filter bar in Environment view', async ({ page }) => {
+    // Verify filter bar is visible in Table view
+    await expect(page.locator('.filter-bar')).toBeVisible();
+
+    // Switch to Envs view
+    await page.locator('button:has-text("Envs")').click();
+
+    // Filter bar should be hidden
+    await expect(page.locator('.filter-bar')).toBeHidden();
+  });
+
+  test('should switch between views correctly', async ({ page }) => {
+    // Start in Table view
+    await expect(page.locator('.projects-table')).toBeVisible();
+
+    // Switch to Envs
+    await page.locator('button:has-text("Envs")').click();
+    await expect(page.locator('.environment-matrix')).toBeVisible();
+    await expect(page.locator('.projects-table')).toBeHidden();
+
+    // Switch to Cards
+    await page.locator('button:has-text("Cards")').click();
+    await expect(page.locator('.project-cards')).toBeVisible();
+    await expect(page.locator('.environment-matrix')).toBeHidden();
+
+    // Switch back to Table
+    await page.locator('button:has-text("Table")').click();
+    await expect(page.locator('.projects-table')).toBeVisible();
+    await expect(page.locator('.project-cards')).toBeHidden();
+  });
+
+  test('should work in dark mode', async ({ page }) => {
+    // Enable dark mode
+    await page.locator('.theme-btn').click();
+    await expect(page.locator('body')).toHaveClass(/dark-mode/);
+
+    // Switch to Envs view
+    await page.locator('button:has-text("Envs")').click();
+
+    // Matrix should still be visible and styled
+    await expect(page.locator('.environment-matrix')).toBeVisible();
+    await expect(page.locator('.environment-matrix__header')).toHaveCount({ minimum: 4 });
+  });
+});

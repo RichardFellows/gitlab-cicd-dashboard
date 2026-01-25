@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import Dashboard from './components/Dashboard';
 import ControlPanel from './components/ControlPanel';
 import ProjectDetails from './components/ProjectDetails';
-import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend } from './types';
+import EnvironmentMatrixView from './components/EnvironmentMatrixView';
+import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv } from './types';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
 import { loadConfig, saveConfig, clearConfig, isConfigReady, createDefaultConfig } from './utils/configMigration';
@@ -35,6 +36,9 @@ const App = () => {
   // Trend data state
   const [aggregateTrends, setAggregateTrends] = useState<AggregatedTrend[]>([]);
   const [trendsLoading, setTrendsLoading] = useState(false);
+
+  // Environment view state - deployment cache
+  const [deploymentCache, setDeploymentCache] = useState<Map<number, DeploymentsByEnv>>(new Map());
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -395,8 +399,44 @@ const App = () => {
     }
   };
 
+  // Fetch deployments for a project (for Environment view)
+  const fetchProjectDeployments = useCallback(async (projectId: number) => {
+    // Skip if already cached or loading
+    const cached = deploymentCache.get(projectId);
+    if (cached && !cached.loading) return;
+
+    // Set loading state
+    setDeploymentCache(prev => {
+      const newMap = new Map(prev);
+      newMap.set(projectId, { projectId, deployments: {}, loading: true });
+      return newMap;
+    });
+
+    try {
+      const data = await dashboardService.getProjectDeployments(projectId);
+      setDeploymentCache(prev => {
+        const newMap = new Map(prev);
+        newMap.set(projectId, data);
+        return newMap;
+      });
+    } catch (error) {
+      setDeploymentCache(prev => {
+        const newMap = new Map(prev);
+        newMap.set(projectId, {
+          projectId,
+          deployments: {},
+          loading: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        return newMap;
+      });
+    }
+  }, [deploymentCache]);
+
   // Handle load button click
   const handleLoad = useCallback(() => {
+    // Clear deployment cache on new load
+    setDeploymentCache(new Map());
     loadDashboard(config);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config, configureGitLabService]);
@@ -493,6 +533,13 @@ const App = () => {
                 >
                   Table
                 </button>
+                <button
+                  className={`view-btn ${viewType === ViewType.ENVIRONMENT ? 'active' : ''}`}
+                  onClick={() => handleViewTypeChange(ViewType.ENVIRONMENT)}
+                  title="Environment Matrix View"
+                >
+                  Envs
+                </button>
               </div>
               <button
                 className="icon-btn refresh-btn"
@@ -559,59 +606,71 @@ const App = () => {
 
       {!loading && !error && metrics && !selectedProjectId && (
         <>
-          <div className="filter-bar">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search projects..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <div className="status-filters">
-              <button
-                className={`filter-chip ${statusFilter === 'all' ? 'active' : ''}`}
-                onClick={() => handleStatusFilterChange('all')}
-              >
-                All
-              </button>
-              <button
-                className={`filter-chip success ${statusFilter === 'success' ? 'active' : ''}`}
-                onClick={() => handleStatusFilterChange('success')}
-              >
-                Success
-              </button>
-              <button
-                className={`filter-chip warning ${statusFilter === 'warning' ? 'active' : ''}`}
-                onClick={() => handleStatusFilterChange('warning')}
-              >
-                Warning
-              </button>
-              <button
-                className={`filter-chip danger ${statusFilter === 'failed' ? 'active' : ''}`}
-                onClick={() => handleStatusFilterChange('failed')}
-              >
-                Failed
-              </button>
-              <button
-                className={`filter-chip inactive ${statusFilter === 'inactive' ? 'active' : ''}`}
-                onClick={() => handleStatusFilterChange('inactive')}
-              >
-                Inactive
-              </button>
+          {viewType !== ViewType.ENVIRONMENT && (
+            <div className="filter-bar">
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search projects..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <div className="status-filters">
+                <button
+                  className={`filter-chip ${statusFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => handleStatusFilterChange('all')}
+                >
+                  All
+                </button>
+                <button
+                  className={`filter-chip success ${statusFilter === 'success' ? 'active' : ''}`}
+                  onClick={() => handleStatusFilterChange('success')}
+                >
+                  Success
+                </button>
+                <button
+                  className={`filter-chip warning ${statusFilter === 'warning' ? 'active' : ''}`}
+                  onClick={() => handleStatusFilterChange('warning')}
+                >
+                  Warning
+                </button>
+                <button
+                  className={`filter-chip danger ${statusFilter === 'failed' ? 'active' : ''}`}
+                  onClick={() => handleStatusFilterChange('failed')}
+                >
+                  Failed
+                </button>
+                <button
+                  className={`filter-chip inactive ${statusFilter === 'inactive' ? 'active' : ''}`}
+                  onClick={() => handleStatusFilterChange('inactive')}
+                >
+                  Inactive
+                </button>
+              </div>
             </div>
-          </div>
-          <Dashboard
-            metrics={metrics}
-            viewType={viewType}
-            onProjectSelect={handleProjectSelect}
-            statusFilter={statusFilter}
-            searchQuery={searchQuery}
-            onStatusFilterChange={handleStatusFilterChange}
-            aggregateTrends={aggregateTrends}
-            trendsLoading={trendsLoading}
-            darkMode={darkMode}
-            gitLabService={gitLabService}
-          />
+          )}
+          
+          {viewType === ViewType.ENVIRONMENT ? (
+            <EnvironmentMatrixView
+              projects={metrics.projects}
+              deploymentCache={deploymentCache}
+              fetchProjectDeployments={fetchProjectDeployments}
+              jiraBaseUrl={config.jiraBaseUrl}
+            />
+          ) : (
+            <Dashboard
+              metrics={metrics}
+              viewType={viewType}
+              onProjectSelect={handleProjectSelect}
+              statusFilter={statusFilter}
+              searchQuery={searchQuery}
+              onStatusFilterChange={handleStatusFilterChange}
+              aggregateTrends={aggregateTrends}
+              trendsLoading={trendsLoading}
+              darkMode={darkMode}
+              gitLabService={gitLabService}
+            />
+          )}
         </>
       )}
 
