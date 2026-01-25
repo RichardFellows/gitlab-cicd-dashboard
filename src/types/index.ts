@@ -242,8 +242,53 @@ export const STORAGE_KEYS = {
 // View types enum
 export enum ViewType {
   CARD = 'card',
-  TABLE = 'table'
+  TABLE = 'table',
+  ENVIRONMENT = 'environment'
 }
 
 // Project status filter type
 export type ProjectStatusFilter = 'all' | 'success' | 'warning' | 'failed' | 'inactive';
+
+// ============================================
+// Environment Overview Types (Priority 2)
+// ============================================
+
+// Standard environment names
+export type EnvironmentName = 'dev' | 'sit' | 'uat' | 'prod';
+
+// Standard environment order for display (left to right)
+export const ENVIRONMENT_ORDER: EnvironmentName[] = ['dev', 'sit', 'uat', 'prod'];
+
+// Deployment status types
+export type DeploymentStatus = 'success' | 'failed' | 'running' | 'pending' | 'canceled';
+
+// Deployment info extracted from job + artifact
+export interface Deployment {
+  jobId: number;
+  jobName: string;
+  environment: EnvironmentName;
+  version: string | null;        // From deploy-info.json or fallback to pipeline IID
+  status: DeploymentStatus;
+  timestamp: string;             // finished_at or created_at
+  pipelineId: number;
+  pipelineIid?: number;          // Pipeline internal ID (for fallback version)
+  pipelineRef: string;           // Branch name
+  jobUrl: string;
+  pipelineUrl?: string;
+  commitSha?: string;
+  jiraKey?: string | null;       // Extracted from branch name
+}
+
+// Deployments grouped by environment for a project
+export interface DeploymentsByEnv {
+  projectId: number;
+  deployments: Partial<Record<EnvironmentName, Deployment>>;
+  loading: boolean;
+  error?: string;
+}
+
+// Deploy artifact schema (what we write in CI)
+export interface DeployInfoArtifact {
+  version: string;
+  // Future: could add more fields like buildTime, commit, etc.
+}

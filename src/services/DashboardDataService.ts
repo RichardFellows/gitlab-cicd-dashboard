@@ -1,6 +1,6 @@
 import GitLabApiService from './GitLabApiService';
-import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject, MainBranchTrend, CoverageTrend, AggregatedTrend, CoverageStatus } from '../types';
-import { METRICS_THRESHOLDS } from '../utils/constants';
+import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject, MainBranchTrend, CoverageTrend, AggregatedTrend, CoverageStatus, EnvironmentName, Deployment, DeploymentsByEnv, DeployInfoArtifact, DeploymentStatus } from '../types';
+import { METRICS_THRESHOLDS, DEPLOY_JOB_REGEX, JIRA_KEY_REGEX } from '../utils/constants';
 
 class DashboardDataService {
   gitLabService: GitLabApiService;
@@ -983,6 +983,136 @@ class DashboardDataService {
 
     return validDurations.reduce((a, b) => a + b, 0) / validDurations.length;
   }
+
+  // ============================================
+  // Environment Overview Methods (Priority 2)
+  // ============================================
+
+  /**
+   * Parse a job name to extract the environment
+   * @param jobName - The job name (e.g., "deploy-to-dev", "deploy_uat")
+   * @returns The environment name or null if not a deploy job
+   */
+  parseDeployJobName(jobName: string): EnvironmentName | null {
+    const match = jobName.match(DEPLOY_JOB_REGEX);
+    if (!match) return null;
+
+    // Normalize to lowercase and return as EnvironmentName
+    const env = match[1].toLowerCase() as EnvironmentName;
+    return env;
+  }
+
+  /**
+   * Extract JIRA issue key from a branch name
+   * @param branchName - The branch name (e.g., "feature/JIRA-123-description")
+   * @returns The JIRA key (e.g., "JIRA-123") or null if not found
+   */
+  extractJiraKey(branchName: string): string | null {
+    const match = branchName.match(JIRA_KEY_REGEX);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Get the latest deployment per environment for a project
+   * Fetches jobs, filters to deploy jobs, gets artifacts for version
+   * @param projectId - The GitLab project ID
+   * @returns Deployments grouped by environment
+   */
+  async getProjectDeployments(projectId: number): Promise<DeploymentsByEnv> {
+    try {
+      // Fetch jobs from the project (limit to recent jobs)
+      const jobs = await this.gitLabService.getProjectJobs(projectId, {
+        scope: ['success', 'failed'],
+        per_page: 100
+      });
+
+      // Filter to deploy jobs and group by environment (keep latest per env)
+      const deploymentsByEnv: Partial<Record<EnvironmentName, Deployment>> = {};
+
+      for (const job of jobs) {
+        const environment = this.parseDeployJobName(job.name);
+        if (!environment) continue;
+
+        // Only keep the latest job per environment
+        if (deploymentsByEnv[environment]) continue;
+
+        // Extract JIRA key from pipeline ref (branch name)
+        // Note: job.pipeline might have ref, otherwise we need pipeline details
+        const pipelineRef = (job as JobWithPipeline).pipeline?.ref || '';
+        const jiraKey = this.extractJiraKey(pipelineRef);
+
+        // Create deployment entry
+        const deployment: Deployment = {
+          jobId: job.id,
+          jobName: job.name,
+          environment,
+          version: null, // Will be fetched from artifact
+          status: job.status as DeploymentStatus,
+          timestamp: job.finished_at || job.created_at,
+          pipelineId: (job as JobWithPipeline).pipeline?.id || 0,
+          pipelineIid: (job as JobWithPipeline).pipeline?.iid,
+          pipelineRef,
+          jobUrl: job.web_url,
+          pipelineUrl: (job as JobWithPipeline).pipeline?.web_url,
+          jiraKey
+        };
+
+        deploymentsByEnv[environment] = deployment;
+      }
+
+      // Fetch version from artifact for each deployment
+      const deployments = Object.values(deploymentsByEnv);
+      await Promise.all(
+        deployments.map(async (deployment) => {
+          try {
+            const artifact = await this.gitLabService.getJobArtifact<DeployInfoArtifact>(
+              projectId,
+              deployment.jobId,
+              'deploy-info.json'
+            );
+
+            if (artifact && artifact.version) {
+              deployment.version = artifact.version;
+            } else {
+              // Fallback to pipeline IID
+              deployment.version = deployment.pipelineIid
+                ? `#${deployment.pipelineIid}`
+                : null;
+            }
+          } catch {
+            // Fallback to pipeline IID on error
+            deployment.version = deployment.pipelineIid
+              ? `#${deployment.pipelineIid}`
+              : null;
+          }
+        })
+      );
+
+      return {
+        projectId,
+        deployments: deploymentsByEnv,
+        loading: false
+      };
+    } catch (error) {
+      console.error(`Failed to get deployments for project ${projectId}:`, error);
+      return {
+        projectId,
+        deployments: {},
+        loading: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+}
+
+// Extended Job type with pipeline info (from jobs API response)
+interface JobWithPipeline extends Job {
+  pipeline?: {
+    id: number;
+    iid?: number;
+    ref?: string;
+    web_url?: string;
+  };
 }
 
 export default DashboardDataService;
