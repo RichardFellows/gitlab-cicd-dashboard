@@ -118,9 +118,38 @@ Do NOT merge to main directly. Push feature branches for review first.
 Every branch automatically deploys a public preview to Cloudflare Pages:
 - **Production**: https://gitlab-cicd-dashboard.pages.dev (main branch)
 - **Branch Previews**: https://{branch-slug}.gitlab-cicd-dashboard.pages.dev
-- **Note**: Cloudflare truncates long branch names (e.g., `feature/pipeline-metrics-enhancement` becomes `feature-pipeline-metrics-enh`)
-- Check the GitLab pipeline output or Cloudflare dashboard for the actual preview URL
-- Preview URL is also shown in the GitLab environment section
+
+**IMPORTANT - URL Truncation**: Cloudflare truncates long branch names to ~28 characters:
+- `feature/pipeline-metrics-enhancement` → `feature-pipeline-metrics-enh`
+- `feature/multi-source-config` → `feature-multi-source-config` (unchanged, short enough)
+
+**To find the actual preview URL**:
+1. Check the GitLab pipeline's deploy job output (shows the wrangler deployment URL)
+2. Check the GitLab Environment section for the branch
+3. Look at the Cloudflare Pages dashboard
+
+### CI/CD Pipeline Testing
+The pipeline runs these tests automatically on **all branches**:
+
+| Stage | Job | Description |
+|-------|-----|-------------|
+| test | `lint` | ESLint code quality checks |
+| test | `test` | Vitest unit tests |
+| build | `build` | TypeScript compilation + Vite build |
+| deploy | `deploy` | Deploy to Cloudflare Pages |
+| post-deploy | `post-deploy-test` | Verify deployment is accessible |
+| post-deploy | `e2e-test` | Playwright E2E tests against deployed URL |
+
+**Post-deploy tests** verify:
+- Site is accessible and returns 200
+- React app content is present (root div, JS/CSS assets)
+
+**E2E tests** verify:
+- Dashboard UI loads correctly
+- Dark mode toggle works
+- Settings panel interactions
+- Responsive layout (mobile viewport)
+- (With GITLAB_TOKEN): Data loading, trend charts, project details
 
 ### Cloudflare Pages Setup
 CI/CD variables required in GitLab (Settings > CI/CD > Variables):
@@ -153,16 +182,24 @@ project-root/
 │
 ├── .gitlab-ci.yml             # GitLab CI/CD pipeline configuration
 │
+├── e2e/                       # Playwright E2E tests
+│   ├── dashboard.spec.ts      # Basic UI tests (no auth required)
+│   └── dashboard-with-data.spec.ts # Data tests (require GITLAB_TOKEN)
+│
 ├── src/                       # Source code
 │   ├── components/            # React components
 │   │   ├── CardView.tsx       # Card view component
 │   │   ├── ControlPanel.tsx   # Control panel component
 │   │   ├── Dashboard.tsx      # Main dashboard component
+│   │   ├── MetricAlert.tsx    # Visual flagging badges
+│   │   ├── MetricsPanel.tsx   # Aggregate trend charts
 │   │   ├── ProjectDetails.tsx # Project details component
+│   │   ├── ProjectMetricsTrends.tsx # Per-project trend charts
 │   │   ├── SourceChip.tsx     # Chip component for group/project display
 │   │   ├── SourceManager.tsx  # Multi-source group/project manager
 │   │   ├── SummarySection.tsx # Summary section component
-│   │   └── TableView.tsx      # Table view component
+│   │   ├── TableView.tsx      # Table view component
+│   │   └── TrendChart.tsx     # Reusable Chart.js line chart
 │   │
 │   ├── services/              # API and data services
 │   │   ├── GitLabApiService.ts # GitLab API communication
@@ -171,14 +208,19 @@ project-root/
 │   ├── styles/                # CSS files for components
 │   │   ├── index.css          # Global styles
 │   │   ├── CardView.css       # Card view styles
+│   │   ├── MetricAlert.css    # Alert badge styles
+│   │   ├── MetricsPanel.css   # Metrics panel styles
+│   │   ├── ProjectMetricsTrends.css # Project trends styles
 │   │   ├── SourceManager.css  # Source manager styles
-│   │   └── TableView.css      # Table view styles
+│   │   ├── TableView.css      # Table view styles
+│   │   └── TrendChart.css     # Trend chart styles
 │   │
 │   ├── types/                 # TypeScript type definitions
 │   │   └── index.ts           # Shared type definitions
 │   │
 │   ├── utils/                 # Utilities and helpers
 │   │   ├── configMigration.ts # Config migration and persistence
+│   │   ├── constants.ts       # Threshold constants and chart colors
 │   │   └── formatting.ts      # Formatting utilities
 │   │
 │   ├── test/                  # Test configuration
@@ -192,6 +234,7 @@ project-root/
 │   └── test-deployment.js     # Post-deployment test script
 │
 ├── index.html                 # HTML entry point
+├── playwright.config.ts       # Playwright E2E test configuration
 ├── vite.config.ts             # Vite configuration
 ├── tsconfig.json              # TypeScript configuration
 ├── tsconfig.node.json         # TypeScript configuration for Node.js
@@ -215,10 +258,13 @@ project-root/
 ### E2E Tests (Playwright)
 - Using Playwright for end-to-end testing
 - Test files located in the `e2e/` directory
-- Tests run against deployed preview URLs in CI, or localhost during development
-- Test commands:
-  - `npm run test:e2e`: Run all E2E tests
-  - `npm run test:e2e:ui`: Run E2E tests with interactive UI
+- **In CI**: Tests run automatically against deployed preview URLs after each deployment
+- **Locally**: Tests run against localhost:5050 (dev server starts automatically)
+
+**Test commands:**
+- `npm run test:e2e`: Run all E2E tests
+- `npm run test:e2e:ui`: Run E2E tests with interactive UI
+- `BASE_URL=https://example.com npm run test:e2e`: Test against specific URL
 
 **Running E2E tests with data:**
 Some tests require a GitLab token to load real data:
@@ -227,6 +273,13 @@ GITLAB_TOKEN=glpat-xxx npm run test:e2e
 ```
 
 **E2E tests cover:**
+
+| Test File | Auth Required | Tests |
+|-----------|---------------|-------|
+| `dashboard.spec.ts` | No | Basic UI, dark mode, settings panel, responsive layout |
+| `dashboard-with-data.spec.ts` | Yes (GITLAB_TOKEN) | Trend charts, project details, metric alerts, MR loading |
+
+**Test categories:**
 - Dashboard loading and basic functionality
 - Dark mode toggle
 - Settings panel interactions
@@ -235,7 +288,7 @@ GITLAB_TOKEN=glpat-xxx npm run test:e2e
 - Trend charts rendering
 - Project details navigation
 - Metric alerts (visual flagging)
-- Responsive layout (mobile)
+- Responsive layout (mobile viewport)
 - MR loading in table expansion
   
 ## Test Data (GitLab Group)
@@ -270,10 +323,18 @@ To test the dashboard locally with this group:
 ## Deployment
 
 ### GitLab CI/CD (Primary)
-- Automated deployment to GitLab Pages via `.gitlab-ci.yml`
+- Automated deployment to Cloudflare Pages via `.gitlab-ci.yml`
 - Pipeline stages: test → build → deploy → post-deploy
-- Triggered on pushes to any branch (deploy only on main)
-- GitLab Pages URL: https://richard2.gitlab.io/gitlab-cicd-dashboard
+- **All branches** are deployed and tested (not just main)
+- Production URL: https://gitlab-cicd-dashboard.pages.dev
+- Preview URLs: https://{branch-slug}.gitlab-cicd-dashboard.pages.dev
+
+**Pipeline jobs:**
+1. `lint` + `test` - Code quality and unit tests
+2. `build` - TypeScript compilation and Vite build
+3. `deploy` - Deploy to Cloudflare Pages
+4. `post-deploy-test` - Verify deployment accessibility
+5. `e2e-test` - Playwright E2E tests against deployed URL
 
 ### GitHub Actions (Legacy)
 - Automated deployment to GitHub Pages via GitHub Actions
