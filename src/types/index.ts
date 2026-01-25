@@ -293,3 +293,20 @@ export interface DeployInfoArtifact {
   version: string;
   // Future: could add more fields like buildTime, commit, etc.
 }
+
+// ============================================
+// Promotion Readiness Types (Priority 3)
+// ============================================
+
+// MR Note from GitLab API
+export interface MRNote {
+  id: number;
+  body: string;
+  author: {
+    id: number;
+    username: string;
+    name: string;
+  };
+  created_at: string;
+  system: boolean;  // Filter out system notes
+}

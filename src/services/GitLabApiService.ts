@@ -1,4 +1,4 @@
-import { MergeRequest, Pipeline, Commit, Job, TestMetrics, GitLabApiProject, PartialGitLabApiProject, STORAGE_KEYS } from '../types';
+import { MergeRequest, Pipeline, Commit, Job, TestMetrics, GitLabApiProject, PartialGitLabApiProject, STORAGE_KEYS, MRNote } from '../types';
 
 class GitLabApiService {
   baseUrl: string;
@@ -932,6 +932,142 @@ class GitLabApiService {
     } catch (error) {
       console.error(`Failed to fetch artifact ${artifactPath} for job ${jobId}:`, error);
       // Return null for any fetch error (artifact might not exist)
+      return null;
+    }
+  }
+
+  /**
+   * Find a merge request by its source branch
+   * @param {string|number} projectId - The GitLab project ID
+   * @param {string} branch - The source branch name
+   * @returns {Promise<MergeRequest | null>} - The merge request or null if not found
+   */
+  async getMergeRequestByBranch(
+    projectId: string | number,
+    branch: string
+  ): Promise<MergeRequest | null> {
+    try {
+      const path = `/projects/${projectId}/merge_requests`;
+      const queryParams = `?source_branch=${encodeURIComponent(branch)}&state=merged&per_page=1`;
+      const url = this.getApiUrl(path, queryParams);
+
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error fetching merge request by branch: ${response.statusText} (${response.status})`);
+      }
+
+      const mergeRequests: MergeRequest[] = await response.json();
+      return mergeRequests.length > 0 ? mergeRequests[0] : null;
+    } catch (error) {
+      console.error(`Failed to fetch merge request for branch ${branch} in project ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get notes/comments on a merge request
+   * @param {string|number} projectId - The GitLab project ID
+   * @param {string|number} mrIid - The merge request IID
+   * @returns {Promise<MRNote[]>} - List of notes (excluding system notes)
+   */
+  async getMergeRequestNotes(
+    projectId: string | number,
+    mrIid: string | number
+  ): Promise<MRNote[]> {
+    try {
+      const allNotes: MRNote[] = [];
+      let page = 1;
+      const perPage = 100;
+      let hasMorePages = true;
+
+      // Paginate through all notes
+      while (hasMorePages) {
+        const path = `/projects/${projectId}/merge_requests/${mrIid}/notes`;
+        const queryParams = `?per_page=${perPage}&page=${page}`;
+        const url = this.getApiUrl(path, queryParams);
+
+        const response = await fetch(url, {
+          headers: this.getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error fetching MR notes: ${response.statusText} (${response.status})`);
+        }
+
+        const notes: MRNote[] = await response.json();
+        
+        if (notes.length === 0) {
+          hasMorePages = false;
+        } else {
+          // Filter out system notes and add to results
+          const userNotes = notes.filter(note => !note.system);
+          allNotes.push(...userNotes);
+
+          // If we got fewer than perPage, we've reached the end
+          if (notes.length < perPage) {
+            hasMorePages = false;
+          } else {
+            page++;
+          }
+        }
+      }
+
+      return allNotes;
+    } catch (error) {
+      console.error(`Failed to fetch notes for MR ${mrIid} in project ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a file from the repository
+   * @param {string|number} projectId - The GitLab project ID
+   * @param {string} filePath - Path to the file in the repository
+   * @param {string} ref - Git ref (branch, tag, or commit SHA)
+   * @returns {Promise<{ content: string } | null>} - File content (base64 decoded) or null if not found
+   */
+  async getRepositoryFile(
+    projectId: string | number,
+    filePath: string,
+    ref: string = 'HEAD'
+  ): Promise<{ content: string } | null> {
+    try {
+      // URL encode the file path (GitLab requires this)
+      const encodedPath = encodeURIComponent(filePath);
+      const path = `/projects/${projectId}/repository/files/${encodedPath}`;
+      const queryParams = `?ref=${encodeURIComponent(ref)}`;
+      const url = this.getApiUrl(path, queryParams);
+
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders(),
+      });
+
+      // 404 means file not found - return null gracefully
+      if (response.status === 404) {
+        console.log(`File ${filePath} not found in project ${projectId}`);
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error fetching file: ${response.statusText} (${response.status})`);
+      }
+
+      const data = await response.json();
+
+      // GitLab returns base64 encoded content
+      if (data.content && data.encoding === 'base64') {
+        const decodedContent = atob(data.content);
+        return { content: decodedContent };
+      }
+
+      // If not base64, return as-is (shouldn't happen normally)
+      return { content: data.content || '' };
+    } catch (error) {
+      console.error(`Failed to fetch file ${filePath} from project ${projectId}:`, error);
+      // Return null for any fetch error
       return null;
     }
   }
