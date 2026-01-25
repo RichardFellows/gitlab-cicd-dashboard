@@ -244,7 +244,8 @@ export const STORAGE_KEYS = {
 export enum ViewType {
   CARD = 'card',
   TABLE = 'table',
-  ENVIRONMENT = 'environment'
+  ENVIRONMENT = 'environment',
+  READINESS = 'readiness'
 }
 
 // Project status filter type
