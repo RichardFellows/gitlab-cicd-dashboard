@@ -926,6 +926,63 @@ class DashboardDataService {
     if (metrics.totalPipelines === 0) return 0;
     return (metrics.failedPipelines / metrics.totalPipelines) * 100;
   }
+
+  /**
+   * Calculate duration spike percentage
+   * Compares recent duration against baseline (historical average)
+   * @param recentDuration - Most recent average duration
+   * @param baselineDuration - Historical average duration
+   * @returns Percentage increase (0 if no spike)
+   */
+  calculateDurationSpikePercent(recentDuration: number, baselineDuration: number): number {
+    if (baselineDuration <= 0 || recentDuration <= 0) return 0;
+    const percentageIncrease = ((recentDuration - baselineDuration) / baselineDuration) * 100;
+    return percentageIncrease > 0 ? percentageIncrease : 0;
+  }
+
+  /**
+   * Get baseline duration from historical trends
+   * Uses the first half of trend data as baseline
+   * @param trends - Array of main branch trends
+   * @returns Baseline duration in seconds
+   */
+  getBaselineDuration(trends: MainBranchTrend[]): number {
+    if (trends.length < 4) return 0; // Need enough data for comparison
+
+    // Use the first half of data as baseline
+    const halfLength = Math.floor(trends.length / 2);
+    const baselineTrends = trends.slice(0, halfLength);
+
+    const validDurations = baselineTrends
+      .filter(t => t.avgDuration > 0)
+      .map(t => t.avgDuration);
+
+    if (validDurations.length === 0) return 0;
+
+    return validDurations.reduce((a, b) => a + b, 0) / validDurations.length;
+  }
+
+  /**
+   * Get recent duration from trend data
+   * Uses the second half of trend data as recent
+   * @param trends - Array of main branch trends
+   * @returns Recent average duration in seconds
+   */
+  getRecentDuration(trends: MainBranchTrend[]): number {
+    if (trends.length < 4) return 0;
+
+    // Use the second half of data as recent
+    const halfLength = Math.floor(trends.length / 2);
+    const recentTrends = trends.slice(halfLength);
+
+    const validDurations = recentTrends
+      .filter(t => t.avgDuration > 0)
+      .map(t => t.avgDuration);
+
+    if (validDurations.length === 0) return 0;
+
+    return validDurations.reduce((a, b) => a + b, 0) / validDurations.length;
+  }
 }
 
 export default DashboardDataService;

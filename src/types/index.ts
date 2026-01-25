@@ -119,6 +119,9 @@ export interface ProjectMetrics {
   // Enhanced metrics for trends
   mainBranchFailureRate?: number;
   coverageStatus?: CoverageStatus;
+  // Duration spike detection
+  baselineDuration?: number;
+  durationSpikePercent?: number;
 }
 
 export interface DashboardMetrics {

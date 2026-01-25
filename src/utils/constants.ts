@@ -57,3 +57,15 @@ export const shouldShowCoverageAlert = (coverage: number | null, available: bool
   if (!available || coverage === null) return false;
   return coverage < METRICS_THRESHOLDS.COVERAGE_TARGET;
 };
+
+/**
+ * Helper function to check if a project has a duration spike
+ * @param currentDuration - Current average duration in seconds
+ * @param baselineDuration - Baseline (historical average) duration in seconds
+ * @returns true if current duration is significantly above baseline
+ */
+export const shouldShowDurationSpikeAlert = (currentDuration: number, baselineDuration: number): boolean => {
+  if (baselineDuration <= 0 || currentDuration <= 0) return false;
+  const percentageIncrease = ((currentDuration - baselineDuration) / baselineDuration) * 100;
+  return percentageIncrease >= METRICS_THRESHOLDS.DURATION_SPIKE_PERCENT;
+};
