@@ -118,8 +118,9 @@ Do NOT merge to main directly. Push feature branches for review first.
 Every branch automatically deploys a public preview to Cloudflare Pages:
 - **Production**: https://gitlab-cicd-dashboard.pages.dev (main branch)
 - **Branch Previews**: https://{branch-slug}.gitlab-cicd-dashboard.pages.dev
-- Example: `feature/multi-source-config` -> https://feature-multi-source-config.gitlab-cicd-dashboard.pages.dev
-- Preview URL is shown in the GitLab environment section
+- **Note**: Cloudflare truncates long branch names (e.g., `feature/pipeline-metrics-enhancement` becomes `feature-pipeline-metrics-enh`)
+- Check the GitLab pipeline output or Cloudflare dashboard for the actual preview URL
+- Preview URL is also shown in the GitLab environment section
 
 ### Cloudflare Pages Setup
 CI/CD variables required in GitLab (Settings > CI/CD > Variables):
