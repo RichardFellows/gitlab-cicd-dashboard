@@ -669,6 +669,30 @@ class DashboardDataService {
         per_page: 100
       });
 
+      // Fetch details for completed pipelines to get duration (list API doesn't include it)
+      // Limit to 20 pipelines to avoid too many API calls
+      const completedPipelines = pipelines
+        .filter(p => ['success', 'failed', 'canceled'].includes(p.status))
+        .slice(0, 20);
+
+      const pipelineDetailsMap: Record<number, number> = {};
+
+      if (completedPipelines.length > 0) {
+        const detailsPromises = completedPipelines.map(async (pipeline) => {
+          try {
+            const details = await this.gitLabService.getPipelineDetails(projectId, pipeline.id);
+            return { id: pipeline.id, duration: details.duration || 0 };
+          } catch {
+            return { id: pipeline.id, duration: 0 };
+          }
+        });
+
+        const details = await Promise.all(detailsPromises);
+        details.forEach(d => {
+          pipelineDetailsMap[d.id] = d.duration;
+        });
+      }
+
       // Group pipelines by day
       const pipelinesByDay: Record<string, {
         date: string;
@@ -697,8 +721,10 @@ class DashboardDataService {
           pipelinesByDay[date].failed++;
         }
 
-        if (pipeline.duration) {
-          pipelinesByDay[date].duration += pipeline.duration;
+        // Use duration from details if available
+        const duration = pipelineDetailsMap[pipeline.id] || 0;
+        if (duration > 0) {
+          pipelinesByDay[date].duration += duration;
           pipelinesByDay[date].pipelinesWithDuration++;
         }
       }
