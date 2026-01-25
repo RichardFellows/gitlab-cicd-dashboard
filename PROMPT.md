@@ -6,52 +6,83 @@ You are working on the GitLab CI/CD Dashboard project. Your goal is to complete 
 
 The task is DONE when ALL of the following pass:
 ```bash
-npm run lint && npm run build && npm test && npx playwright test e2e/dashboard.spec.ts --project=chromium
+npm run lint && npm run build && npm test && npx playwright test --project=chromium
 ```
 
 Output `DONE` only when all checks pass. If any fail, analyze the error and fix it.
 
 ## Current Task Queue
 
-Work through these tasks in order. Check off completed items.
+Work through these tasks in order. Refer to `specs/priority-3-promotion-readiness/` for detailed requirements, design, and task breakdown.
 
-### Phase 0: Fix E2E Test Failures (BLOCKING)
+### Phase 1: API Layer
 
-- [ ] **Fix `text=Groups` selector** in `e2e/dashboard.spec.ts:36`
-  - The locator `text=Groups` matches both "Groups" label and "No groups added"
-  - Use a more specific selector like `label:has-text("Groups")` or `.source-label:has-text("Groups")`
+- [ ] **T1.1** Add `getMergeRequestByBranch()` to GitLabApiService
+- [ ] **T1.2** Add `getMergeRequestNotes()` to GitLabApiService
+- [ ] **T1.3** Add `getRepositoryFile()` to GitLabApiService
+- [ ] **T1.4** Add unit tests for new API methods
 
-- [ ] **Fix `input[placeholder*="Group ID"]` selector** in `e2e/dashboard.spec.ts:103,164`
-  - Actual placeholder is "Enter group ID" (lowercase)
-  - Change to `input[placeholder*="group ID"]` (case-insensitive) or `input[placeholder="Enter group ID"]`
+### Phase 2: Sign-off Parsing
 
-- [ ] **Fix default URL expectation** in `e2e/dashboard.spec.ts:192`
-  - Test expects `https://gitlab.com` but app defaults to `https://gitlab.com/api/v4`
-  - Either update the test to match app behavior, or update app to default to `https://gitlab.com`
-  - Check `ControlPanel.tsx` or wherever the default URL is set
+- [ ] **T2.1** Add sign-off types to `src/types/index.ts`
+- [ ] **T2.2** Add `SIGNOFF_REGEX` to `src/utils/constants.ts`
+- [ ] **T2.3** Add `parseSignoffComment()` to DashboardDataService
+- [ ] **T2.4** Add `parseCodeowners()` to DashboardDataService
+- [ ] **T2.5** Add `getCodeowners()` to DashboardDataService
+- [ ] **T2.6** Add `getMRSignoffs()` to DashboardDataService
+- [ ] **T2.7** Add unit tests for parsing methods
 
-### Phase 1: Pipeline Metrics Enhancement (Priority 1 from FEATURE_IDEAS.md)
+### Phase 3: Readiness Calculation
 
-After Phase 0 passes, continue with:
+- [ ] **T3.1** Add `getPostDeployTestStatus()` to DashboardDataService
+- [ ] **T3.2** Add `calculateReadinessStatus()` to DashboardDataService
+- [ ] **T3.3** Add `getProjectReadiness()` to DashboardDataService
+- [ ] **T3.4** Add unit tests for readiness calculation
 
-- [ ] 1.1 Main Branch Failure Tracking
-- [ ] 1.2 Build Duration Trending  
-- [ ] 1.3 Code Coverage Display
-- [ ] 1.4 Configurable Time Windows
+### Phase 4: UI Components
+
+- [ ] **T4.1** Add `READINESS` to `ViewType` enum
+- [ ] **T4.2** Create `ReadinessFilter.tsx` component
+- [ ] **T4.3** Create `ReadinessRow.tsx` component
+- [ ] **T4.4** Create `ReadinessDetails.tsx` component
+- [ ] **T4.5** Create `ReadinessView.tsx` component
+- [ ] **T4.6** Add component tests
+
+### Phase 5: Integration
+
+- [ ] **T5.1** Add view type toggle for Readiness view
+- [ ] **T5.2** Wire ReadinessView into App.tsx
+- [ ] **T5.3** Add CSS styles for readiness components
+- [ ] **T5.4** Update E2E tests
+
+### Phase 6: Polish
+
+- [ ] **T6.1** Handle edge cases
+- [ ] **T6.2** Caching and performance
+- [ ] **T6.3** Error handling
+- [ ] **T6.4** UX improvements
 
 ## Working Guidelines
 
-1. **One fix at a time** - Make a single focused change, then verify
-2. **Run tests after each change** - Don't accumulate multiple untested changes
-3. **Read error messages carefully** - They tell you exactly what's wrong
-4. **Check existing code patterns** - Follow the established style
+1. **Read the spec first** - Check `specs/priority-3-promotion-readiness/` for requirements and design
+2. **One task at a time** - Make a single focused change, then verify
+3. **Run tests after each change** - Don't accumulate multiple untested changes
+4. **Check existing code patterns** - Follow established style (especially Priority 2 components)
 
 ## Project Context
 
 - React + TypeScript + Vite
 - Vitest for unit tests, Playwright for E2E
-- Feature branch: `feature/pipeline-metrics-enhancement`
-- All changes should follow CLAUDE.md guidelines
+- Feature branch: `feature/promotion-readiness`
+- Depends on Priority 2 (Environment Overview) - reuse deployment types and services
+
+## Key Files
+
+- `specs/priority-3-promotion-readiness/` - Full specification
+- `src/services/GitLabApiService.ts` - API layer
+- `src/services/DashboardDataService.ts` - Business logic
+- `src/types/index.ts` - Type definitions
+- `src/components/EnvironmentMatrixView.tsx` - Reference for similar component patterns
 
 ## Verification Commands
 
@@ -59,9 +90,12 @@ After Phase 0 passes, continue with:
 # Quick check
 npm run lint
 
-# Full verification
+# Full verification  
 npm run lint && npm run build && npm test
 
-# E2E (after unit tests pass)
-npx playwright test e2e/dashboard.spec.ts --project=chromium
+# E2E
+npx playwright test --project=chromium
+
+# Full completion promise
+npm run lint && npm run build && npm test && npx playwright test --project=chromium
 ```
