@@ -12,9 +12,9 @@ const config = {
   // This will be overridden by command-line argument or environment variable
   siteUrl: process.env.SITE_URL || 'http://localhost:5050/',
   // Critical resources that should be available
+  // Note: Only test root path since Cloudflare Pages redirects /index.html to /
   criticalResources: [
-    '',                      // The main page
-    'index.html'             // Main HTML file
+    ''                       // The main page
   ],
   // Retry configuration
   retry: {
