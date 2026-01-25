@@ -116,6 +116,12 @@ export interface ProjectMetrics {
   codeCoverage: CodeCoverage;
   mergeRequestCounts: MergeRequestCounts;
   recentCommits: Commit[];
+  // Enhanced metrics for trends
+  mainBranchFailureRate?: number;
+  coverageStatus?: CoverageStatus;
+  // Duration spike detection
+  baselineDuration?: number;
+  durationSpikePercent?: number;
 }
 
 export interface DashboardMetrics {
@@ -147,6 +153,32 @@ export interface PipelineTrend {
   successRate: number;
   avgDuration: number;
 }
+
+// Main branch specific trend data
+export interface MainBranchTrend {
+  date: string;
+  total: number;
+  failed: number;
+  failureRate: number;  // percentage
+  avgDuration: number;  // seconds
+}
+
+// Coverage trend over time
+export interface CoverageTrend {
+  date: string;
+  coverage: number | null;
+}
+
+// Aggregated trends across all projects
+export interface AggregatedTrend {
+  date: string;
+  avgFailureRate: number;
+  avgDuration: number;
+  avgCoverage: number | null;
+}
+
+// Coverage status relative to threshold
+export type CoverageStatus = 'above' | 'below' | 'none';
 
 export interface PipelinePerformanceJob {
   name: string;

@@ -1,0 +1,57 @@
+/* ProjectMetricsTrends component styles */
+
+.project-metrics-trends {
+  margin-top: 24px;
+}
+
+.project-metrics-trends h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.trends-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.trends-loading,
+.trends-empty,
+.trends-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background-color: var(--card-bg-color);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.trends-loading {
+  font-style: italic;
+}
+
+.trends-error {
+  color: var(--danger-color);
+}
+
+/* Full width for coverage chart when it's alone or third */
+.trends-grid > .trend-chart:last-child:nth-child(3),
+.trends-grid > .trend-chart:only-child {
+  grid-column: span 2;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .trends-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trends-grid > .trend-chart:last-child:nth-child(3),
+  .trends-grid > .trend-chart:only-child {
+    grid-column: span 1;
+  }
+}

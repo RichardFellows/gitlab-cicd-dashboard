@@ -2,8 +2,9 @@ import { FC, useMemo } from 'react';
 import SummarySection from './SummarySection';
 import TableView from './TableView';
 import CardView from './CardView';
-import { DashboardMetrics, Project, ProjectStatusFilter, ViewType } from '../types';
+import { DashboardMetrics, Project, ProjectStatusFilter, ViewType, AggregatedTrend } from '../types';
 import { categorizeProject } from '../utils/formatting';
+import GitLabApiService from '../services/GitLabApiService';
 
 interface DashboardProps {
   metrics: DashboardMetrics;
@@ -12,6 +13,10 @@ interface DashboardProps {
   statusFilter: ProjectStatusFilter;
   searchQuery: string;
   onStatusFilterChange: (filter: ProjectStatusFilter) => void;
+  aggregateTrends?: AggregatedTrend[];
+  trendsLoading?: boolean;
+  darkMode?: boolean;
+  gitLabService?: GitLabApiService;
 }
 
 const Dashboard: FC<DashboardProps> = ({
@@ -20,7 +25,11 @@ const Dashboard: FC<DashboardProps> = ({
   onProjectSelect,
   statusFilter,
   searchQuery,
-  onStatusFilterChange
+  onStatusFilterChange,
+  aggregateTrends = [],
+  trendsLoading = false,
+  darkMode = false,
+  gitLabService
 }) => {
   // Filter projects based on status and search query
   const filteredProjects = useMemo(() => {
@@ -53,6 +62,9 @@ const Dashboard: FC<DashboardProps> = ({
         metrics={metrics}
         activeFilter={statusFilter}
         onFilterChange={onStatusFilterChange}
+        aggregateTrends={aggregateTrends}
+        trendsLoading={trendsLoading}
+        darkMode={darkMode}
       />
 
       <section className="projects-section">
@@ -69,6 +81,7 @@ const Dashboard: FC<DashboardProps> = ({
           <TableView
             projects={filteredProjects}
             onProjectSelect={onProjectSelect}
+            gitLabService={gitLabService}
           />
         ) : (
           <CardView

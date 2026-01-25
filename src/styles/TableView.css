@@ -75,6 +75,16 @@
   text-decoration: underline;
 }
 
+/* Metric alerts in table view */
+.table-alerts {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.table-alerts .metric-alert {
+  margin-right: 4px;
+}
+
 .expand-btn {
   background: none;
   border: none;

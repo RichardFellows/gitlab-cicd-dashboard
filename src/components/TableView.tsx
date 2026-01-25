@@ -1,5 +1,5 @@
-import { FC, useState } from 'react';
-import { Project, MergeRequest } from '../types';
+import { FC, useState, useCallback } from 'react';
+import { Project, MergeRequest, STORAGE_KEYS } from '../types';
 import {
   categorizeProject,
   formatPipelineStatus,
@@ -9,24 +9,62 @@ import {
   escapeHtml,
   getPipelineStatusClass
 } from '../utils/formatting';
+import MetricAlert from './MetricAlert';
+import { shouldShowFailureRateAlert, shouldShowCoverageAlert } from '../utils/constants';
+import GitLabApiService from '../services/GitLabApiService';
 import '../styles/TableView.css';
 
 interface TableViewProps {
   projects: Project[];
   onProjectSelect: (projectId: number) => void;
+  gitLabService?: GitLabApiService;
 }
 
-const TableView: FC<TableViewProps> = ({ projects, onProjectSelect }) => {
+const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabService }) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-  const [mergeRequestsData] = useState<Record<number, MergeRequest[]>>({});
-  const [loadingMRs] = useState<Record<number, boolean>>({});
+  const [mergeRequestsData, setMergeRequestsData] = useState<Record<number, MergeRequest[]>>({});
+  const [loadingMRs, setLoadingMRs] = useState<Record<number, boolean>>({});
+
+  // Load merge requests for a project
+  const loadMergeRequests = useCallback(async (projectId: number) => {
+    if (!gitLabService || loadingMRs[projectId] || mergeRequestsData[projectId]) {
+      return;
+    }
+
+    // Ensure the API service has the token
+    if (!gitLabService.privateToken) {
+      const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
+      if (savedToken) {
+        gitLabService.setPrivateToken(savedToken);
+      }
+    }
+
+    setLoadingMRs(prev => ({ ...prev, [projectId]: true }));
+
+    try {
+      const mrs = await gitLabService.getProjectMergeRequests(projectId);
+      setMergeRequestsData(prev => ({ ...prev, [projectId]: mrs }));
+    } catch (error) {
+      console.error(`Failed to load MRs for project ${projectId}:`, error);
+      setMergeRequestsData(prev => ({ ...prev, [projectId]: [] }));
+    } finally {
+      setLoadingMRs(prev => ({ ...prev, [projectId]: false }));
+    }
+  }, [gitLabService, loadingMRs, mergeRequestsData]);
 
   // Toggle row expansion
-  const toggleRow = (projectId: number) => {
+  const toggleRow = (projectId: number, hasMRs: boolean) => {
+    const isCurrentlyExpanded = expandedRows[projectId] || false;
+
     setExpandedRows(prev => ({
       ...prev,
       [projectId]: !prev[projectId]
     }));
+
+    // Load MRs when expanding if the project has open MRs
+    if (!isCurrentlyExpanded && hasMRs && gitLabService) {
+      loadMergeRequests(projectId);
+    }
   };
 
   // Handle click on project name
@@ -52,7 +90,18 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect }) => {
           {projects.map(project => {
             const category = categorizeProject(project);
             const isExpanded = expandedRows[project.id] || false;
-            
+
+            // Calculate failure rate for alerts
+            const failureRate = project.metrics.totalPipelines > 0
+              ? (project.metrics.failedPipelines / project.metrics.totalPipelines) * 100
+              : 0;
+
+            const showFailureAlert = shouldShowFailureRateAlert(failureRate);
+            const showCoverageAlert = shouldShowCoverageAlert(
+              project.metrics.codeCoverage.coverage,
+              project.metrics.codeCoverage.available
+            );
+
             return (
               <>
                 <tr 
@@ -62,8 +111,8 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect }) => {
                 >
                   <td>
                     <span className={`status-indicator ${category}`}></span>
-                    <a 
-                      href="#" 
+                    <a
+                      href="#"
                       onClick={(e) => {
                         e.preventDefault();
                         handleProjectClick(project.id);
@@ -72,6 +121,16 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect }) => {
                     >
                       {project.name}
                     </a>
+                    {(showFailureAlert || showCoverageAlert) && (
+                      <span className="metric-alerts table-alerts">
+                        {showFailureAlert && (
+                          <MetricAlert type="high-failure-rate" value={failureRate} compact />
+                        )}
+                        {showCoverageAlert && project.metrics.codeCoverage.coverage !== null && (
+                          <MetricAlert type="low-coverage" value={project.metrics.codeCoverage.coverage} compact />
+                        )}
+                      </span>
+                    )}
                   </td>
                   <td>
                     {formatPipelineStatus(
@@ -100,14 +159,14 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect }) => {
                       : 'N/A'}
                   </td>
                   <td>
-                    <button 
-                      className="expand-btn" 
+                    <button
+                      className="expand-btn"
                       aria-label="Toggle details"
                       aria-expanded={isExpanded}
                       title={isExpanded ? "Hide details" : "Show details"}
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleRow(project.id);
+                        toggleRow(project.id, project.metrics.mergeRequestCounts.totalOpen > 0);
                       }}
                     >
                       {isExpanded ? '↑' : '↓'}

@@ -1,5 +1,45 @@
 # CLAUDE.md - Guidelines for GitLab CI/CD Dashboard
 
+## Ralph Wiggum Workflow (Autonomous Development)
+
+This project supports autonomous AI-driven development using the Ralph Wiggum pattern.
+
+### Quick Start
+
+```bash
+# Option 1: Simple bash loop
+./ralph.sh                    # Run until completion promise met
+./ralph.sh --max 10           # Limit to 10 iterations
+
+# Option 2: Ralphy CLI (more features)
+ralphy                        # Work through PRD.md
+ralphy "fix the e2e tests"    # Single task
+ralphy --parallel             # Multi-agent execution
+```
+
+### Files
+
+- `PROMPT.md` - Instructions for the Ralph loop (completion promise + task queue)
+- `PRD.md` - Product requirements for Ralphy CLI
+- `.ralphy/config.yaml` - Project rules and settings
+- `specs/` - Structured specifications for larger features
+
+### Completion Promise
+
+Tasks are considered DONE when:
+```bash
+npm run lint && npm run build && npm test && npx playwright test e2e/dashboard.spec.ts --project=chromium
+```
+
+### Specs Structure
+
+For larger features, specs live in `specs/<feature-name>/`:
+- `requirements.md` - User stories and acceptance criteria
+- `design.md` - Technical architecture decisions
+- `tasks.md` - POC-first task breakdown
+
+---
+
 ## Recent Updates
 - Fixed TypeScript type issues for successful build process:
   - Added `draft` property to MergeRequest interface
@@ -39,6 +79,8 @@ Before pushing any changes to remote, always verify locally:
 Only push after all three checks pass.
 
 ## Feature Branch Workflow
+**IMPORTANT**: All code changes MUST be made on a feature branch, never directly on main.
+
 When completing a feature, always create a feature branch and push to GitLab for review:
 
 1. **Create feature branch**: `git checkout -b feature/<feature-name>`
@@ -50,7 +92,32 @@ When completing a feature, always create a feature branch and push to GitLab for
    - List of new/modified files
    - Test evidence (lint, build, test output)
    - Manual testing steps
+   - **Preview deployment link** (see Review Apps section below)
 6. **Provide MR link**: Share the merge request URL for review
+
+### MR Description Template
+Always include the preview deployment link in MR descriptions:
+
+```markdown
+## Summary
+- Brief description of changes
+
+## Preview
+🔗 **Live Preview**: https://{branch-slug}.gitlab-cicd-dashboard.pages.dev
+
+## Changes
+- List of modified files
+
+## Test Plan
+- [x] `npm run lint` - Passed
+- [x] `npm run build` - Passed
+- [x] `npm test` - All tests pass
+
+## Manual Testing
+- [ ] Test steps...
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+```
 
 ### GitLab CLI (glab)
 Install the GitLab CLI for MR operations: https://gitlab.com/gitlab-org/cli
@@ -91,8 +158,36 @@ Do NOT merge to main directly. Push feature branches for review first.
 Every branch automatically deploys a public preview to Cloudflare Pages:
 - **Production**: https://gitlab-cicd-dashboard.pages.dev (main branch)
 - **Branch Previews**: https://{branch-slug}.gitlab-cicd-dashboard.pages.dev
-- Example: `feature/multi-source-config` -> https://feature-multi-source-config.gitlab-cicd-dashboard.pages.dev
-- Preview URL is shown in the GitLab environment section
+
+**URL Slug Truncation**: Branch slugs are truncated to 25 characters to ensure consistent URLs:
+- `feature/pipeline-metrics-enhancement` → `feature-pipeline-metrics-e`
+- `feature/multi-source-config` → `feature-multi-source-confi`
+- Short branch names remain unchanged
+
+The preview URL is shown in the deploy job output and passed to post-deploy tests automatically.
+
+### CI/CD Pipeline Testing
+The pipeline runs these tests automatically on **all branches**:
+
+| Stage | Job | Description |
+|-------|-----|-------------|
+| test | `lint` | ESLint code quality checks |
+| test | `test` | Vitest unit tests |
+| build | `build` | TypeScript compilation + Vite build |
+| deploy | `deploy` | Deploy to Cloudflare Pages |
+| post-deploy | `post-deploy-test` | Verify deployment is accessible |
+| post-deploy | `e2e-test` | Playwright E2E tests against deployed URL |
+
+**Post-deploy tests** verify:
+- Site is accessible and returns 200
+- React app content is present (root div, JS/CSS assets)
+
+**E2E tests** verify:
+- Dashboard UI loads correctly
+- Dark mode toggle works
+- Settings panel interactions
+- Responsive layout (mobile viewport)
+- (With GITLAB_TOKEN): Data loading, trend charts, project details
 
 ### Cloudflare Pages Setup
 CI/CD variables required in GitLab (Settings > CI/CD > Variables):
@@ -125,16 +220,24 @@ project-root/
 │
 ├── .gitlab-ci.yml             # GitLab CI/CD pipeline configuration
 │
+├── e2e/                       # Playwright E2E tests
+│   ├── dashboard.spec.ts      # Basic UI tests (no auth required)
+│   └── dashboard-with-data.spec.ts # Data tests (require GITLAB_TOKEN)
+│
 ├── src/                       # Source code
 │   ├── components/            # React components
 │   │   ├── CardView.tsx       # Card view component
 │   │   ├── ControlPanel.tsx   # Control panel component
 │   │   ├── Dashboard.tsx      # Main dashboard component
+│   │   ├── MetricAlert.tsx    # Visual flagging badges
+│   │   ├── MetricsPanel.tsx   # Aggregate trend charts
 │   │   ├── ProjectDetails.tsx # Project details component
+│   │   ├── ProjectMetricsTrends.tsx # Per-project trend charts
 │   │   ├── SourceChip.tsx     # Chip component for group/project display
 │   │   ├── SourceManager.tsx  # Multi-source group/project manager
 │   │   ├── SummarySection.tsx # Summary section component
-│   │   └── TableView.tsx      # Table view component
+│   │   ├── TableView.tsx      # Table view component
+│   │   └── TrendChart.tsx     # Reusable Chart.js line chart
 │   │
 │   ├── services/              # API and data services
 │   │   ├── GitLabApiService.ts # GitLab API communication
@@ -143,14 +246,19 @@ project-root/
 │   ├── styles/                # CSS files for components
 │   │   ├── index.css          # Global styles
 │   │   ├── CardView.css       # Card view styles
+│   │   ├── MetricAlert.css    # Alert badge styles
+│   │   ├── MetricsPanel.css   # Metrics panel styles
+│   │   ├── ProjectMetricsTrends.css # Project trends styles
 │   │   ├── SourceManager.css  # Source manager styles
-│   │   └── TableView.css      # Table view styles
+│   │   ├── TableView.css      # Table view styles
+│   │   └── TrendChart.css     # Trend chart styles
 │   │
 │   ├── types/                 # TypeScript type definitions
 │   │   └── index.ts           # Shared type definitions
 │   │
 │   ├── utils/                 # Utilities and helpers
 │   │   ├── configMigration.ts # Config migration and persistence
+│   │   ├── constants.ts       # Threshold constants and chart colors
 │   │   └── formatting.ts      # Formatting utilities
 │   │
 │   ├── test/                  # Test configuration
@@ -164,6 +272,7 @@ project-root/
 │   └── test-deployment.js     # Post-deployment test script
 │
 ├── index.html                 # HTML entry point
+├── playwright.config.ts       # Playwright E2E test configuration
 ├── vite.config.ts             # Vite configuration
 ├── tsconfig.json              # TypeScript configuration
 ├── tsconfig.node.json         # TypeScript configuration for Node.js
@@ -174,13 +283,51 @@ project-root/
 ```
 
 ## Testing
+
+### Unit Tests (Vitest)
 - Using Vitest for unit testing
 - Test files located in the same directories as the source files they test, with a .test.ts(x) extension
 - Test mocks in src/test/mocks.tsx
 - Test commands:
-  - `npm test`: Run all tests
+  - `npm test`: Run all unit tests
   - `npm run test:watch`: Run tests in watch mode
   - `npm run test:coverage`: Run tests with coverage
+
+### E2E Tests (Playwright)
+- Using Playwright for end-to-end testing
+- Test files located in the `e2e/` directory
+- **In CI**: Tests run automatically against deployed preview URLs after each deployment
+- **Locally**: Tests run against localhost:5050 (dev server starts automatically)
+
+**Test commands:**
+- `npm run test:e2e`: Run all E2E tests
+- `npm run test:e2e:ui`: Run E2E tests with interactive UI
+- `BASE_URL=https://example.com npm run test:e2e`: Test against specific URL
+
+**Running E2E tests with data:**
+Some tests require a GitLab token to load real data:
+```bash
+GITLAB_TOKEN=glpat-xxx npm run test:e2e
+```
+
+**E2E tests cover:**
+
+| Test File | Auth Required | Tests |
+|-----------|---------------|-------|
+| `dashboard.spec.ts` | No | Basic UI, dark mode, settings panel, responsive layout |
+| `dashboard-with-data.spec.ts` | Yes (GITLAB_TOKEN) | Trend charts, project details, metric alerts, MR loading |
+
+**Test categories:**
+- Dashboard loading and basic functionality
+- Dark mode toggle
+- Settings panel interactions
+- View switching (Table/Card)
+- Project filtering and search
+- Trend charts rendering
+- Project details navigation
+- Metric alerts (visual flagging)
+- Responsive layout (mobile viewport)
+- MR loading in table expansion
   
 ## Test Data (GitLab Group)
 
@@ -214,10 +361,18 @@ To test the dashboard locally with this group:
 ## Deployment
 
 ### GitLab CI/CD (Primary)
-- Automated deployment to GitLab Pages via `.gitlab-ci.yml`
+- Automated deployment to Cloudflare Pages via `.gitlab-ci.yml`
 - Pipeline stages: test → build → deploy → post-deploy
-- Triggered on pushes to any branch (deploy only on main)
-- GitLab Pages URL: https://richard2.gitlab.io/gitlab-cicd-dashboard
+- **All branches** are deployed and tested (not just main)
+- Production URL: https://gitlab-cicd-dashboard.pages.dev
+- Preview URLs: https://{branch-slug}.gitlab-cicd-dashboard.pages.dev
+
+**Pipeline jobs:**
+1. `lint` + `test` - Code quality and unit tests
+2. `build` - TypeScript compilation and Vite build
+3. `deploy` - Deploy to Cloudflare Pages
+4. `post-deploy-test` - Verify deployment accessibility
+5. `e2e-test` - Playwright E2E tests against deployed URL
 
 ### GitHub Actions (Legacy)
 - Automated deployment to GitHub Pages via GitHub Actions
