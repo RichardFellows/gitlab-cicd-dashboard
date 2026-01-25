@@ -72,15 +72,52 @@ deploy:
     name: $CI_COMMIT_BRANCH
     url: https://${CI_COMMIT_REF_SLUG}.gitlab-cicd-dashboard.pages.dev
 
-# Post-deployment verification (production only)
+# Post-deployment verification (all branches)
 post-deploy-test:
   stage: post-deploy
   script:
     - *install_dependencies
-    - npm run test:deployment https://gitlab-cicd-dashboard.pages.dev
+    # Use production URL for main, branch-specific URL for others
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        DEPLOY_URL="https://gitlab-cicd-dashboard.pages.dev"
+      else
+        # Cloudflare truncates long branch names, so we use the slug
+        DEPLOY_URL="https://${CI_COMMIT_REF_SLUG}.gitlab-cicd-dashboard.pages.dev"
+      fi
+      echo "Testing deployment at: $DEPLOY_URL"
+      npm run test:deployment "$DEPLOY_URL"
   dependencies: []
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH
   needs:
     - job: deploy
       artifacts: false
+
+# E2E tests with Playwright (all branches)
+e2e-test:
+  stage: post-deploy
+  image: mcr.microsoft.com/playwright:v1.40.0-jammy
+  script:
+    - npm ci
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        export BASE_URL="https://gitlab-cicd-dashboard.pages.dev"
+      else
+        export BASE_URL="https://${CI_COMMIT_REF_SLUG}.gitlab-cicd-dashboard.pages.dev"
+      fi
+      echo "Running E2E tests against: $BASE_URL"
+      npx playwright test --reporter=list
+  dependencies: []
+  rules:
+    - if: $CI_COMMIT_BRANCH
+  needs:
+    - job: deploy
+      artifacts: false
+  allow_failure: true  # Don't block MR if E2E tests fail initially
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+      - test-results/
+    expire_in: 1 week

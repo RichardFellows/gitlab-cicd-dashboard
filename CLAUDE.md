@@ -202,13 +202,41 @@ project-root/
 ```
 
 ## Testing
+
+### Unit Tests (Vitest)
 - Using Vitest for unit testing
 - Test files located in the same directories as the source files they test, with a .test.ts(x) extension
 - Test mocks in src/test/mocks.tsx
 - Test commands:
-  - `npm test`: Run all tests
+  - `npm test`: Run all unit tests
   - `npm run test:watch`: Run tests in watch mode
   - `npm run test:coverage`: Run tests with coverage
+
+### E2E Tests (Playwright)
+- Using Playwright for end-to-end testing
+- Test files located in the `e2e/` directory
+- Tests run against deployed preview URLs in CI, or localhost during development
+- Test commands:
+  - `npm run test:e2e`: Run all E2E tests
+  - `npm run test:e2e:ui`: Run E2E tests with interactive UI
+
+**Running E2E tests with data:**
+Some tests require a GitLab token to load real data:
+```bash
+GITLAB_TOKEN=glpat-xxx npm run test:e2e
+```
+
+**E2E tests cover:**
+- Dashboard loading and basic functionality
+- Dark mode toggle
+- Settings panel interactions
+- View switching (Table/Card)
+- Project filtering and search
+- Trend charts rendering
+- Project details navigation
+- Metric alerts (visual flagging)
+- Responsive layout (mobile)
+- MR loading in table expansion
   
 ## Test Data (GitLab Group)
 
