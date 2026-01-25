@@ -1,6 +1,6 @@
 import GitLabApiService from './GitLabApiService';
-import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject, MainBranchTrend, CoverageTrend, AggregatedTrend, CoverageStatus, EnvironmentName, Deployment, DeploymentsByEnv, DeployInfoArtifact, DeploymentStatus } from '../types';
-import { METRICS_THRESHOLDS, DEPLOY_JOB_REGEX, JIRA_KEY_REGEX } from '../utils/constants';
+import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject, MainBranchTrend, CoverageTrend, AggregatedTrend, CoverageStatus, EnvironmentName, Deployment, DeploymentsByEnv, DeployInfoArtifact, DeploymentStatus, ParsedSignoff, Signoff, PostDeployTestStatus, ReadinessStatus, VersionReadiness } from '../types';
+import { METRICS_THRESHOLDS, DEPLOY_JOB_REGEX, JIRA_KEY_REGEX, SIGNOFF_REGEX, CODEOWNERS_USER_REGEX } from '../utils/constants';
 
 class DashboardDataService {
   gitLabService: GitLabApiService;
@@ -1102,6 +1102,313 @@ class DashboardDataService {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
+
+  // ============================================
+  // Promotion Readiness Methods (Priority 3)
+  // ============================================
+
+  /**
+   * Parse a comment body for a sign-off
+   * Format: SIGNOFF: v<version> <environment>
+   * @param body - The comment body text
+   * @returns Parsed sign-off or null if not a valid sign-off
+   */
+  parseSignoffComment(body: string): ParsedSignoff | null {
+    const match = body.match(SIGNOFF_REGEX);
+    if (!match) return null;
+
+    const version = match[1];
+    const environment = match[2].toLowerCase() as EnvironmentName;
+
+    return { version, environment };
+  }
+
+  /**
+   * Parse CODEOWNERS file content to extract usernames
+   * @param content - The CODEOWNERS file content
+   * @returns Array of usernames (without @ prefix)
+   */
+  parseCodeowners(content: string): string[] {
+    const usernames: Set<string> = new Set();
+
+    // Reset regex lastIndex to ensure fresh matching
+    CODEOWNERS_USER_REGEX.lastIndex = 0;
+
+    let match;
+    while ((match = CODEOWNERS_USER_REGEX.exec(content)) !== null) {
+      usernames.add(match[1]);
+    }
+
+    return Array.from(usernames);
+  }
+
+  // Cache for CODEOWNERS to avoid repeated fetches
+  private codeownersCache: Map<number, string[]> = new Map();
+
+  /**
+   * Get CODEOWNERS usernames for a project
+   * @param projectId - The GitLab project ID
+   * @returns Array of usernames authorized to sign off
+   */
+  async getCodeowners(projectId: number): Promise<string[]> {
+    // Check cache first
+    if (this.codeownersCache.has(projectId)) {
+      return this.codeownersCache.get(projectId)!;
+    }
+
+    try {
+      const file = await this.gitLabService.getRepositoryFile(projectId, 'CODEOWNERS', 'HEAD');
+      
+      if (!file) {
+        // No CODEOWNERS file - cache empty array
+        this.codeownersCache.set(projectId, []);
+        return [];
+      }
+
+      const usernames = this.parseCodeowners(file.content);
+      this.codeownersCache.set(projectId, usernames);
+      return usernames;
+    } catch (error) {
+      console.error(`Failed to get CODEOWNERS for project ${projectId}:`, error);
+      this.codeownersCache.set(projectId, []);
+      return [];
+    }
+  }
+
+  /**
+   * Get sign-offs from MR comments
+   * @param projectId - The GitLab project ID
+   * @param mrIid - The merge request IID
+   * @param codeowners - List of authorized usernames from CODEOWNERS
+   * @returns Array of valid sign-offs
+   */
+  async getMRSignoffs(
+    projectId: number,
+    mrIid: number,
+    codeowners: string[]
+  ): Promise<Signoff[]> {
+    try {
+      const notes = await this.gitLabService.getMergeRequestNotes(projectId, mrIid);
+      const signoffs: Signoff[] = [];
+
+      for (const note of notes) {
+        const parsed = this.parseSignoffComment(note.body);
+        if (!parsed) continue;
+
+        const isValid = codeowners.length === 0 || 
+                       codeowners.includes(note.author.username);
+
+        signoffs.push({
+          version: parsed.version,
+          environment: parsed.environment,
+          author: note.author.username,
+          authorizedBy: isValid ? note.author.username : '',
+          timestamp: note.created_at,
+          noteId: note.id,
+          mrIid,
+          isValid
+        });
+      }
+
+      return signoffs;
+    } catch (error) {
+      console.error(`Failed to get sign-offs for MR ${mrIid} in project ${projectId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get post-deploy test status from a pipeline
+   * Looks for jobs in the 'post-deploy' stage
+   * @param projectId - The GitLab project ID
+   * @param pipelineId - The pipeline ID
+   * @returns Post-deploy test status
+   */
+  async getPostDeployTestStatus(
+    projectId: number,
+    pipelineId: number
+  ): Promise<PostDeployTestStatus> {
+    try {
+      const jobs = await this.gitLabService.getPipelineJobs(projectId, pipelineId);
+      
+      // Find jobs in post-deploy stage
+      const postDeployJobs = jobs.filter(job => 
+        job.stage.toLowerCase() === 'post-deploy' ||
+        job.stage.toLowerCase() === 'post_deploy'
+      );
+
+      if (postDeployJobs.length === 0) {
+        return { exists: false, passed: null };
+      }
+
+      // Check if all post-deploy jobs passed
+      const allPassed = postDeployJobs.every(job => job.status === 'success');
+      const anyFailed = postDeployJobs.some(job => job.status === 'failed');
+
+      // Find the first relevant job for linking
+      const relevantJob = postDeployJobs.find(job => 
+        job.status === 'failed' || job.status === 'success'
+      ) || postDeployJobs[0];
+
+      return {
+        exists: true,
+        passed: anyFailed ? false : allPassed,
+        jobId: relevantJob.id,
+        jobUrl: relevantJob.web_url,
+        jobName: relevantJob.name
+      };
+    } catch (error) {
+      console.error(`Failed to get post-deploy test status for pipeline ${pipelineId}:`, error);
+      return { exists: false, passed: null };
+    }
+  }
+
+  /**
+   * Calculate the readiness status based on deployment, sign-off, and test status
+   * @param deployment - The deployment data (null if not deployed)
+   * @param signoff - The sign-off data (null if no sign-off)
+   * @param testStatus - The post-deploy test status
+   * @returns The readiness status
+   */
+  calculateReadinessStatus(
+    deployment: Deployment | null,
+    signoff: Signoff | null,
+    testStatus: PostDeployTestStatus
+  ): ReadinessStatus {
+    if (!deployment) {
+      return 'not-deployed';
+    }
+
+    // If tests exist, they must pass
+    if (testStatus.exists && !testStatus.passed) {
+      return 'tests-failed';
+    }
+
+    // Need valid sign-off
+    if (!signoff || !signoff.isValid) {
+      return 'pending-signoff';
+    }
+
+    return 'ready';
+  }
+
+  // Cache for MR lookups by branch
+  private mrByBranchCache: Map<string, number | null> = new Map();
+
+  /**
+   * Get full readiness data for a project
+   * Orchestrates: deployments → MR → notes → sign-offs → tests
+   * @param projectId - The GitLab project ID
+   * @param projectName - The project name for display
+   * @param deploymentsByEnv - Pre-fetched deployment data (optional)
+   * @returns Array of version readiness for each environment
+   */
+  async getProjectReadiness(
+    projectId: number,
+    projectName: string,
+    deploymentsByEnv?: DeploymentsByEnv
+  ): Promise<VersionReadiness[]> {
+    try {
+      // Get deployments if not provided
+      const deployments = deploymentsByEnv || await this.getProjectDeployments(projectId);
+      
+      // Get CODEOWNERS for validation
+      const codeowners = await this.getCodeowners(projectId);
+
+      const results: VersionReadiness[] = [];
+
+      // Process each environment's deployment
+      for (const [env, deployment] of Object.entries(deployments.deployments)) {
+        if (!deployment) continue;
+
+        const environment = env as EnvironmentName;
+
+        // Try to find MR for this deployment's branch
+        let signoff: Signoff | null = null;
+        let mrInfo: { iid: number; webUrl: string; title: string } | undefined;
+
+        if (deployment.pipelineRef) {
+          const cacheKey = `${projectId}:${deployment.pipelineRef}`;
+          
+          // Check cache first
+          let mrIid = this.mrByBranchCache.get(cacheKey);
+          
+          if (mrIid === undefined) {
+            // Fetch MR by branch
+            const mr = await this.gitLabService.getMergeRequestByBranch(
+              projectId,
+              deployment.pipelineRef
+            );
+            mrIid = mr?.iid ?? null;
+            this.mrByBranchCache.set(cacheKey, mrIid);
+
+            if (mr) {
+              mrInfo = {
+                iid: mr.iid,
+                webUrl: mr.web_url,
+                title: mr.title
+              };
+            }
+          } else if (mrIid !== null) {
+            // We have cached MR IID but need to get MR info
+            // For now, just use the cached IID
+            mrInfo = { iid: mrIid, webUrl: '', title: '' };
+          }
+
+          // Get sign-offs if we have an MR
+          if (mrIid) {
+            const signoffs = await this.getMRSignoffs(projectId, mrIid, codeowners);
+            
+            // Find sign-off matching this version and environment
+            signoff = signoffs.find(s => 
+              s.version === deployment.version && 
+              s.environment === environment &&
+              s.isValid
+            ) || null;
+
+            // If no exact match, try to find any valid sign-off for this environment
+            if (!signoff) {
+              signoff = signoffs.find(s => 
+                s.environment === environment &&
+                s.isValid
+              ) || null;
+            }
+          }
+        }
+
+        // Get post-deploy test status
+        const testStatus = await this.getPostDeployTestStatus(projectId, deployment.pipelineId);
+
+        // Calculate readiness status
+        const status = this.calculateReadinessStatus(deployment, signoff, testStatus);
+
+        results.push({
+          projectId,
+          projectName,
+          version: deployment.version || 'Unknown',
+          environment,
+          deployment,
+          signoff,
+          testStatus,
+          status,
+          mr: mrInfo
+        });
+      }
+
+      return results;
+    } catch (error) {
+      console.error(`Failed to get readiness for project ${projectId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Clear cached data (for refresh)
+   */
+  clearReadinessCache(): void {
+    this.codeownersCache.clear();
+    this.mrByBranchCache.clear();
   }
 }
 
