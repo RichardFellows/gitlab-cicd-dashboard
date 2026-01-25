@@ -610,6 +610,7 @@ const App = () => {
             aggregateTrends={aggregateTrends}
             trendsLoading={trendsLoading}
             darkMode={darkMode}
+            gitLabService={gitLabService}
           />
         </>
       )}

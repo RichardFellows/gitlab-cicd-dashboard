@@ -4,6 +4,7 @@ import TableView from './TableView';
 import CardView from './CardView';
 import { DashboardMetrics, Project, ProjectStatusFilter, ViewType, AggregatedTrend } from '../types';
 import { categorizeProject } from '../utils/formatting';
+import GitLabApiService from '../services/GitLabApiService';
 
 interface DashboardProps {
   metrics: DashboardMetrics;
@@ -15,6 +16,7 @@ interface DashboardProps {
   aggregateTrends?: AggregatedTrend[];
   trendsLoading?: boolean;
   darkMode?: boolean;
+  gitLabService?: GitLabApiService;
 }
 
 const Dashboard: FC<DashboardProps> = ({
@@ -26,7 +28,8 @@ const Dashboard: FC<DashboardProps> = ({
   onStatusFilterChange,
   aggregateTrends = [],
   trendsLoading = false,
-  darkMode = false
+  darkMode = false,
+  gitLabService
 }) => {
   // Filter projects based on status and search query
   const filteredProjects = useMemo(() => {
@@ -78,6 +81,7 @@ const Dashboard: FC<DashboardProps> = ({
           <TableView
             projects={filteredProjects}
             onProjectSelect={onProjectSelect}
+            gitLabService={gitLabService}
           />
         ) : (
           <CardView

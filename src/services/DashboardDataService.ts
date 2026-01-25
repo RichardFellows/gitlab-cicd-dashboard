@@ -276,43 +276,40 @@ class DashboardDataService {
         totalPipelines > 0 ? (successfulPipelines / totalPipelines) * 100 : 0;
 
       // Calculate average pipeline duration
+      // The list API doesn't return duration, so we need to fetch details for completed pipelines
       let totalDuration = 0;
       let pipelinesWithDuration = 0;
-      
-      console.log(`Calculating durations for ${pipelines.length} pipelines in project ${projectId}`);
-      
-      for (const pipeline of pipelines) {
-        // First try using the duration field directly from the API
-        if (pipeline.duration) {
-          console.log(`Pipeline ${pipeline.id} has duration: ${pipeline.duration}s`);
-          totalDuration += pipeline.duration;
+
+      // Get completed pipelines (success, failed, canceled) - limit to recent 10 for efficiency
+      const completedPipelines = pipelines
+        .filter(p => ['success', 'failed', 'canceled'].includes(p.status))
+        .slice(0, 10);
+
+      console.log(`Fetching duration for ${completedPipelines.length} completed pipelines in project ${projectId}`);
+
+      // Fetch details for completed pipelines to get duration
+      const pipelineDetailsPromises = completedPipelines.map(async (pipeline) => {
+        try {
+          const details = await this.gitLabService.getPipelineDetails(projectId, pipeline.id);
+          return details;
+        } catch (error) {
+          console.error(`Failed to get details for pipeline ${pipeline.id}:`, error);
+          return null;
+        }
+      });
+
+      const pipelineDetails = await Promise.all(pipelineDetailsPromises);
+
+      for (const details of pipelineDetails) {
+        if (details && details.duration && details.duration > 0) {
+          totalDuration += details.duration;
           pipelinesWithDuration++;
-        } 
-        // Fallback: calculate duration from timestamps if available
-        else if (pipeline.finished_at && pipeline.created_at && pipeline.status !== 'running') {
-          try {
-            const startTime = new Date(pipeline.created_at).getTime();
-            const endTime = new Date(pipeline.finished_at || pipeline.updated_at).getTime();
-            const calculatedDuration = (endTime - startTime) / 1000; // Convert to seconds
-            
-            if (calculatedDuration > 0) {
-              console.log(`Pipeline ${pipeline.id} calculated duration: ${calculatedDuration.toFixed(2)}s (from timestamps)`);
-              totalDuration += calculatedDuration;
-              pipelinesWithDuration++;
-            } else {
-              console.log(`Pipeline ${pipeline.id} has invalid calculated duration: ${calculatedDuration}s`);
-            }
-          } catch (err) {
-            console.error(`Error calculating duration for pipeline ${pipeline.id}:`, err);
-          }
-        } else {
-          console.log(`Pipeline ${pipeline.id} (${pipeline.status}) has no duration data`);
         }
       }
 
       // Log summary of duration calculation
-      console.log(`Project ${projectId}: Found ${pipelinesWithDuration} pipelines with duration out of ${pipelines.length} total`);
-      
+      console.log(`Project ${projectId}: Found ${pipelinesWithDuration} pipelines with duration out of ${completedPipelines.length} fetched`);
+
       const avgDuration =
         pipelinesWithDuration > 0 ? totalDuration / pipelinesWithDuration : 0;
       console.log(`Project ${projectId}: Average pipeline duration: ${avgDuration.toFixed(2)}s`);

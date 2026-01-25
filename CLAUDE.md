@@ -39,6 +39,8 @@ Before pushing any changes to remote, always verify locally:
 Only push after all three checks pass.
 
 ## Feature Branch Workflow
+**IMPORTANT**: All code changes MUST be made on a feature branch, never directly on main.
+
 When completing a feature, always create a feature branch and push to GitLab for review:
 
 1. **Create feature branch**: `git checkout -b feature/<feature-name>`
@@ -50,7 +52,32 @@ When completing a feature, always create a feature branch and push to GitLab for
    - List of new/modified files
    - Test evidence (lint, build, test output)
    - Manual testing steps
+   - **Preview deployment link** (see Review Apps section below)
 6. **Provide MR link**: Share the merge request URL for review
+
+### MR Description Template
+Always include the preview deployment link in MR descriptions:
+
+```markdown
+## Summary
+- Brief description of changes
+
+## Preview
+🔗 **Live Preview**: https://{branch-slug}.gitlab-cicd-dashboard.pages.dev
+
+## Changes
+- List of modified files
+
+## Test Plan
+- [x] `npm run lint` - Passed
+- [x] `npm run build` - Passed
+- [x] `npm test` - All tests pass
+
+## Manual Testing
+- [ ] Test steps...
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+```
 
 ### GitLab CLI (glab)
 Install the GitLab CLI for MR operations: https://gitlab.com/gitlab-org/cli
