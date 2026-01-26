@@ -136,8 +136,10 @@ e2e-test:
     expire_in: 1 week
 
 # Semantic release - creates tags and releases on main branch
+# Requires Node 22+ (semantic-release v25 dropped Node 20 support)
 release:
   stage: release
+  image: node:22
   script:
     - *install_dependencies
     - npx semantic-release
