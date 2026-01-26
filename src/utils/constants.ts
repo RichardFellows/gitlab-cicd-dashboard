@@ -1,4 +1,18 @@
 /**
+ * Regex for identifying deploy jobs and extracting environment
+ * Matches job names like: "deploy-to-dev", "deploy_uat", "deploy prod", etc.
+ * Captures environment name in group 1
+ */
+export const DEPLOY_JOB_REGEX = /deploy.*?(dev|sit|uat|prod)/i;
+
+/**
+ * Regex for extracting JIRA issue key from branch names
+ * Matches patterns like: "feature/JIRA-123-description", "PROJ-456/fix-bug"
+ * Captures the full issue key (e.g., "JIRA-123") in group 1
+ */
+export const JIRA_KEY_REGEX = /([A-Z]+-\d+)/;
+
+/**
  * Metrics threshold constants for visual flagging
  */
 export const METRICS_THRESHOLDS = {

@@ -853,6 +853,88 @@ class GitLabApiService {
       return [];
     }
   }
+
+  /**
+   * Get jobs for a specific project
+   * @param {string|number} projectId - The GitLab project ID
+   * @param {Object} options - Optional filtering and pagination options
+   * @returns {Promise<Job[]>} - List of jobs
+   */
+  async getProjectJobs(
+    projectId: string | number,
+    options: {
+      scope?: string[];
+      per_page?: number;
+    } = {}
+  ): Promise<Job[]> {
+    try {
+      const { scope, per_page = 100 } = options;
+
+      let queryParams = `?per_page=${per_page}`;
+
+      // Add scope filter if provided (e.g., ['success', 'failed'])
+      if (scope && scope.length > 0) {
+        scope.forEach(s => {
+          queryParams += `&scope[]=${s}`;
+        });
+      }
+
+      const path = `/projects/${projectId}/jobs`;
+      const url = this.getApiUrl(path, queryParams);
+
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error fetching jobs: ${response.statusText} (${response.status})`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`Failed to fetch jobs for project ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific artifact file from a job
+   * Returns parsed JSON or null if not found (404)
+   * @param {string|number} projectId - The GitLab project ID
+   * @param {string|number} jobId - The job ID
+   * @param {string} artifactPath - Path to the artifact file within the job artifacts
+   * @returns {Promise<T | null>} - Parsed JSON artifact or null
+   */
+  async getJobArtifact<T>(
+    projectId: string | number,
+    jobId: string | number,
+    artifactPath: string
+  ): Promise<T | null> {
+    try {
+      const path = `/projects/${projectId}/jobs/${jobId}/artifacts/${artifactPath}`;
+      const url = this.getApiUrl(path, '');
+
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders(),
+      });
+
+      // 404 means artifact not found - return null gracefully
+      if (response.status === 404) {
+        console.log(`Artifact ${artifactPath} not found for job ${jobId}`);
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error fetching artifact: ${response.statusText} (${response.status})`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`Failed to fetch artifact ${artifactPath} for job ${jobId}:`, error);
+      // Return null for any fetch error (artifact might not exist)
+      return null;
+    }
+  }
 }
 
 export default GitLabApiService;

@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DashboardDataService from './DashboardDataService';
 import GitLabApiService from './GitLabApiService';
-import { MainBranchTrend, ProjectMetrics } from '../types';
+import { MainBranchTrend, ProjectMetrics, Job } from '../types';
 
 // Mock GitLabApiService
 vi.mock('./GitLabApiService');
+
+// Mock fetch for tests that need it
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
 describe('DashboardDataService', () => {
   let service: DashboardDataService;
@@ -132,6 +136,234 @@ describe('DashboardDataService', () => {
       ];
       // Second half: [200, 220] => average = 210
       expect(service.getRecentDuration(trends)).toBe(210);
+    });
+  });
+
+  // ============================================
+  // Environment Overview Tests (Priority 2)
+  // ============================================
+
+  describe('parseDeployJobName', () => {
+    it('extracts dev environment from job name', () => {
+      expect(service.parseDeployJobName('deploy-to-dev')).toBe('dev');
+      expect(service.parseDeployJobName('deploy_dev')).toBe('dev');
+      expect(service.parseDeployJobName('deploy dev')).toBe('dev');
+      expect(service.parseDeployJobName('deploy-api-dev')).toBe('dev');
+    });
+
+    it('extracts sit environment from job name', () => {
+      expect(service.parseDeployJobName('deploy-to-sit')).toBe('sit');
+      expect(service.parseDeployJobName('deploy_sit')).toBe('sit');
+    });
+
+    it('extracts uat environment from job name', () => {
+      expect(service.parseDeployJobName('deploy-to-uat')).toBe('uat');
+      expect(service.parseDeployJobName('deploy_uat')).toBe('uat');
+      expect(service.parseDeployJobName('deploy-UAT')).toBe('uat');
+    });
+
+    it('extracts prod environment from job name', () => {
+      expect(service.parseDeployJobName('deploy-to-prod')).toBe('prod');
+      expect(service.parseDeployJobName('deploy_prod')).toBe('prod');
+      expect(service.parseDeployJobName('deploy-PROD')).toBe('prod');
+      expect(service.parseDeployJobName('deploy-production-prod')).toBe('prod');
+    });
+
+    it('returns null for non-deploy jobs', () => {
+      expect(service.parseDeployJobName('build')).toBeNull();
+      expect(service.parseDeployJobName('test')).toBeNull();
+      expect(service.parseDeployJobName('lint')).toBeNull();
+    });
+
+    it('returns null for deploy jobs without environment', () => {
+      expect(service.parseDeployJobName('deploy')).toBeNull();
+      expect(service.parseDeployJobName('deploy-to-staging')).toBeNull();
+    });
+
+    it('is case-insensitive', () => {
+      expect(service.parseDeployJobName('DEPLOY-TO-DEV')).toBe('dev');
+      expect(service.parseDeployJobName('Deploy-To-Uat')).toBe('uat');
+    });
+  });
+
+  describe('extractJiraKey', () => {
+    it('extracts JIRA key from feature branch', () => {
+      expect(service.extractJiraKey('feature/JIRA-123-description')).toBe('JIRA-123');
+      expect(service.extractJiraKey('feature/PROJ-456-add-feature')).toBe('PROJ-456');
+    });
+
+    it('extracts JIRA key from bugfix branch', () => {
+      expect(service.extractJiraKey('bugfix/ABC-789-fix-issue')).toBe('ABC-789');
+    });
+
+    it('extracts JIRA key at start of branch', () => {
+      expect(service.extractJiraKey('JIRA-123/fix-bug')).toBe('JIRA-123');
+      expect(service.extractJiraKey('JIRA-123-fix-bug')).toBe('JIRA-123');
+    });
+
+    it('extracts first JIRA key if multiple present', () => {
+      expect(service.extractJiraKey('feature/JIRA-123-relates-to-JIRA-456')).toBe('JIRA-123');
+    });
+
+    it('returns null for branches without JIRA key', () => {
+      expect(service.extractJiraKey('main')).toBeNull();
+      expect(service.extractJiraKey('develop')).toBeNull();
+      expect(service.extractJiraKey('feature/add-new-feature')).toBeNull();
+      expect(service.extractJiraKey('hotfix/urgent-fix')).toBeNull();
+    });
+
+    it('returns null for lowercase project keys', () => {
+      // JIRA keys must have uppercase project prefix
+      expect(service.extractJiraKey('feature/jira-123-description')).toBeNull();
+    });
+  });
+
+  describe('getProjectDeployments', () => {
+    it('returns empty deployments when no deploy jobs found', async () => {
+      // Mock getProjectJobs to return non-deploy jobs
+      vi.mocked(mockGitLabService.getProjectJobs).mockResolvedValueOnce([
+        {
+          id: 1,
+          name: 'build',
+          stage: 'build',
+          status: 'success',
+          web_url: 'https://gitlab.com/job/1',
+          created_at: '2024-01-15T10:00:00Z',
+        } as Job,
+      ]);
+
+      const result = await service.getProjectDeployments(123);
+
+      expect(result.projectId).toBe(123);
+      expect(result.loading).toBe(false);
+      expect(Object.keys(result.deployments)).toHaveLength(0);
+    });
+
+    it('extracts deployments for multiple environments', async () => {
+      // Mock getProjectJobs to return deploy jobs
+      vi.mocked(mockGitLabService.getProjectJobs).mockResolvedValueOnce([
+        {
+          id: 1,
+          name: 'deploy-to-dev',
+          stage: 'deploy',
+          status: 'success',
+          web_url: 'https://gitlab.com/job/1',
+          created_at: '2024-01-15T10:00:00Z',
+          finished_at: '2024-01-15T10:05:00Z',
+          pipeline: {
+            id: 100,
+            iid: 50,
+            ref: 'feature/JIRA-123-add-feature',
+            web_url: 'https://gitlab.com/pipeline/100',
+          },
+        },
+        {
+          id: 2,
+          name: 'deploy-to-uat',
+          stage: 'deploy',
+          status: 'success',
+          web_url: 'https://gitlab.com/job/2',
+          created_at: '2024-01-14T10:00:00Z',
+          finished_at: '2024-01-14T10:05:00Z',
+          pipeline: {
+            id: 99,
+            iid: 49,
+            ref: 'main',
+            web_url: 'https://gitlab.com/pipeline/99',
+          },
+        },
+        {
+          id: 3,
+          name: 'deploy-to-prod',
+          stage: 'deploy',
+          status: 'failed',
+          web_url: 'https://gitlab.com/job/3',
+          created_at: '2024-01-13T10:00:00Z',
+          finished_at: '2024-01-13T10:05:00Z',
+          pipeline: {
+            id: 98,
+            iid: 48,
+            ref: 'main',
+            web_url: 'https://gitlab.com/pipeline/98',
+          },
+        },
+      ] as (Job & { pipeline: { id: number; iid: number; ref: string; web_url: string } })[]);
+
+      // Mock getJobArtifact to return version for some jobs
+      vi.mocked(mockGitLabService.getJobArtifact)
+        .mockResolvedValueOnce({ version: '2.3.45' }) // dev
+        .mockResolvedValueOnce(null) // uat - no artifact
+        .mockResolvedValueOnce({ version: '2.3.40' }); // prod
+
+      const result = await service.getProjectDeployments(123);
+
+      expect(result.projectId).toBe(123);
+      expect(result.loading).toBe(false);
+      expect(Object.keys(result.deployments)).toHaveLength(3);
+
+      // Check dev deployment
+      expect(result.deployments.dev?.environment).toBe('dev');
+      expect(result.deployments.dev?.version).toBe('2.3.45');
+      expect(result.deployments.dev?.status).toBe('success');
+      expect(result.deployments.dev?.jiraKey).toBe('JIRA-123');
+
+      // Check uat deployment (fallback to pipeline IID)
+      expect(result.deployments.uat?.environment).toBe('uat');
+      expect(result.deployments.uat?.version).toBe('#49');
+      expect(result.deployments.uat?.jiraKey).toBeNull();
+
+      // Check prod deployment (failed status)
+      expect(result.deployments.prod?.environment).toBe('prod');
+      expect(result.deployments.prod?.version).toBe('2.3.40');
+      expect(result.deployments.prod?.status).toBe('failed');
+    });
+
+    it('keeps only the latest job per environment', async () => {
+      // Mock with multiple jobs for the same environment
+      vi.mocked(mockGitLabService.getProjectJobs).mockResolvedValueOnce([
+        {
+          id: 1,
+          name: 'deploy-to-dev',
+          stage: 'deploy',
+          status: 'success',
+          web_url: 'https://gitlab.com/job/1',
+          created_at: '2024-01-15T10:00:00Z',
+          finished_at: '2024-01-15T10:05:00Z',
+          pipeline: { id: 100, iid: 50, ref: 'main', web_url: '' },
+        },
+        {
+          id: 2,
+          name: 'deploy-to-dev',
+          stage: 'deploy',
+          status: 'failed',
+          web_url: 'https://gitlab.com/job/2',
+          created_at: '2024-01-14T10:00:00Z',
+          finished_at: '2024-01-14T10:05:00Z',
+          pipeline: { id: 99, iid: 49, ref: 'main', web_url: '' },
+        },
+      ] as (Job & { pipeline: { id: number; iid: number; ref: string; web_url: string } })[]);
+
+      vi.mocked(mockGitLabService.getJobArtifact).mockResolvedValueOnce({ version: '2.0.0' });
+
+      const result = await service.getProjectDeployments(123);
+
+      // Should only have one dev deployment (the first/latest one)
+      expect(Object.keys(result.deployments)).toHaveLength(1);
+      expect(result.deployments.dev?.jobId).toBe(1);
+      expect(result.deployments.dev?.status).toBe('success');
+    });
+
+    it('handles API errors gracefully', async () => {
+      vi.mocked(mockGitLabService.getProjectJobs).mockRejectedValueOnce(
+        new Error('API error')
+      );
+
+      const result = await service.getProjectDeployments(123);
+
+      expect(result.projectId).toBe(123);
+      expect(result.loading).toBe(false);
+      expect(result.error).toBe('API error');
+      expect(Object.keys(result.deployments)).toHaveLength(0);
     });
   });
 });
