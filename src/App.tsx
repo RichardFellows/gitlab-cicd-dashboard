@@ -3,6 +3,7 @@ import Dashboard from './components/Dashboard';
 import ControlPanel from './components/ControlPanel';
 import ProjectDetails from './components/ProjectDetails';
 import EnvironmentMatrixView from './components/EnvironmentMatrixView';
+import ReadinessView from './components/ReadinessView';
 import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv } from './types';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
@@ -540,6 +541,13 @@ const App = () => {
                 >
                   Envs
                 </button>
+                <button
+                  className={`view-btn ${viewType === ViewType.READINESS ? 'active' : ''}`}
+                  onClick={() => handleViewTypeChange(ViewType.READINESS)}
+                  title="Promotion Readiness View"
+                >
+                  Ready
+                </button>
               </div>
               <button
                 className="icon-btn refresh-btn"
@@ -606,7 +614,7 @@ const App = () => {
 
       {!loading && !error && metrics && !selectedProjectId && (
         <>
-          {viewType !== ViewType.ENVIRONMENT && (
+          {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && (
             <div className="filter-bar">
               <input
                 type="text"
@@ -650,14 +658,25 @@ const App = () => {
             </div>
           )}
           
-          {viewType === ViewType.ENVIRONMENT ? (
+          {viewType === ViewType.ENVIRONMENT && (
             <EnvironmentMatrixView
               projects={metrics.projects}
               deploymentCache={deploymentCache}
               fetchProjectDeployments={fetchProjectDeployments}
               jiraBaseUrl={config.jiraBaseUrl}
             />
-          ) : (
+          )}
+
+          {viewType === ViewType.READINESS && (
+            <ReadinessView
+              projects={metrics.projects}
+              deploymentCache={deploymentCache}
+              dashboardService={dashboardService}
+              jiraBaseUrl={config.jiraBaseUrl}
+            />
+          )}
+
+          {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && (
             <Dashboard
               metrics={metrics}
               viewType={viewType}

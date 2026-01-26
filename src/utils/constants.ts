@@ -6,6 +6,23 @@
 export const DEPLOY_JOB_REGEX = /deploy.*?(dev|sit|uat|prod)/i;
 
 /**
+ * Regex for parsing sign-off comments from MR notes
+ * Strict format: SIGNOFF: v<version> <environment>
+ * Examples:
+ *   SIGNOFF: v2.3.45 UAT
+ *   SIGNOFF: 1.0.12 DEV
+ *   SIGNOFF: v3.0.0 PROD
+ * Captures: group 1 = version (without v prefix), group 2 = environment
+ */
+export const SIGNOFF_REGEX = /^SIGNOFF:\s*v?([\d.]+)\s+(DEV|SIT|UAT|PROD)\s*$/im;
+
+/**
+ * Regex for extracting usernames from CODEOWNERS file
+ * Matches @username patterns
+ */
+export const CODEOWNERS_USER_REGEX = /@([\w-]+)/g;
+
+/**
  * Regex for extracting JIRA issue key from branch names
  * Matches patterns like: "feature/JIRA-123-description", "PROJ-456/fix-bug"
  * Captures the full issue key (e.g., "JIRA-123") in group 1

@@ -244,7 +244,8 @@ export const STORAGE_KEYS = {
 export enum ViewType {
   CARD = 'card',
   TABLE = 'table',
-  ENVIRONMENT = 'environment'
+  ENVIRONMENT = 'environment',
+  READINESS = 'readiness'
 }
 
 // Project status filter type
@@ -292,4 +293,72 @@ export interface DeploymentsByEnv {
 export interface DeployInfoArtifact {
   version: string;
   // Future: could add more fields like buildTime, commit, etc.
+}
+
+// ============================================
+// Promotion Readiness Types (Priority 3)
+// ============================================
+
+// MR Note from GitLab API
+export interface MRNote {
+  id: number;
+  body: string;
+  author: {
+    id: number;
+    username: string;
+    name: string;
+  };
+  created_at: string;
+  system: boolean;  // Filter out system notes
+}
+
+// Parsed sign-off from regex
+export interface ParsedSignoff {
+  version: string;
+  environment: EnvironmentName;
+}
+
+// Sign-off parsed from MR comment
+export interface Signoff {
+  version: string;
+  environment: EnvironmentName;
+  author: string;           // GitLab username
+  authorizedBy: string;     // CODEOWNERS match (if valid)
+  timestamp: string;        // Comment created_at
+  noteId: number;           // MR note ID for linking
+  mrIid: number;            // MR IID
+  isValid: boolean;         // Author in CODEOWNERS?
+}
+
+// Post-deploy test status
+export interface PostDeployTestStatus {
+  exists: boolean;          // Are there post-deploy jobs?
+  passed: boolean | null;   // null if no tests
+  jobId?: number;
+  jobUrl?: string;
+  jobName?: string;
+}
+
+// Readiness status enum
+export type ReadinessStatus = 
+  | 'ready'           // Deployed + signed off + tests passed (or no tests)
+  | 'pending-signoff' // Deployed + tests passed, awaiting sign-off
+  | 'tests-failed'    // Deployed but post-deploy tests failed
+  | 'not-deployed';   // Not deployed to this environment
+
+// Version readiness for an environment
+export interface VersionReadiness {
+  projectId: number;
+  projectName: string;
+  version: string;
+  environment: EnvironmentName;
+  deployment: Deployment | null;        // From Priority 2
+  signoff: Signoff | null;              // Parsed from MR
+  testStatus: PostDeployTestStatus;
+  status: ReadinessStatus;
+  mr?: {
+    iid: number;
+    webUrl: string;
+    title: string;
+  };
 }

@@ -366,4 +366,352 @@ describe('DashboardDataService', () => {
       expect(Object.keys(result.deployments)).toHaveLength(0);
     });
   });
+
+  // ============================================
+  // Promotion Readiness Tests (Priority 3)
+  // ============================================
+
+  describe('parseSignoffComment', () => {
+    it('parses valid sign-off with v prefix', () => {
+      const result = service.parseSignoffComment('SIGNOFF: v2.3.45 UAT');
+      expect(result).toEqual({ version: '2.3.45', environment: 'uat' });
+    });
+
+    it('parses valid sign-off without v prefix', () => {
+      const result = service.parseSignoffComment('SIGNOFF: 1.0.0 DEV');
+      expect(result).toEqual({ version: '1.0.0', environment: 'dev' });
+    });
+
+    it('parses sign-off with extra whitespace', () => {
+      const result = service.parseSignoffComment('SIGNOFF:   v3.0.0   PROD  ');
+      expect(result).toEqual({ version: '3.0.0', environment: 'prod' });
+    });
+
+    it('is case-insensitive for keyword and environment', () => {
+      const result1 = service.parseSignoffComment('signoff: v1.0.0 prod');
+      expect(result1).toEqual({ version: '1.0.0', environment: 'prod' });
+
+      const result2 = service.parseSignoffComment('Signoff: v1.0.0 SIT');
+      expect(result2).toEqual({ version: '1.0.0', environment: 'sit' });
+    });
+
+    it('returns null for invalid formats', () => {
+      expect(service.parseSignoffComment('APPROVED: v1.0.0 UAT')).toBeNull();
+      expect(service.parseSignoffComment('SIGNOFF v1.0.0 UAT')).toBeNull();
+      expect(service.parseSignoffComment('SIGNOFF: 1.0.0')).toBeNull();
+      expect(service.parseSignoffComment('SIGNOFF: UAT')).toBeNull();
+      expect(service.parseSignoffComment('Some random comment')).toBeNull();
+    });
+
+    it('returns null for invalid environments', () => {
+      expect(service.parseSignoffComment('SIGNOFF: v1.0.0 STAGING')).toBeNull();
+      expect(service.parseSignoffComment('SIGNOFF: v1.0.0 PRODUCTION')).toBeNull();
+    });
+
+    it('parses sign-off in multiline comment (line must start with SIGNOFF)', () => {
+      const comment = `Some context here.
+SIGNOFF: v2.0.0 UAT
+Thanks!`;
+      const result = service.parseSignoffComment(comment);
+      expect(result).toEqual({ version: '2.0.0', environment: 'uat' });
+    });
+
+    it('returns null when sign-off has leading whitespace', () => {
+      const comment = `
+        Some context here.
+        SIGNOFF: v2.0.0 UAT
+        Thanks!
+      `;
+      const result = service.parseSignoffComment(comment);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('parseCodeowners', () => {
+    it('extracts usernames from simple CODEOWNERS', () => {
+      const content = '* @jane @bob';
+      const result = service.parseCodeowners(content);
+      expect(result).toContain('jane');
+      expect(result).toContain('bob');
+      expect(result).toHaveLength(2);
+    });
+
+    it('extracts usernames from multi-line CODEOWNERS', () => {
+      const content = `
+* @jane @bob
+/src/ @alice
+/docs/ @charlie
+      `;
+      const result = service.parseCodeowners(content);
+      expect(result).toContain('jane');
+      expect(result).toContain('bob');
+      expect(result).toContain('alice');
+      expect(result).toContain('charlie');
+      expect(result).toHaveLength(4);
+    });
+
+    it('handles CODEOWNERS with comments', () => {
+      const content = `
+# This is a comment
+* @admin
+
+# Docs team
+/docs/ @doc-writer
+      `;
+      const result = service.parseCodeowners(content);
+      expect(result).toContain('admin');
+      expect(result).toContain('doc-writer');
+    });
+
+    it('deduplicates usernames', () => {
+      const content = `
+* @jane @bob
+/src/ @jane
+      `;
+      const result = service.parseCodeowners(content);
+      expect(result).toHaveLength(2);
+      expect(result.filter(u => u === 'jane')).toHaveLength(1);
+    });
+
+    it('handles usernames with hyphens', () => {
+      const content = '* @user-name @another-user-123';
+      const result = service.parseCodeowners(content);
+      expect(result).toContain('user-name');
+      expect(result).toContain('another-user-123');
+    });
+
+    it('returns empty array for empty content', () => {
+      expect(service.parseCodeowners('')).toEqual([]);
+    });
+  });
+
+  describe('getCodeowners', () => {
+    it('fetches and parses CODEOWNERS file', async () => {
+      vi.mocked(mockGitLabService.getRepositoryFile).mockResolvedValueOnce({
+        content: '* @jane @bob\n/src/ @alice'
+      });
+
+      const result = await service.getCodeowners(123);
+
+      expect(mockGitLabService.getRepositoryFile).toHaveBeenCalledWith(123, 'CODEOWNERS', 'HEAD');
+      expect(result).toContain('jane');
+      expect(result).toContain('bob');
+      expect(result).toContain('alice');
+    });
+
+    it('returns empty array when file not found', async () => {
+      vi.mocked(mockGitLabService.getRepositoryFile).mockResolvedValueOnce(null);
+
+      const result = await service.getCodeowners(123);
+
+      expect(result).toEqual([]);
+    });
+
+    it('caches CODEOWNERS results', async () => {
+      vi.mocked(mockGitLabService.getRepositoryFile).mockResolvedValueOnce({
+        content: '* @jane'
+      });
+
+      // First call
+      await service.getCodeowners(123);
+      // Second call (should use cache)
+      const result = await service.getCodeowners(123);
+
+      expect(mockGitLabService.getRepositoryFile).toHaveBeenCalledTimes(1);
+      expect(result).toContain('jane');
+    });
+  });
+
+  describe('getMRSignoffs', () => {
+    it('extracts sign-offs from MR notes', async () => {
+      vi.mocked(mockGitLabService.getMergeRequestNotes).mockResolvedValueOnce([
+        {
+          id: 1,
+          body: 'SIGNOFF: v2.3.45 UAT',
+          author: { id: 10, username: 'jane', name: 'Jane Doe' },
+          created_at: '2024-01-15T10:00:00Z',
+          system: false
+        },
+        {
+          id: 2,
+          body: 'Looks good!',
+          author: { id: 11, username: 'bob', name: 'Bob Smith' },
+          created_at: '2024-01-15T11:00:00Z',
+          system: false
+        }
+      ]);
+
+      const result = await service.getMRSignoffs(123, 5, ['jane', 'bob']);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].version).toBe('2.3.45');
+      expect(result[0].environment).toBe('uat');
+      expect(result[0].author).toBe('jane');
+      expect(result[0].isValid).toBe(true);
+    });
+
+    it('marks sign-off as invalid if author not in CODEOWNERS', async () => {
+      vi.mocked(mockGitLabService.getMergeRequestNotes).mockResolvedValueOnce([
+        {
+          id: 1,
+          body: 'SIGNOFF: v1.0.0 DEV',
+          author: { id: 10, username: 'unauthorized-user', name: 'Random User' },
+          created_at: '2024-01-15T10:00:00Z',
+          system: false
+        }
+      ]);
+
+      const result = await service.getMRSignoffs(123, 5, ['jane', 'bob']);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].isValid).toBe(false);
+      expect(result[0].authorizedBy).toBe('');
+    });
+
+    it('allows any user if CODEOWNERS is empty', async () => {
+      vi.mocked(mockGitLabService.getMergeRequestNotes).mockResolvedValueOnce([
+        {
+          id: 1,
+          body: 'SIGNOFF: v1.0.0 PROD',
+          author: { id: 10, username: 'anyone', name: 'Anyone' },
+          created_at: '2024-01-15T10:00:00Z',
+          system: false
+        }
+      ]);
+
+      const result = await service.getMRSignoffs(123, 5, []);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].isValid).toBe(true);
+    });
+  });
+
+  describe('getPostDeployTestStatus', () => {
+    it('returns exists=false when no post-deploy jobs', async () => {
+      vi.mocked(mockGitLabService.getPipelineJobs).mockResolvedValueOnce([
+        { id: 1, name: 'build', stage: 'build', status: 'success', web_url: '', created_at: '' },
+        { id: 2, name: 'deploy', stage: 'deploy', status: 'success', web_url: '', created_at: '' }
+      ]);
+
+      const result = await service.getPostDeployTestStatus(123, 456);
+
+      expect(result.exists).toBe(false);
+      expect(result.passed).toBeNull();
+    });
+
+    it('returns passed=true when all post-deploy jobs succeed', async () => {
+      vi.mocked(mockGitLabService.getPipelineJobs).mockResolvedValueOnce([
+        { id: 1, name: 'test-e2e', stage: 'post-deploy', status: 'success', web_url: 'http://job/1', created_at: '' },
+        { id: 2, name: 'smoke-test', stage: 'post-deploy', status: 'success', web_url: 'http://job/2', created_at: '' }
+      ]);
+
+      const result = await service.getPostDeployTestStatus(123, 456);
+
+      expect(result.exists).toBe(true);
+      expect(result.passed).toBe(true);
+      expect(result.jobId).toBe(1);
+    });
+
+    it('returns passed=false when any post-deploy job fails', async () => {
+      vi.mocked(mockGitLabService.getPipelineJobs).mockResolvedValueOnce([
+        { id: 1, name: 'test-e2e', stage: 'post-deploy', status: 'success', web_url: 'http://job/1', created_at: '' },
+        { id: 2, name: 'smoke-test', stage: 'post-deploy', status: 'failed', web_url: 'http://job/2', created_at: '' }
+      ]);
+
+      const result = await service.getPostDeployTestStatus(123, 456);
+
+      expect(result.exists).toBe(true);
+      expect(result.passed).toBe(false);
+      // Links to first completed job for details
+      expect(result.jobId).toBeDefined();
+      expect(result.jobUrl).toBeDefined();
+    });
+
+    it('handles post_deploy stage name (underscore)', async () => {
+      vi.mocked(mockGitLabService.getPipelineJobs).mockResolvedValueOnce([
+        { id: 1, name: 'e2e-test', stage: 'post_deploy', status: 'success', web_url: 'http://job/1', created_at: '' }
+      ]);
+
+      const result = await service.getPostDeployTestStatus(123, 456);
+
+      expect(result.exists).toBe(true);
+      expect(result.passed).toBe(true);
+    });
+  });
+
+  describe('calculateReadinessStatus', () => {
+    const mockDeployment = {
+      jobId: 1,
+      jobName: 'deploy-to-uat',
+      environment: 'uat' as const,
+      version: '2.3.45',
+      status: 'success' as const,
+      timestamp: '2024-01-15T10:00:00Z',
+      pipelineId: 100,
+      pipelineRef: 'feature/test',
+      jobUrl: 'http://job/1'
+    };
+
+    const mockSignoff = {
+      version: '2.3.45',
+      environment: 'uat' as const,
+      author: 'jane',
+      authorizedBy: 'jane',
+      timestamp: '2024-01-15T11:00:00Z',
+      noteId: 1,
+      mrIid: 5,
+      isValid: true
+    };
+
+    it('returns not-deployed when no deployment', () => {
+      const result = service.calculateReadinessStatus(null, null, { exists: false, passed: null });
+      expect(result).toBe('not-deployed');
+    });
+
+    it('returns tests-failed when post-deploy tests fail', () => {
+      const result = service.calculateReadinessStatus(
+        mockDeployment,
+        mockSignoff,
+        { exists: true, passed: false }
+      );
+      expect(result).toBe('tests-failed');
+    });
+
+    it('returns pending-signoff when no sign-off', () => {
+      const result = service.calculateReadinessStatus(
+        mockDeployment,
+        null,
+        { exists: true, passed: true }
+      );
+      expect(result).toBe('pending-signoff');
+    });
+
+    it('returns pending-signoff when sign-off is invalid', () => {
+      const invalidSignoff = { ...mockSignoff, isValid: false };
+      const result = service.calculateReadinessStatus(
+        mockDeployment,
+        invalidSignoff,
+        { exists: true, passed: true }
+      );
+      expect(result).toBe('pending-signoff');
+    });
+
+    it('returns ready when deployed, tests passed, and signed off', () => {
+      const result = service.calculateReadinessStatus(
+        mockDeployment,
+        mockSignoff,
+        { exists: true, passed: true }
+      );
+      expect(result).toBe('ready');
+    });
+
+    it('returns ready when deployed, no tests, and signed off', () => {
+      const result = service.calculateReadinessStatus(
+        mockDeployment,
+        mockSignoff,
+        { exists: false, passed: null }
+      );
+      expect(result).toBe('ready');
+    });
+  });
 });
