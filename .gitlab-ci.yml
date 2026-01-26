@@ -14,6 +14,7 @@ stages:
   - build
   - deploy
   - post-deploy
+  - release
 
 # Install dependencies (shared script)
 .install_dependencies: &install_dependencies
@@ -133,3 +134,18 @@ e2e-test:
       - playwright-report/
       - test-results/
     expire_in: 1 week
+
+# Semantic release - creates tags and releases on main branch
+release:
+  stage: release
+  script:
+    - *install_dependencies
+    - npx semantic-release
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - job: test
+    - job: lint
+    - job: build
+    - job: e2e-test
+      optional: true

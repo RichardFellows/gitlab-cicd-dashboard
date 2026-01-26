@@ -38,9 +38,13 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/gitlab": "^13.2.9",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^14.2.0",
     "@testing-library/user-event": "^14.5.0",
+    "@types/node": "^25.0.10",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
@@ -50,6 +54,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "jsdom": "^24.0.0",
+    "semantic-release": "^25.0.2",
     "typescript": "^5.3.3",
     "vite": "^5.1.0",
     "vitest": "^1.2.2"

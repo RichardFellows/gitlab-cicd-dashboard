@@ -65,3 +65,31 @@ If you prefer to run the servers manually:
 - `proxy.js` - CORS proxy server for local development
 - `start.js` - Combined development server script
 - `package.json` - Project metadata and npm scripts
+
+## Versioning
+
+This project uses [semantic-release](https://github.com/semantic-release/semantic-release) for automatic versioning and changelog generation.
+
+### Commit Message Format
+
+We use [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+- `feat:` - New feature (bumps minor version)
+- `fix:` - Bug fix (bumps patch version)
+- `docs:` - Documentation changes
+- `style:` - Code style changes (formatting, etc.)
+- `refactor:` - Code refactoring
+- `test:` - Adding or updating tests
+- `chore:` - Maintenance tasks
+
+Breaking changes should include `BREAKING CHANGE:` in the commit body or use `!` suffix (e.g., `feat!:` or `fix!:`).
+
+### Releases
+
+Releases are automatically created when commits are pushed to the `main` branch. The release process:
+
+1. Analyzes commit messages since the last release
+2. Determines the next version number
+3. Updates CHANGELOG.md
+4. Creates a Git tag
+5. Creates a GitLab release
