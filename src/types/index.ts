@@ -228,6 +228,23 @@ export interface DashboardConfig {
   jiraBaseUrl?: string;  // Optional JIRA base URL for linking (e.g., "https://jira.company.com/browse")
 }
 
+// Saved configuration entry wrapping a DashboardConfig with metadata
+export interface SavedConfigEntry {
+  id: string;                    // Unique identifier (timestamp + random suffix)
+  name: string;                  // User-provided display name
+  config: DashboardConfig;       // The actual configuration
+  createdAt: string;             // ISO timestamp
+  updatedAt: string;             // ISO timestamp
+}
+
+// Export format for sharing configurations (token optionally excluded)
+export interface ExportedConfig {
+  version: number;               // Schema version for forward compat
+  name: string;
+  config: DashboardConfig;       // Token may be empty string
+  exportedAt: string;            // ISO timestamp
+}
+
 // Storage keys for localStorage
 export const STORAGE_KEYS = {
   GITLAB_URL: 'gitlab_cicd_dashboard_url',
@@ -238,7 +255,9 @@ export const STORAGE_KEYS = {
   DARK_MODE: 'gitlab_cicd_dashboard_dark_mode',
   SETTINGS_COLLAPSED: 'gitlab_cicd_dashboard_settings_collapsed',
   DASHBOARD_CONFIG: 'gitlab_cicd_dashboard_config',
-  HEALTH_SORT_ORDER: 'gitlab_cicd_dashboard_health_sort'
+  HEALTH_SORT_ORDER: 'gitlab_cicd_dashboard_health_sort',
+  SAVED_CONFIGS: 'gitlab_cicd_dashboard_saved_configs',
+  ACTIVE_CONFIG_ID: 'gitlab_cicd_dashboard_active_config_id'
 };
 
 // View types enum
