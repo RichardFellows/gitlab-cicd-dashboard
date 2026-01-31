@@ -111,3 +111,36 @@
   outline: 2px solid var(--primary-color);
   outline-offset: 1px;
 }
+
+/* Dark mode refinements */
+.dark-mode .refresh-status-bar {
+  background: var(--card-bg-color);
+  border-color: var(--border-color);
+}
+
+.dark-mode .refresh-interval-select {
+  background: var(--card-bg-color);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+.dark-mode .refresh-interval-select option {
+  background: var(--card-bg-color);
+  color: var(--text-color);
+}
+
+.dark-mode .refresh-pulse-dot {
+  background: var(--primary-color);
+}
+
+.dark-mode .data-age-fresh {
+  color: var(--success-color);
+}
+
+.dark-mode .data-age-aging {
+  color: var(--warning-color);
+}
+
+.dark-mode .data-age-stale {
+  color: var(--danger-color);
+}
