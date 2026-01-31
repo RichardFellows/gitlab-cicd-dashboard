@@ -1,4 +1,4 @@
-import { FailureCategoryType, FailureCategory, HighlightedLine } from '../types';
+import { FailureCategoryType, FailureCategory, FailureFrequency, HighlightedLine, Job } from '../types';
 
 /**
  * Pattern definitions for failure categorisation.
@@ -156,4 +156,36 @@ export function extractLastLines(log: string, n: number): string {
   if (!log) return '';
   const lines = log.split('\n');
   return lines.slice(Math.max(0, lines.length - n)).join('\n');
+}
+
+/**
+ * Calculate how often a specific job fails.
+ * @param jobs - Recent jobs for the project (from getProjectJobs)
+ * @param targetJobName - The job name to check frequency for
+ * @returns FailureFrequency with counts and flaky indicator
+ */
+export function calculateFailureFrequency(
+  jobs: Job[],
+  targetJobName: string
+): FailureFrequency {
+  // Filter to matching job name
+  const matchingJobs = jobs.filter(job => job.name === targetJobName);
+
+  // Only count terminal statuses (success or failed)
+  const terminalJobs = matchingJobs.filter(
+    job => job.status === 'success' || job.status === 'failed'
+  );
+
+  const totalCount = terminalJobs.length;
+  const failedCount = terminalJobs.filter(job => job.status === 'failed').length;
+
+  // Flaky: has failures but less than 80% failure rate
+  const isFlaky = totalCount > 0 && failedCount > 0 && (failedCount / totalCount) < 0.8;
+
+  return {
+    jobName: targetJobName,
+    failedCount,
+    totalCount,
+    isFlaky,
+  };
 }
