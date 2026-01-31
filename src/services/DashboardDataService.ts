@@ -1,5 +1,5 @@
 import GitLabApiService from './GitLabApiService';
-import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject, MainBranchTrend, CoverageTrend, AggregatedTrend, CoverageStatus, EnvironmentName, Deployment, DeploymentsByEnv, DeployInfoArtifact, DeploymentStatus, ParsedSignoff, Signoff, PostDeployTestStatus, ReadinessStatus, VersionReadiness } from '../types';
+import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject, MainBranchTrend, CoverageTrend, AggregatedTrend, CoverageStatus, EnvironmentName, Deployment, DeploymentsByEnv, DeployInfoArtifact, DeploymentStatus, ParsedSignoff, Signoff, PostDeployTestStatus, ReadinessStatus, VersionReadiness, Project, MRWithProject } from '../types';
 import { METRICS_THRESHOLDS, DEPLOY_JOB_REGEX, JIRA_KEY_REGEX, SIGNOFF_REGEX, CODEOWNERS_USER_REGEX } from '../utils/constants';
 import { logger } from '../utils/logger';
 
@@ -1402,6 +1402,46 @@ class DashboardDataService {
       logger.error(`Failed to get readiness for project ${projectId}:`, error);
       return [];
     }
+  }
+
+  // ============================================
+  // MR Pipeline Status Board Methods (Priority 7)
+  // ============================================
+
+  /**
+   * Fetch all open merge requests across multiple projects
+   * Annotates each MR with project info for cross-project display
+   * @param projects - Array of projects to fetch MRs for
+   * @returns Annotated merge requests with project info
+   */
+  async getAllOpenMergeRequests(
+    projects: Project[]
+  ): Promise<MRWithProject[]> {
+    // Filter to projects that have open MRs (optimisation)
+    const projectsWithMRs = projects.filter(
+      p => p.metrics?.mergeRequestCounts?.totalOpen > 0
+    );
+
+    const mrPromises = projectsWithMRs.map(async (project) => {
+      try {
+        const mrs = await this.gitLabService.getProjectMergeRequests(project.id, {
+          state: 'opened',
+          per_page: 20,
+        });
+        return mrs.map(mr => ({
+          ...mr,
+          projectId: project.id,
+          projectName: project.name,
+          projectPath: project.path_with_namespace || project.path,
+        }));
+      } catch (error) {
+        logger.error(`Failed to fetch MRs for project ${project.id}:`, error);
+        return [];
+      }
+    });
+
+    const results = await Promise.all(mrPromises);
+    return results.flat();
   }
 
   /**
