@@ -265,7 +265,8 @@ export const STORAGE_KEYS = {
   NOTIFICATION_MUTED: 'gitlab_cicd_dashboard_notification_muted',
   MR_BOARD_FILTERS: 'gitlab_cicd_dashboard_mr_board_filters',
   MR_BOARD_SORT: 'gitlab_cicd_dashboard_mr_board_sort',
-  MY_USERNAME: 'gitlab_cicd_dashboard_my_username'
+  MY_USERNAME: 'gitlab_cicd_dashboard_my_username',
+  TIMELINE_FILTERS: 'gitlab_cicd_dashboard_timeline_filters'
 };
 
 // View types enum
@@ -496,3 +497,24 @@ export type MRPipelineGroup =
   | 'running'
   | 'draft'
   | 'no-pipeline';
+
+// ============================================
+// Deployment Timeline Types (Priority 8)
+// ============================================
+
+/** Extended deployment entry with history context */
+export interface DeploymentHistoryEntry extends Deployment {
+  projectId: number;
+  projectName: string;
+  isRollback: boolean;
+  rolledBackFrom?: string;       // Previous version (if rollback)
+}
+
+/** Timeline filter state */
+export interface TimelineFilters {
+  projectIds: number[];            // Empty = all
+  environments: EnvironmentName[]; // Empty = all
+  statuses: ('success' | 'failed' | 'rollback')[];
+  dateFrom: string | null;         // ISO date
+  dateTo: string | null;           // ISO date
+}
