@@ -128,6 +128,32 @@ export function setActiveConfigId(id: string | null): void {
 }
 
 /**
+ * Deep comparison of two DashboardConfig objects to detect unsaved changes.
+ * Ignores the token field (token changes don't count as "unsaved changes" for UX).
+ */
+export function hasUnsavedChanges(current: DashboardConfig, saved: DashboardConfig): boolean {
+  // Compare all fields except token
+  if (current.version !== saved.version) return true;
+  if (current.gitlabUrl !== saved.gitlabUrl) return true;
+  if (current.timeframe !== saved.timeframe) return true;
+  if ((current.jiraBaseUrl || '') !== (saved.jiraBaseUrl || '')) return true;
+
+  // Compare groups
+  if (current.groups.length !== saved.groups.length) return true;
+  for (let i = 0; i < current.groups.length; i++) {
+    if (current.groups[i].id !== saved.groups[i].id) return true;
+  }
+
+  // Compare projects
+  if (current.projects.length !== saved.projects.length) return true;
+  for (let i = 0; i < current.projects.length; i++) {
+    if (current.projects[i].id !== saved.projects[i].id) return true;
+  }
+
+  return false;
+}
+
+/**
  * Export a configuration as a downloadable JSON Blob.
  * @param entry - The saved config entry to export
  * @param includeToken - If false, token is replaced with empty string
