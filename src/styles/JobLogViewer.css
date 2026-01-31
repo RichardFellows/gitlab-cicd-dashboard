@@ -1,0 +1,217 @@
+/* JobLogViewer styles */
+.job-log-viewer {
+  margin-top: 8px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.job-log-viewer.dark {
+  background: #0d1117;
+  color: #c9d1d9;
+}
+
+/* Toolbar */
+.log-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #444;
+}
+
+.job-log-viewer.dark .log-toolbar {
+  background: #161b22;
+  border-bottom-color: #30363d;
+}
+
+.log-search {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-size: 12px;
+  font-family: inherit;
+  min-width: 0;
+}
+
+.job-log-viewer.dark .log-search {
+  background: #0d1117;
+  border-color: #30363d;
+  color: #c9d1d9;
+}
+
+.log-search::placeholder {
+  color: #888;
+}
+
+.log-copy-btn,
+.log-show-more-btn,
+.log-retry-btn {
+  padding: 4px 10px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #333;
+  color: #d4d4d4;
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.log-copy-btn:hover,
+.log-show-more-btn:hover,
+.log-retry-btn:hover {
+  background: #444;
+}
+
+.job-log-viewer.dark .log-copy-btn,
+.job-log-viewer.dark .log-show-more-btn,
+.job-log-viewer.dark .log-retry-btn {
+  background: #21262d;
+  border-color: #30363d;
+  color: #c9d1d9;
+}
+
+.job-log-viewer.dark .log-copy-btn:hover,
+.job-log-viewer.dark .log-show-more-btn:hover,
+.job-log-viewer.dark .log-retry-btn:hover {
+  background: #30363d;
+}
+
+/* Log container */
+.log-container {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.log-line {
+  display: flex;
+  padding: 0 10px;
+  min-height: 20px;
+}
+
+.log-line:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.log-line-number {
+  min-width: 48px;
+  text-align: right;
+  padding-right: 12px;
+  color: #666;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.job-log-viewer.dark .log-line-number {
+  color: #484f58;
+}
+
+.log-line-text {
+  white-space: pre-wrap;
+  word-break: break-all;
+  flex: 1;
+}
+
+/* Severity-level highlighting */
+.log-level-error {
+  background: rgba(220, 53, 69, 0.15);
+  color: #f48771;
+}
+
+.log-level-error .log-line-text {
+  color: #f48771;
+}
+
+.job-log-viewer.dark .log-level-error {
+  background: rgba(248, 81, 73, 0.15);
+}
+
+.job-log-viewer.dark .log-level-error .log-line-text {
+  color: #ff7b72;
+}
+
+.log-level-warning {
+  background: rgba(255, 193, 7, 0.1);
+}
+
+.log-level-warning .log-line-text {
+  color: #cca700;
+}
+
+.job-log-viewer.dark .log-level-warning {
+  background: rgba(210, 153, 34, 0.1);
+}
+
+.job-log-viewer.dark .log-level-warning .log-line-text {
+  color: #e3b341;
+}
+
+.log-level-info .log-line-text {
+  color: #4fc1ff;
+}
+
+.job-log-viewer.dark .log-level-info .log-line-text {
+  color: #58a6ff;
+}
+
+/* Loading / Error states */
+.log-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: #888;
+}
+
+.log-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #555;
+  border-top-color: #aaa;
+  border-radius: 50%;
+  animation: log-spin 0.6s linear infinite;
+}
+
+@keyframes log-spin {
+  to { transform: rotate(360deg); }
+}
+
+.log-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  color: #f48771;
+}
+
+/* Footer */
+.log-footer {
+  padding: 6px 10px;
+  border-top: 1px solid #444;
+  background: #2d2d2d;
+}
+
+.job-log-viewer.dark .log-footer {
+  border-top-color: #30363d;
+  background: #161b22;
+}
+
+.log-gitlab-link {
+  color: #58a6ff;
+  text-decoration: none;
+  font-size: 11px;
+}
+
+.log-gitlab-link:hover {
+  text-decoration: underline;
+}
