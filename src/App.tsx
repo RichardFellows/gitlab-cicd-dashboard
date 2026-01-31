@@ -1,12 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Dashboard from './components/Dashboard';
 import ControlPanel from './components/ControlPanel';
 import SaveConfigDialog from './components/SaveConfigDialog';
 import ConfigManager from './components/ConfigManager';
 import ProjectDetails from './components/ProjectDetails';
 import EnvironmentMatrixView from './components/EnvironmentMatrixView';
+import RefreshStatusBar from './components/RefreshStatusBar';
+import StaleDataBanner from './components/StaleDataBanner';
 import { logger } from './utils/logger';
 import ReadinessView from './components/ReadinessView';
+import { useAutoRefresh } from './hooks/useAutoRefresh';
+import { AUTO_REFRESH_OPTIONS } from './utils/constants';
 import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv, SavedConfigEntry } from './types';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
@@ -45,11 +49,39 @@ const App = () => {
   // Environment view state - deployment cache
   const [deploymentCache, setDeploymentCache] = useState<Map<number, DeploymentsByEnv>>(new Map());
 
+  // Auto-refresh state
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
+  const staleDismissedRef = useRef(false);
+  const [staleDismissed, setStaleDismissed] = useState(false);
+
   // Saved config state
   const [savedConfigs, setSavedConfigs] = useState<SavedConfigEntry[]>([]);
   const [activeConfigId, setActiveConfigIdState] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showConfigManager, setShowConfigManager] = useState(false);
+
+  // Stable ref to current config for auto-refresh callback
+  const configRef = useRef(config);
+  useEffect(() => { configRef.current = config; }, [config]);
+
+  // Auto-refresh callback — wraps loadDashboard with current config
+  const autoRefreshCallback = useCallback(async () => {
+    await loadDashboardAsync(configRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // useAutoRefresh hook
+  const {
+    nextRefreshIn,
+    isOffline,
+    isRateLimited,
+    resetTimer: resetAutoRefreshTimer,
+  } = useAutoRefresh({
+    interval: autoRefreshInterval,
+    onRefresh: autoRefreshCallback,
+    enabled: metrics !== null, // only auto-refresh after first load
+    loading,
+  });
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -95,6 +127,15 @@ const App = () => {
     const savedViewType = localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) as ViewType || ViewType.TABLE;
     const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
     const savedSettingsCollapsed = localStorage.getItem(STORAGE_KEYS.SETTINGS_COLLAPSED) === 'true';
+
+    // Load auto-refresh interval
+    const savedInterval = localStorage.getItem(STORAGE_KEYS.AUTO_REFRESH_INTERVAL);
+    if (savedInterval !== null) {
+      const parsed = Number(savedInterval);
+      if (AUTO_REFRESH_OPTIONS.some(opt => opt.value === parsed)) {
+        setAutoRefreshInterval(parsed);
+      }
+    }
 
     if (savedViewType) setViewType(savedViewType);
     setDarkMode(savedDarkMode);
@@ -266,6 +307,11 @@ const App = () => {
       return updated;
     });
   }, []);
+
+  // Load dashboard data (async — also used by auto-refresh)
+  const loadDashboardAsync = async (cfg: DashboardConfig) => {
+    await loadDashboard(cfg);
+  };
 
   // Load dashboard data
   const loadDashboard = async (cfg: DashboardConfig) => {
@@ -583,11 +629,35 @@ const App = () => {
     localStorage.setItem(STORAGE_KEYS.SETTINGS_COLLAPSED, String(newCollapsed));
   };
 
-  // Handle refresh
+  // Handle refresh (manual)
   const handleRefresh = () => {
     if (isConfigReady(config)) {
       loadDashboard(config);
+      resetAutoRefreshTimer(); // Reset auto-refresh countdown
     }
+  };
+
+  // Handle auto-refresh interval change
+  const handleAutoRefreshIntervalChange = (interval: number) => {
+    setAutoRefreshInterval(interval);
+    localStorage.setItem(STORAGE_KEYS.AUTO_REFRESH_INTERVAL, String(interval));
+    // Reset stale dismissed when enabling auto-refresh
+    if (interval > 0) {
+      staleDismissedRef.current = false;
+      setStaleDismissed(false);
+    }
+  };
+
+  // Handle stale banner dismiss
+  const handleStaleDismiss = () => {
+    staleDismissedRef.current = true;
+    setStaleDismissed(true);
+  };
+
+  // Handle "Enable Auto-Refresh" from stale banner (default 5 min)
+  const handleEnableAutoRefreshFromBanner = () => {
+    const fiveMin = 5 * 60 * 1000;
+    handleAutoRefreshIntervalChange(fiveMin);
   };
 
   // Handle status filter change
@@ -595,25 +665,12 @@ const App = () => {
     setStatusFilter(filter);
   };
 
-  // Format last updated time
-  const formatLastUpdated = () => {
-    if (!lastUpdated) return '';
-    const now = new Date();
-    const diffMs = now.getTime() - lastUpdated.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return 'Just now';
-    if (diffMins === 1) return '1 minute ago';
-    if (diffMins < 60) return `${diffMins} minutes ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours === 1) return '1 hour ago';
-    return `${diffHours} hours ago`;
-  };
-
   // Clear saved settings
   const clearSettings = () => {
     clearConfig();
     localStorage.removeItem(STORAGE_KEYS.VIEW_TYPE);
     localStorage.removeItem(STORAGE_KEYS.DARK_MODE);
+    localStorage.removeItem(STORAGE_KEYS.AUTO_REFRESH_INTERVAL);
 
     setConfig(createDefaultConfig());
     setMetrics(null);
@@ -621,6 +678,9 @@ const App = () => {
     setLastUpdated(null);
     setStatusFilter('all');
     setSearchQuery('');
+    setAutoRefreshInterval(0);
+    staleDismissedRef.current = false;
+    setStaleDismissed(false);
 
     alert('Saved settings have been cleared.');
   };
@@ -664,20 +724,21 @@ const App = () => {
                   Ready
                 </button>
               </div>
-              <button
-                className="icon-btn refresh-btn"
-                onClick={handleRefresh}
-                disabled={loading}
-                title="Refresh data"
-              >
-                &#8635;
-              </button>
-              {lastUpdated && (
-                <span className="last-updated" title={lastUpdated.toLocaleString()}>
-                  {formatLastUpdated()}
-                </span>
-              )}
+              {/* Manual refresh + data age moved to RefreshStatusBar */}
             </>
+          )}
+          {metrics && (
+            <RefreshStatusBar
+              lastUpdated={lastUpdated}
+              loading={loading}
+              autoRefreshInterval={autoRefreshInterval}
+              nextRefreshIn={nextRefreshIn}
+              onIntervalChange={handleAutoRefreshIntervalChange}
+              onManualRefresh={handleRefresh}
+              isOffline={isOffline}
+              isRateLimited={isRateLimited}
+              darkMode={darkMode}
+            />
           )}
           <button
             className="icon-btn settings-btn"
@@ -732,6 +793,16 @@ const App = () => {
       </div>
 
       {error && <div className="error-container">{error}</div>}
+
+      {!staleDismissed && metrics && (
+        <StaleDataBanner
+          lastUpdated={lastUpdated}
+          autoRefreshEnabled={autoRefreshInterval > 0}
+          onRefreshNow={handleRefresh}
+          onEnableAutoRefresh={handleEnableAutoRefreshFromBanner}
+          onDismiss={handleStaleDismiss}
+        />
+      )}
 
       {loading && <div className="loading-indicator">Loading dashboard data...</div>}
 
