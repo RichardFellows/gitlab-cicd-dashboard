@@ -47,6 +47,10 @@
   outline-offset: -2px;
 }
 
+.dark-mode .project-row.keyboard-selected {
+  background-color: rgba(157, 127, 232, 0.12);
+}
+
 .project-row.keyboard-selected td:first-child {
   position: relative;
 }

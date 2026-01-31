@@ -61,6 +61,10 @@
   box-shadow: 0 0 0 4px rgba(110, 73, 203, 0.15), 0 4px 8px var(--shadow-color);
 }
 
+.dark-mode .project-card.keyboard-selected {
+  box-shadow: 0 0 0 4px rgba(157, 127, 232, 0.2), 0 4px 8px var(--shadow-color);
+}
+
 .project-card.failed {
   border-left-color: var(--danger-color);
 }
