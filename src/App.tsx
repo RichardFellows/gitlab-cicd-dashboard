@@ -1034,9 +1034,18 @@ const App = () => {
             &#9881;
           </button>
           <button
+            className="icon-btn shortcuts-hint-btn"
+            onClick={() => setShowShortcutsOverlay(true)}
+            title="Keyboard shortcuts (?)"
+            aria-keyshortcuts="?"
+          >
+            <kbd>?</kbd>
+          </button>
+          <button
             className="icon-btn theme-btn"
             onClick={handleDarkModeToggle}
             title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-keyshortcuts="d"
           >
             {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
           </button>

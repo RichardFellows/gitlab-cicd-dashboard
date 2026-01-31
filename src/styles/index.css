@@ -106,6 +106,30 @@ header {
   font-size: 14px;
 }
 
+/* Shortcuts hint button */
+.shortcuts-hint-btn {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.shortcuts-hint-btn kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 var(--border-color);
+}
+
 /* Text buttons */
 .text-btn {
   background: none;
