@@ -1,4 +1,4 @@
-import { DashboardConfig, SavedConfigEntry, STORAGE_KEYS } from '../types';
+import { DashboardConfig, ExportedConfig, SavedConfigEntry, STORAGE_KEYS } from '../types';
 import { logger } from './logger';
 
 const MAX_SAVED_CONFIGS = 20;
@@ -125,4 +125,89 @@ export function setActiveConfigId(id: string | null): void {
   } else {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_CONFIG_ID, id);
   }
+}
+
+/**
+ * Export a configuration as a downloadable JSON Blob.
+ * @param entry - The saved config entry to export
+ * @param includeToken - If false, token is replaced with empty string
+ */
+export function exportConfig(entry: SavedConfigEntry, includeToken: boolean): Blob {
+  const exportData: ExportedConfig = {
+    version: 1,
+    name: entry.name,
+    config: {
+      ...entry.config,
+      token: includeToken ? entry.config.token : '',
+    },
+    exportedAt: new Date().toISOString(),
+  };
+
+  return new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+}
+
+/**
+ * Import a configuration from a JSON string.
+ * Validates schema, generates new ID and timestamps.
+ * @throws Error if schema is invalid or JSON is malformed
+ */
+export function importConfig(jsonString: string): SavedConfigEntry {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonString);
+  } catch {
+    throw new Error('Invalid JSON format. Please check the file.');
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Invalid configuration file. Expected a JSON object.');
+  }
+
+  const data = parsed as Record<string, unknown>;
+
+  // Validate required top-level fields
+  if (typeof data.version !== 'number') {
+    throw new Error('Invalid configuration: missing or invalid "version" field.');
+  }
+  if (typeof data.name !== 'string' || !data.name.trim()) {
+    throw new Error('Invalid configuration: missing or empty "name" field.');
+  }
+
+  const config = data.config as Record<string, unknown> | undefined;
+  if (!config || typeof config !== 'object') {
+    throw new Error('Invalid configuration: missing "config" field.');
+  }
+
+  // Validate required config fields
+  if (typeof config.gitlabUrl !== 'string') {
+    throw new Error('Invalid configuration: missing "config.gitlabUrl" field.');
+  }
+  if (typeof config.timeframe !== 'number') {
+    throw new Error('Invalid configuration: missing or invalid "config.timeframe" field.');
+  }
+  if (!Array.isArray(config.groups)) {
+    throw new Error('Invalid configuration: missing "config.groups" array.');
+  }
+  if (!Array.isArray(config.projects)) {
+    throw new Error('Invalid configuration: missing "config.projects" array.');
+  }
+
+  const now = new Date().toISOString();
+  const importedConfig: DashboardConfig = {
+    version: typeof config.version === 'number' ? config.version : 1,
+    gitlabUrl: config.gitlabUrl as string,
+    token: typeof config.token === 'string' ? config.token : '',
+    timeframe: config.timeframe as number,
+    groups: config.groups as DashboardConfig['groups'],
+    projects: config.projects as DashboardConfig['projects'],
+    ...(typeof config.jiraBaseUrl === 'string' ? { jiraBaseUrl: config.jiraBaseUrl } : {}),
+  };
+
+  return {
+    id: generateConfigId(),
+    name: (data.name as string).trim(),
+    config: importedConfig,
+    createdAt: now,
+    updatedAt: now,
+  };
 }
