@@ -1032,6 +1032,8 @@ const App = () => {
               deploymentCache={deploymentCache}
               fetchProjectDeployments={fetchProjectDeployments}
               jiraBaseUrl={config.jiraBaseUrl}
+              dashboardService={dashboardService}
+              darkMode={darkMode}
             />
           )}
 
