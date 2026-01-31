@@ -1,0 +1,134 @@
+/* =============================================
+   Shortcuts Overlay
+   ============================================= */
+
+.shortcuts-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: shortcuts-fade-in 0.15s ease;
+}
+
+@keyframes shortcuts-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.shortcuts-overlay {
+  background: var(--card-bg-color);
+  color: var(--text-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px var(--shadow-color);
+  width: 90%;
+  max-width: 560px;
+  max-height: 80vh;
+  overflow-y: auto;
+  outline: none;
+  animation: shortcuts-slide-up 0.2s ease;
+}
+
+@keyframes shortcuts-slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+/* Header */
+.shortcuts-overlay__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.shortcuts-overlay__header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.shortcuts-overlay__close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.shortcuts-overlay__close:hover {
+  background: var(--background-color);
+  color: var(--text-color);
+}
+
+/* Body */
+.shortcuts-overlay__body {
+  padding: 16px 24px 24px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 480px) {
+  .shortcuts-overlay__body {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+/* Group */
+.shortcuts-overlay__group-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.shortcuts-overlay__list {
+  margin: 0;
+  padding: 0;
+}
+
+.shortcuts-overlay__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+}
+
+.shortcuts-overlay__item dt {
+  flex-shrink: 0;
+}
+
+.shortcuts-overlay__item dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+/* Keyboard key styling */
+.shortcuts-overlay kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-color);
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  box-shadow: 0 1px 0 var(--border-color);
+}
