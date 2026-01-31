@@ -18,6 +18,7 @@ interface SummarySectionProps {
   trendsLoading?: boolean;
   darkMode?: boolean;
   onProjectSelect?: (projectId: number) => void;
+  onChartCanvasReady?: (name: string, canvas: HTMLCanvasElement | null) => void;
 }
 
 const SummarySection: FC<SummarySectionProps> = ({
@@ -27,7 +28,8 @@ const SummarySection: FC<SummarySectionProps> = ({
   aggregateTrends = [],
   trendsLoading = false,
   darkMode = false,
-  onProjectSelect
+  onProjectSelect,
+  onChartCanvasReady,
 }) => {
   const [failuresCollapsed, setFailuresCollapsed] = useState(false);
   // Count projects by their pipeline status
@@ -195,6 +197,7 @@ const SummarySection: FC<SummarySectionProps> = ({
         trends={aggregateTrends}
         loading={trendsLoading}
         darkMode={darkMode}
+        onChartCanvasReady={onChartCanvasReady}
       />
     </section>
   );

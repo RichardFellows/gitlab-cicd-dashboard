@@ -14,12 +14,13 @@ import ComparisonView from './components/ComparisonView';
 import NotificationBell from './components/NotificationBell';
 import NotificationSettings from './components/NotificationSettings';
 import MRBoardView from './components/MRBoardView';
+import ExportButton from './components/ExportButton';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import { useKeyboardShortcuts, ShortcutHandler } from './hooks/useKeyboardShortcuts';
 import { AUTO_REFRESH_OPTIONS } from './utils/constants';
 import { evaluateRules, sendBrowserNotification } from './utils/notificationEngine';
 import * as notificationStorage from './utils/notificationStorage';
-import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv, SavedConfigEntry, NotificationRule, NotificationEntry } from './types';
+import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv, SavedConfigEntry, NotificationRule, NotificationEntry, ChartRefMap } from './types';
 import { categorizeProject } from './utils/formatting';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
@@ -61,6 +62,9 @@ const App = () => {
 
   // Environment view state - deployment cache
   const [deploymentCache, setDeploymentCache] = useState<Map<number, DeploymentsByEnv>>(new Map());
+
+  // Chart refs for PDF export
+  const [chartRefs, setChartRefs] = useState<ChartRefMap>({});
 
   // Comparison view state
   const [selectedForComparison, setSelectedForComparison] = useState<Set<number>>(new Set());
@@ -850,6 +854,11 @@ const App = () => {
     localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(newDarkMode));
   };
 
+  // Handle chart canvas refs for PDF export
+  const handleChartCanvasReady = useCallback((name: string, canvas: HTMLCanvasElement | null) => {
+    setChartRefs(prev => ({ ...prev, [name]: canvas }));
+  }, []);
+
   // Handle settings collapse toggle
   const handleSettingsToggle = () => {
     const newCollapsed = !settingsCollapsed;
@@ -1031,6 +1040,15 @@ const App = () => {
               darkMode={darkMode}
             />
           )}
+          <ExportButton
+            metrics={metrics}
+            projects={filteredProjects}
+            deploymentCache={deploymentCache}
+            config={config}
+            chartRefs={chartRefs}
+            darkMode={darkMode}
+            disabled={!metrics}
+          />
           <button
             className="icon-btn settings-btn"
             onClick={handleSettingsToggle}
@@ -1212,6 +1230,7 @@ const App = () => {
               onCompare={enterComparisonMode}
               onClearSelection={clearComparisonSelection}
               keyboardSelectedIndex={keyboardSelectedIndex}
+              onChartCanvasReady={handleChartCanvasReady}
             />
           )}
 

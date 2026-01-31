@@ -25,6 +25,7 @@ interface DashboardProps {
   onCompare?: () => void;
   onClearSelection?: () => void;
   keyboardSelectedIndex?: number;
+  onChartCanvasReady?: (name: string, canvas: HTMLCanvasElement | null) => void;
 }
 
 const Dashboard: FC<DashboardProps> = ({
@@ -45,6 +46,7 @@ const Dashboard: FC<DashboardProps> = ({
   onCompare,
   onClearSelection,
   keyboardSelectedIndex = -1,
+  onChartCanvasReady,
 }) => {
   // Filter projects based on status and search query
   const filteredProjects = useMemo(() => {
@@ -81,6 +83,7 @@ const Dashboard: FC<DashboardProps> = ({
         trendsLoading={trendsLoading}
         darkMode={darkMode}
         onProjectSelect={onProjectSelect}
+        onChartCanvasReady={onChartCanvasReady}
       />
 
       <section className="projects-section">
