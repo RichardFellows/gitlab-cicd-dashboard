@@ -262,7 +262,10 @@ export const STORAGE_KEYS = {
   NOTIFICATION_RULES: 'gitlab_cicd_dashboard_notification_rules',
   NOTIFICATION_HISTORY: 'gitlab_cicd_dashboard_notification_history',
   NOTIFICATIONS_ENABLED: 'gitlab_cicd_dashboard_notifications_enabled',
-  NOTIFICATION_MUTED: 'gitlab_cicd_dashboard_notification_muted'
+  NOTIFICATION_MUTED: 'gitlab_cicd_dashboard_notification_muted',
+  MR_BOARD_FILTERS: 'gitlab_cicd_dashboard_mr_board_filters',
+  MR_BOARD_SORT: 'gitlab_cicd_dashboard_mr_board_sort',
+  MY_USERNAME: 'gitlab_cicd_dashboard_my_username'
 };
 
 // View types enum
