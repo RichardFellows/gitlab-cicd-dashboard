@@ -13,7 +13,9 @@
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "test:deployment": "node scripts/test-deployment.js",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "mock:api": "node scripts/mock-gitlab-api.mjs",
+    "test:e2e:mock": "playwright test e2e/mock-populated.spec.ts --project=chromium"
   },
   "repository": {
     "type": "git",
