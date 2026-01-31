@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(npm run lint:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm test:*)",
+      "Bash(python3:*)",
+      "Bash(git checkout:*)",
+      "Bash(echo $GITLAB_TOKEN)",
+      "Bash(glab mr update:*)",
+      "Bash(glab ci status:*)",
+      "Bash(glab ci list:*)",
+      "Bash(glab ci artifact:*)",
+      "WebSearch",
+      "WebFetch(domain:surge.sh)",
+      "WebFetch(domain:www.netlify.com)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:pages.cloudflare.com)",
+      "WebFetch(domain:render.com)",
+      "WebFetch(domain:docs.github.com)",
+      "WebFetch(domain:docs.render.com)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(glab mr create --title \"feat: Pipeline metrics enhancement with trends and visual flagging\" --body \"$\\(cat <<''EOF''\n## Summary\n\nAdd comprehensive pipeline metrics tracking with trend visualization and threshold-based visual alerts.\n\n### New Features\n- **Failure Rate Trending** - Line charts showing main branch failure rate over time with 15% warning threshold\n- **Build Duration Trending** - Line charts showing average build duration over time  \n- **Code Coverage Trending** - Line charts with 80% target threshold line\n- **Visual Flagging** - Alert badges on projects exceeding thresholds:\n  - High failure rate \\(>15% warning, >25% danger\\)\n  - Low coverage \\(<80%\\)\n- **Configurable Time Windows** - Uses existing timeframe setting \\(7/30/90/180 days\\)\n\n### New Files\n| File | Purpose |\n|------|---------|\n| `src/utils/constants.ts` | Threshold constants and chart colors |\n| `src/components/TrendChart.tsx` | Reusable Chart.js line chart with threshold support |\n| `src/components/MetricsPanel.tsx` | Aggregate trend grid for SummarySection |\n| `src/components/ProjectMetricsTrends.tsx` | Detailed per-project trend charts |\n| `src/components/MetricAlert.tsx` | Visual flagging badges |\n| CSS files for each component |\n\n### Modified Files\n- `src/types/index.ts` - Added trend interfaces\n- `src/services/DashboardDataService.ts` - Added trend calculation methods\n- `src/components/SummarySection.tsx` - Integrated MetricsPanel\n- `src/components/ProjectDetails.tsx` - Integrated ProjectMetricsTrends\n- `src/components/CardView.tsx` / `TableView.tsx` - Added MetricAlert badges\n- `src/App.tsx` - Added trend state and fetching logic\n\n## Test Plan\n- [x] `npm run lint` - Passed\n- [x] `npm run build` - Passed\n- [x] `npm test` - All 20 tests pass\n\n### Manual Testing\n- [ ] Load dashboard with test group \\(ID: 122839760\\)\n- [ ] Verify trend charts render in SummarySection\n- [ ] Click into a project, verify detailed trends in ProjectDetails\n- [ ] Check visual flagging appears for projects with high failure rates or low coverage\n- [ ] Test with different timeframes \\(7, 30, 90 days\\)\n- [ ] Verify responsive layout on mobile\n- [ ] Test dark mode styling\n\n🤖 Generated with [Claude Code]\\(https://claude.ai/code\\)\nEOF\n\\)\")",
+      "Bash(glab mr create:*)",
+      "Bash(npm install:*)",
+      "Bash(glab ci view:*)",
+      "Bash(glab api:*)"
+    ]
+  }
+}
