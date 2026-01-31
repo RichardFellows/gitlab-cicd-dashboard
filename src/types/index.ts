@@ -270,7 +270,8 @@ export enum ViewType {
   CARD = 'card',
   TABLE = 'table',
   ENVIRONMENT = 'environment',
-  READINESS = 'readiness'
+  READINESS = 'readiness',
+  MR_BOARD = 'mr-board'
 }
 
 // Project status filter type
@@ -458,3 +459,37 @@ export interface HighlightedLine {
   level: 'error' | 'warning' | 'info' | 'normal';
   lineNumber: number;
 }
+
+// ============================================
+// MR Pipeline Status Board Types (Priority 7)
+// ============================================
+
+/** MR with project context for cross-project display */
+export interface MRWithProject extends MergeRequest {
+  projectId: number;
+  projectName: string;
+  projectPath?: string;
+}
+
+/** MR Board filter state */
+export interface MRBoardFilters {
+  projectIds: number[];           // Empty = all projects
+  authorSearch: string;           // Username or name substring
+  myMRsOnly: boolean;
+  myUsername: string;              // Configured username for "My MRs"
+}
+
+/** MR sort options */
+export type MRSortOption =
+  | 'newest'
+  | 'oldest'
+  | 'last-activity'
+  | 'project-name';
+
+/** MR pipeline status for grouping */
+export type MRPipelineGroup =
+  | 'passing'
+  | 'failing'
+  | 'running'
+  | 'draft'
+  | 'no-pipeline';
