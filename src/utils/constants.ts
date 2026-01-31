@@ -75,6 +75,13 @@ export const CHART_COLORS_DARK = {
 };
 
 /**
+ * Comparison view colour palettes (up to 4 projects)
+ * Chosen for distinguishability (including colour-blind safety)
+ */
+export const COMPARISON_COLOURS = ['#6e49cb', '#e67e22', '#27ae60', '#e74c3c'];
+export const COMPARISON_COLOURS_DARK = ['#9d7fe8', '#f39c12', '#2ecc71', '#ff6b6b'];
+
+/**
  * Auto-refresh interval options (value in milliseconds, 0 = off)
  */
 export const AUTO_REFRESH_OPTIONS = [
