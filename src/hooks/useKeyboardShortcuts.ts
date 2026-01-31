@@ -35,11 +35,11 @@ export function useKeyboardShortcuts({ enabled, shortcuts }: UseKeyboardShortcut
 
     const handler = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      const tagName = target.tagName.toLowerCase();
+      const tagName = target?.tagName?.toLowerCase() ?? '';
 
       // Guard: skip if input element is focused (except for Escape)
       const isInputFocused =
-        ['input', 'textarea', 'select'].includes(tagName) || target.isContentEditable;
+        ['input', 'textarea', 'select'].includes(tagName) || target?.isContentEditable;
 
       if (isInputFocused && event.key !== 'Escape') {
         return;
