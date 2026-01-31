@@ -968,35 +968,40 @@ const App = () => {
                 <button
                   className={`view-btn ${viewType === ViewType.CARD ? 'active' : ''}`}
                   onClick={() => handleViewTypeChange(ViewType.CARD)}
-                  title="Card View"
+                  title="Card View (1)"
+                  aria-keyshortcuts="1"
                 >
                   Cards
                 </button>
                 <button
                   className={`view-btn ${viewType === ViewType.TABLE ? 'active' : ''}`}
                   onClick={() => handleViewTypeChange(ViewType.TABLE)}
-                  title="Table View"
+                  title="Table View (2)"
+                  aria-keyshortcuts="2"
                 >
                   Table
                 </button>
                 <button
                   className={`view-btn ${viewType === ViewType.ENVIRONMENT ? 'active' : ''}`}
                   onClick={() => handleViewTypeChange(ViewType.ENVIRONMENT)}
-                  title="Environment Matrix View"
+                  title="Environment Matrix View (3)"
+                  aria-keyshortcuts="3"
                 >
                   Envs
                 </button>
                 <button
                   className={`view-btn ${viewType === ViewType.READINESS ? 'active' : ''}`}
                   onClick={() => handleViewTypeChange(ViewType.READINESS)}
-                  title="Promotion Readiness View"
+                  title="Promotion Readiness View (4)"
+                  aria-keyshortcuts="4"
                 >
                   Ready
                 </button>
                 <button
                   className={`view-btn ${viewType === ViewType.MR_BOARD ? 'active' : ''}`}
                   onClick={() => handleViewTypeChange(ViewType.MR_BOARD)}
-                  title="MR Pipeline Board"
+                  title="MR Pipeline Board (5)"
+                  aria-keyshortcuts="5"
                 >
                   MRs
                 </button>
