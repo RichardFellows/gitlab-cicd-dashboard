@@ -22,9 +22,12 @@ interface TableViewProps {
   projects: Project[];
   onProjectSelect: (projectId: number) => void;
   gitLabService?: GitLabApiService;
+  selectionMode?: boolean;
+  selectedIds?: Set<number>;
+  onToggleSelection?: (projectId: number) => void;
 }
 
-const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabService }) => {
+const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabService, selectionMode = false, selectedIds, onToggleSelection }) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [healthExpanded, setHealthExpanded] = useState<Record<number, boolean>>({});
   const [mergeRequestsData, setMergeRequestsData] = useState<Record<number, MergeRequest[]>>({});
@@ -118,6 +121,7 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
       <table className="projects-table">
         <thead>
           <tr>
+            {selectionMode && <th style={{ width: 40 }}></th>}
             <th>Project</th>
             <th
               className={`sortable-header ${healthSort ? 'sorted' : ''}`}
@@ -156,9 +160,21 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
               <>
                 <tr 
                   key={`row-${project.id}`}
-                  className={`project-row ${category} ${isExpanded ? 'expanded' : ''}`}
+                  className={`project-row ${category} ${isExpanded ? 'expanded' : ''}${selectionMode && selectedIds?.has(project.id) ? ' comparison-selected' : ''}`}
                   data-project-id={project.id}
                 >
+                  {selectionMode && (
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds?.has(project.id) ?? false}
+                        onChange={() => onToggleSelection?.(project.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Select ${project.name} for comparison`}
+                        style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--primary-color, #6e49cb)' }}
+                      />
+                    </td>
+                  )}
                   <td>
                     <span className={`status-indicator ${category}`}></span>
                     <a
@@ -238,7 +254,7 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
                     key={`details-${project.id}`}
                     className="project-details"
                   >
-                    <td colSpan={8}>
+                    <td colSpan={selectionMode ? 9 : 8}>
                       <div className="details-content">
                         <div className="metrics-bar">
                           <div className="metric">
@@ -315,7 +331,7 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
                     key={`health-${project.id}`}
                     className="project-details health-breakdown-row"
                   >
-                    <td colSpan={8}>
+                    <td colSpan={selectionMode ? 9 : 8}>
                       <HealthBreakdown signals={health.signals} />
                     </td>
                   </tr>
