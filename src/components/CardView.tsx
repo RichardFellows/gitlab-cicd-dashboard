@@ -20,9 +20,12 @@ import '../styles/CardView.css';
 interface CardViewProps {
   projects: Project[];
   onProjectSelect: (projectId: number) => void;
+  selectionMode?: boolean;
+  selectedIds?: Set<number>;
+  onToggleSelection?: (projectId: number) => void;
 }
 
-const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
+const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode = false, selectedIds, onToggleSelection }) => {
   // Group projects by status
   const groupedProjects: Record<string, Project[]> = {
     failed: [],
@@ -51,6 +54,9 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
                 key={project.id}
                 project={project}
                 onProjectSelect={onProjectSelect}
+                selectionMode={selectionMode}
+                isSelected={selectedIds?.has(project.id) ?? false}
+                onToggleSelection={onToggleSelection}
               />
             ))}
           </div>
@@ -67,6 +73,9 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
                 key={project.id}
                 project={project}
                 onProjectSelect={onProjectSelect}
+                selectionMode={selectionMode}
+                isSelected={selectedIds?.has(project.id) ?? false}
+                onToggleSelection={onToggleSelection}
               />
             ))}
           </div>
@@ -83,6 +92,9 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
                 key={project.id}
                 project={project}
                 onProjectSelect={onProjectSelect}
+                selectionMode={selectionMode}
+                isSelected={selectedIds?.has(project.id) ?? false}
+                onToggleSelection={onToggleSelection}
               />
             ))}
           </div>
@@ -99,6 +111,9 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
                 key={project.id}
                 project={project}
                 onProjectSelect={onProjectSelect}
+                selectionMode={selectionMode}
+                isSelected={selectedIds?.has(project.id) ?? false}
+                onToggleSelection={onToggleSelection}
               />
             ))}
           </div>
@@ -111,9 +126,12 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
 interface ProjectCardProps {
   project: Project;
   onProjectSelect: (projectId: number) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (projectId: number) => void;
 }
 
-const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
+const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect, selectionMode = false, isSelected = false, onToggleSelection }) => {
   const category = categorizeProject(project);
   const [showBreakdown, setShowBreakdown] = useState(false);
 
@@ -161,7 +179,17 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
   const commitsToShow = getCommitsToShow();
 
   return (
-    <div className={`project-card ${category}`}>
+    <div className={`project-card ${category}${isSelected ? ' comparison-selected' : ''}`} style={{ position: 'relative' }}>
+      {selectionMode && (
+        <label className="comparison-checkbox" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelection?.(project.id)}
+            aria-label={`Select ${project.name} for comparison`}
+          />
+        </label>
+      )}
       <div className="project-header">
         <h3>
           <a 
