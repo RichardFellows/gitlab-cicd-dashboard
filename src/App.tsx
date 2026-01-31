@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Dashboard from './components/Dashboard';
 import ControlPanel from './components/ControlPanel';
 import SaveConfigDialog from './components/SaveConfigDialog';
@@ -7,6 +7,7 @@ import ProjectDetails from './components/ProjectDetails';
 import EnvironmentMatrixView from './components/EnvironmentMatrixView';
 import RefreshStatusBar from './components/RefreshStatusBar';
 import StaleDataBanner from './components/StaleDataBanner';
+import ShortcutsOverlay from './components/ShortcutsOverlay';
 import { logger } from './utils/logger';
 import ReadinessView from './components/ReadinessView';
 import ComparisonView from './components/ComparisonView';
@@ -14,10 +15,12 @@ import NotificationBell from './components/NotificationBell';
 import NotificationSettings from './components/NotificationSettings';
 import MRBoardView from './components/MRBoardView';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
+import { useKeyboardShortcuts, ShortcutHandler } from './hooks/useKeyboardShortcuts';
 import { AUTO_REFRESH_OPTIONS } from './utils/constants';
 import { evaluateRules, sendBrowserNotification } from './utils/notificationEngine';
 import * as notificationStorage from './utils/notificationStorage';
 import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv, SavedConfigEntry, NotificationRule, NotificationEntry } from './types';
+import { categorizeProject } from './utils/formatting';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
 import { loadConfig, saveConfig, clearConfig, isConfigReady, createDefaultConfig } from './utils/configMigration';
@@ -47,6 +50,10 @@ const App = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [statusFilter, setStatusFilter] = useState<ProjectStatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Keyboard shortcuts state
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState(-1);
+  const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
 
   // Trend data state
   const [aggregateTrends, setAggregateTrends] = useState<AggregatedTrend[]>([]);
@@ -78,6 +85,28 @@ const App = () => {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showConfigManager, setShowConfigManager] = useState(false);
 
+  // Compute filtered projects at App level for keyboard navigation
+  const filteredProjects = useMemo(() => {
+    if (!metrics) return [];
+    return metrics.projects.filter((project: Project) => {
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        if (!project.name.toLowerCase().includes(query)) return false;
+      }
+      if (statusFilter !== 'all') {
+        const category = categorizeProject(project);
+        const mappedCategory = category === 'no-pipeline' ? 'inactive' : category;
+        if (mappedCategory !== statusFilter) return false;
+      }
+      return true;
+    });
+  }, [metrics, searchQuery, statusFilter]);
+
+  // Reset keyboard selection when filters/view change
+  useEffect(() => {
+    setKeyboardSelectedIndex(-1);
+  }, [searchQuery, statusFilter, viewType]);
+
   // Stable ref to current config for auto-refresh callback
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; }, [config]);
@@ -100,6 +129,100 @@ const App = () => {
     onRefresh: autoRefreshCallback,
     enabled: metrics !== null, // only auto-refresh after first load
     loading,
+  });
+
+  // --- Keyboard Shortcuts ---
+  const shortcuts: ShortcutHandler[] = useMemo(() => [
+    // View navigation (1-5)
+    { key: '1', handler: () => { handleViewTypeChange(ViewType.CARD); } },
+    { key: '2', handler: () => { handleViewTypeChange(ViewType.TABLE); } },
+    { key: '3', handler: () => { handleViewTypeChange(ViewType.ENVIRONMENT); } },
+    { key: '4', handler: () => { handleViewTypeChange(ViewType.READINESS); } },
+    { key: '5', handler: () => { handleViewTypeChange(ViewType.MR_BOARD); } },
+
+    // Actions
+    {
+      key: 'r',
+      handler: () => {
+        if (!loading && metrics && isConfigReady(config)) {
+          loadDashboard(config);
+          resetAutoRefreshTimer();
+        }
+      },
+    },
+    {
+      key: '/',
+      handler: (event: KeyboardEvent) => {
+        event.preventDefault();
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) (searchInput as HTMLInputElement).focus();
+      },
+    },
+    {
+      key: 'd',
+      handler: () => {
+        const newDarkMode = !darkMode;
+        setDarkMode(newDarkMode);
+        localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(newDarkMode));
+      },
+    },
+    { key: '?', handler: () => { setShowShortcutsOverlay(true); } },
+
+    // Project navigation
+    {
+      key: 'j',
+      handler: () => {
+        if (!metrics || filteredProjects.length === 0) return;
+        setKeyboardSelectedIndex(prev => {
+          const maxIndex = filteredProjects.length - 1;
+          return prev >= maxIndex ? 0 : prev + 1;
+        });
+      },
+    },
+    {
+      key: 'k',
+      handler: () => {
+        if (!metrics || filteredProjects.length === 0) return;
+        setKeyboardSelectedIndex(prev => {
+          const maxIndex = filteredProjects.length - 1;
+          return prev <= 0 ? maxIndex : prev - 1;
+        });
+      },
+    },
+    {
+      key: 'Enter',
+      handler: () => {
+        if (keyboardSelectedIndex >= 0 && filteredProjects[keyboardSelectedIndex]) {
+          handleProjectSelect(filteredProjects[keyboardSelectedIndex].id);
+        }
+      },
+    },
+    {
+      key: 'Escape',
+      handler: () => {
+        if (showShortcutsOverlay) {
+          setShowShortcutsOverlay(false);
+        } else if (selectedProjectId) {
+          setSelectedProjectId(null);
+          window.location.hash = '';
+        } else if (searchQuery) {
+          setSearchQuery('');
+          // Blur search input if focused
+          const searchInput = document.getElementById('search-input');
+          if (searchInput && document.activeElement === searchInput) {
+            (searchInput as HTMLInputElement).blur();
+          }
+        } else {
+          setKeyboardSelectedIndex(-1);
+        }
+      },
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [loading, metrics, config, darkMode, filteredProjects, keyboardSelectedIndex, selectedProjectId, searchQuery, showShortcutsOverlay]);
+
+  useKeyboardShortcuts({
+    enabled: true,
+    shortcuts,
   });
 
   // Apply dark mode class to body
@@ -985,11 +1108,13 @@ const App = () => {
           {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && viewType !== ViewType.MR_BOARD && !comparisonMode && (
             <div className="filter-bar">
               <input
+                id="search-input"
                 type="text"
                 className="search-input"
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-keyshortcuts="/"
               />
               <div className="status-filters">
                 <button
@@ -1125,6 +1250,13 @@ const App = () => {
           onExport={handleExportConfig}
           onImport={handleImportConfig}
           onClose={() => setShowConfigManager(false)}
+        />
+      )}
+
+      {showShortcutsOverlay && (
+        <ShortcutsOverlay
+          onClose={() => setShowShortcutsOverlay(false)}
+          darkMode={darkMode}
         />
       )}
     </div>
