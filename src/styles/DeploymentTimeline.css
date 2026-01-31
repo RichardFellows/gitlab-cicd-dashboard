@@ -1,0 +1,685 @@
+/* ============================================
+   Deployment Timeline Styles
+   ============================================ */
+
+/* ---- Timeline Entry ---- */
+
+.timeline-entry {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+
+.timeline-entry:hover {
+  background: rgba(110, 73, 203, 0.06);
+}
+
+.timeline-entry--expanded {
+  background: rgba(110, 73, 203, 0.08);
+  border-left-color: #6e49cb;
+}
+
+.timeline-entry--rollback {
+  border-left-color: #fd7e14;
+  background: rgba(253, 126, 20, 0.05);
+}
+
+.timeline-entry--rollback:hover {
+  background: rgba(253, 126, 20, 0.1);
+}
+
+.dark-mode .timeline-entry:hover {
+  background: rgba(157, 127, 232, 0.1);
+}
+
+.dark-mode .timeline-entry--expanded {
+  background: rgba(157, 127, 232, 0.15);
+  border-left-color: #9d7fe8;
+}
+
+.dark-mode .timeline-entry--rollback {
+  border-left-color: #ff9800;
+  background: rgba(255, 152, 0, 0.08);
+}
+
+.dark-mode .timeline-entry--rollback:hover {
+  background: rgba(255, 152, 0, 0.12);
+}
+
+/* Time column */
+.timeline-entry__time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 50px;
+  flex-shrink: 0;
+}
+
+.timeline-entry__clock {
+  font-size: 0.8rem;
+  color: #666;
+  font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.dark-mode .timeline-entry__clock {
+  color: #999;
+}
+
+/* Status dot */
+.timeline-entry__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.timeline-entry__dot--success {
+  background: #28a745;
+}
+
+.timeline-entry__dot--failed {
+  background: #dc3545;
+}
+
+.timeline-entry__dot--rollback {
+  background: #fd7e14;
+}
+
+.timeline-entry__dot--other {
+  background: #6c757d;
+}
+
+.dark-mode .timeline-entry__dot--success {
+  background: #4caf50;
+}
+
+.dark-mode .timeline-entry__dot--failed {
+  background: #f44336;
+}
+
+.dark-mode .timeline-entry__dot--rollback {
+  background: #ff9800;
+}
+
+/* Content area */
+.timeline-entry__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-entry__main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.timeline-entry__project {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.dark-mode .timeline-entry__project {
+  color: #e0e0e0;
+}
+
+.timeline-entry__version {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.85rem;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.dark-mode .timeline-entry__version {
+  color: #bbb;
+}
+
+.timeline-entry__rollback-icon {
+  font-size: 0.9rem;
+}
+
+/* Environment badges */
+.timeline-entry__env-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.timeline-entry__env-badge--dev {
+  background: rgba(40, 167, 69, 0.15);
+  color: #28a745;
+}
+
+.timeline-entry__env-badge--sit {
+  background: rgba(0, 123, 255, 0.15);
+  color: #007bff;
+}
+
+.timeline-entry__env-badge--uat {
+  background: rgba(255, 193, 7, 0.2);
+  color: #e6a800;
+}
+
+.timeline-entry__env-badge--prod {
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+}
+
+.dark-mode .timeline-entry__env-badge--dev {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.dark-mode .timeline-entry__env-badge--sit {
+  background: rgba(33, 150, 243, 0.2);
+  color: #42a5f5;
+}
+
+.dark-mode .timeline-entry__env-badge--uat {
+  background: rgba(255, 202, 40, 0.2);
+  color: #ffca28;
+}
+
+.dark-mode .timeline-entry__env-badge--prod {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+/* Branch */
+.timeline-entry__branch {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.8rem;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.dark-mode .timeline-entry__branch {
+  color: #777;
+}
+
+/* Rollback note */
+.timeline-entry__rollback-note {
+  font-size: 0.8rem;
+  color: #e67e00;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.dark-mode .timeline-entry__rollback-note {
+  color: #ff9800;
+}
+
+/* Meta (right side) */
+.timeline-entry__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.timeline-entry__jira {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.8rem;
+  color: #6e49cb;
+  text-decoration: none;
+}
+
+.timeline-entry__jira:hover {
+  text-decoration: underline;
+}
+
+.dark-mode .timeline-entry__jira {
+  color: #9d7fe8;
+}
+
+.timeline-entry__status {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.timeline-entry__status--success {
+  color: #28a745;
+  background: rgba(40, 167, 69, 0.1);
+}
+
+.timeline-entry__status--failed {
+  color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.timeline-entry__status--rollback {
+  color: #fd7e14;
+  background: rgba(253, 126, 20, 0.1);
+}
+
+.timeline-entry__status--other {
+  color: #6c757d;
+  background: rgba(108, 117, 125, 0.1);
+}
+
+/* Expanded details */
+.timeline-entry__details {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+  animation: timelineSlideDown 0.2s ease-out;
+}
+
+.dark-mode .timeline-entry__details {
+  border-top-color: #444;
+}
+
+@keyframes timelineSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.timeline-entry__detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem 1.5rem;
+}
+
+.timeline-entry__detail-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.timeline-entry__detail-label {
+  font-size: 0.8rem;
+  color: #888;
+  min-width: 60px;
+}
+
+.dark-mode .timeline-entry__detail-label {
+  color: #777;
+}
+
+.timeline-entry__detail-value {
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.dark-mode .timeline-entry__detail-value {
+  color: #ddd;
+}
+
+.timeline-entry__detail-mono {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.8rem;
+}
+
+.timeline-entry__relative-time {
+  color: #999;
+  font-size: 0.8rem;
+}
+
+.timeline-entry__detail-links {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.timeline-entry__detail-link {
+  font-size: 0.85rem;
+  color: #6e49cb;
+  text-decoration: none;
+}
+
+.timeline-entry__detail-link:hover {
+  text-decoration: underline;
+}
+
+.dark-mode .timeline-entry__detail-link {
+  color: #9d7fe8;
+}
+
+/* ---- Timeline Day ---- */
+
+.timeline-day {
+  margin-bottom: 1.5rem;
+}
+
+.timeline-day__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0 0.5rem;
+}
+
+.timeline-day__line {
+  flex: 1;
+  height: 1px;
+  background: #dee2e6;
+}
+
+.dark-mode .timeline-day__line {
+  background: #444;
+}
+
+.timeline-day__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555;
+  white-space: nowrap;
+}
+
+.dark-mode .timeline-day__label {
+  color: #aaa;
+}
+
+.timeline-day__entries {
+  position: relative;
+  padding-left: 0.5rem;
+}
+
+/* Connecting line */
+.timeline-day__entries::before {
+  content: '';
+  position: absolute;
+  left: calc(0.5rem + 50px + 0.5rem + 4px);
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e0e0e0;
+}
+
+.dark-mode .timeline-day__entries::before {
+  background: #444;
+}
+
+/* ---- Timeline Filters ---- */
+
+.timeline-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.dark-mode .timeline-filters {
+  background: #2d2d2d;
+}
+
+.timeline-filters__group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.timeline-filters__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.dark-mode .timeline-filters__label {
+  color: #aaa;
+}
+
+.timeline-filters__select {
+  font-size: 0.85rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  color: #333;
+  min-width: 100px;
+}
+
+.dark-mode .timeline-filters__select {
+  background: #1e1e1e;
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+.timeline-filters__date-input {
+  font-size: 0.85rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  color: #333;
+}
+
+.dark-mode .timeline-filters__date-input {
+  background: #1e1e1e;
+  border-color: #555;
+  color: #e0e0e0;
+  color-scheme: dark;
+}
+
+.timeline-filters__checkbox-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.timeline-filters__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #555;
+  cursor: pointer;
+}
+
+.dark-mode .timeline-filters__checkbox-label {
+  color: #bbb;
+}
+
+.timeline-filters__count {
+  font-size: 0.8rem;
+  color: #888;
+  margin-left: auto;
+}
+
+.timeline-filters__clear {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.timeline-filters__clear:hover {
+  background: #eee;
+}
+
+.dark-mode .timeline-filters__clear {
+  background: #333;
+  border-color: #555;
+  color: #ccc;
+}
+
+.dark-mode .timeline-filters__clear:hover {
+  background: #444;
+}
+
+/* ---- Main Timeline Container ---- */
+
+.deployment-timeline {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.deployment-timeline__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0 0.5rem;
+}
+
+.deployment-timeline__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.dark-mode .deployment-timeline__title {
+  color: #e0e0e0;
+}
+
+.deployment-timeline__count {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.deployment-timeline__loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem 1rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.dark-mode .deployment-timeline__loading {
+  color: #aaa;
+}
+
+.deployment-timeline__empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #888;
+}
+
+.dark-mode .deployment-timeline__empty {
+  color: #777;
+}
+
+.deployment-timeline__empty-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.deployment-timeline__empty-text {
+  font-size: 0.9rem;
+  margin: 0.25rem 0;
+}
+
+.deployment-timeline__error {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #dc3545;
+}
+
+.deployment-timeline__load-more {
+  display: block;
+  margin: 1rem auto;
+  padding: 0.5rem 1.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  color: #555;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.15s;
+}
+
+.deployment-timeline__load-more:hover {
+  background: #eee;
+}
+
+.dark-mode .deployment-timeline__load-more {
+  background: #2d2d2d;
+  border-color: #555;
+  color: #ccc;
+}
+
+.dark-mode .deployment-timeline__load-more:hover {
+  background: #3d3d3d;
+}
+
+/* ---- Matrix/Timeline Tab Toggle ---- */
+
+.environment-view__tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.dark-mode .environment-view__tabs {
+  border-bottom-color: #444;
+}
+
+.environment-view__tab {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  background: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s;
+}
+
+.environment-view__tab:hover {
+  color: #333;
+}
+
+.environment-view__tab--active {
+  color: #6e49cb;
+}
+
+.environment-view__tab--active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: #6e49cb;
+}
+
+.dark-mode .environment-view__tab {
+  color: #888;
+}
+
+.dark-mode .environment-view__tab:hover {
+  color: #ccc;
+}
+
+.dark-mode .environment-view__tab--active {
+  color: #9d7fe8;
+}
+
+.dark-mode .environment-view__tab--active::after {
+  background: #9d7fe8;
+}
