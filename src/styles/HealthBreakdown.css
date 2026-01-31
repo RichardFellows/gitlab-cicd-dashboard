@@ -1,0 +1,146 @@
+/* HealthBreakdown */
+.health-breakdown {
+  padding: 8px 0;
+  font-size: 13px;
+}
+
+.health-breakdown__header {
+  display: grid;
+  grid-template-columns: 140px 60px 100px 1fr;
+  gap: 8px;
+  padding: 4px 8px;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 4px;
+}
+
+.health-breakdown__row {
+  display: grid;
+  grid-template-columns: 140px 60px 100px 1fr;
+  gap: 8px;
+  padding: 6px 8px;
+  align-items: center;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.health-breakdown__row:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.health-breakdown__row--low {
+  background-color: rgba(220, 53, 69, 0.05);
+}
+
+.health-breakdown__row--low:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.health-breakdown__name {
+  font-weight: 500;
+}
+
+.health-breakdown__weight {
+  color: #888;
+  text-align: center;
+}
+
+.health-breakdown__value {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.health-breakdown__score-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.health-breakdown__bar-bg {
+  flex: 1;
+  height: 8px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.health-breakdown__bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease-out;
+}
+
+.health-breakdown__bar--healthy {
+  background-color: #28a745;
+}
+
+.health-breakdown__bar--warning {
+  background-color: #ffc107;
+}
+
+.health-breakdown__bar--critical {
+  background-color: #dc3545;
+}
+
+.health-breakdown__score-value {
+  min-width: 28px;
+  text-align: right;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+/* Dark mode */
+.dark-mode .health-breakdown__header {
+  color: #aaa;
+  border-bottom-color: #444;
+}
+
+.dark-mode .health-breakdown__row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .health-breakdown__row--low {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.dark-mode .health-breakdown__row--low:hover {
+  background-color: rgba(244, 67, 54, 0.15);
+}
+
+.dark-mode .health-breakdown__weight {
+  color: #999;
+}
+
+.dark-mode .health-breakdown__bar-bg {
+  background-color: #333;
+}
+
+.dark-mode .health-breakdown__bar--healthy {
+  background-color: #4caf50;
+}
+
+.dark-mode .health-breakdown__bar--warning {
+  background-color: #ffca28;
+}
+
+.dark-mode .health-breakdown__bar--critical {
+  background-color: #f44336;
+}
+
+/* Expand/collapse animation */
+@keyframes healthBreakdownSlideIn {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 300px;
+  }
+}
+
+.health-breakdown {
+  animation: healthBreakdownSlideIn 0.3s ease-out;
+  overflow: hidden;
+}
