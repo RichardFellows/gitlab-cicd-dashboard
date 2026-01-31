@@ -10,9 +10,13 @@ import StaleDataBanner from './components/StaleDataBanner';
 import { logger } from './utils/logger';
 import ReadinessView from './components/ReadinessView';
 import ComparisonView from './components/ComparisonView';
+import NotificationBell from './components/NotificationBell';
+import NotificationSettings from './components/NotificationSettings';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import { AUTO_REFRESH_OPTIONS } from './utils/constants';
-import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv, SavedConfigEntry } from './types';
+import { evaluateRules, sendBrowserNotification } from './utils/notificationEngine';
+import * as notificationStorage from './utils/notificationStorage';
+import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv, SavedConfigEntry, NotificationRule, NotificationEntry } from './types';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
 import { loadConfig, saveConfig, clearConfig, isConfigReady, createDefaultConfig } from './utils/configMigration';
@@ -59,6 +63,13 @@ const App = () => {
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
   const staleDismissedRef = useRef(false);
   const [staleDismissed, setStaleDismissed] = useState(false);
+
+  // Notification state
+  const [notificationRules, setNotificationRules] = useState<NotificationRule[]>([]);
+  const [notificationHistory, setNotificationHistory] = useState<NotificationEntry[]>([]);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationMuted, setNotificationMuted] = useState(false);
+  const previousMetricsRef = useRef<DashboardMetrics | null>(null);
 
   // Saved config state
   const [savedConfigs, setSavedConfigs] = useState<SavedConfigEntry[]>([]);
@@ -147,6 +158,12 @@ const App = () => {
     if (savedViewType) setViewType(savedViewType);
     setDarkMode(savedDarkMode);
     setSettingsCollapsed(savedSettingsCollapsed);
+
+    // Load notification settings
+    setNotificationRules(notificationStorage.getRules());
+    setNotificationHistory(notificationStorage.getHistory());
+    setNotificationsEnabled(notificationStorage.isEnabled());
+    setNotificationMuted(notificationStorage.isMuted());
 
     // Auto-load dashboard if config is ready
     if (isConfigReady(savedConfig)) {
@@ -430,6 +447,30 @@ const App = () => {
       setLastUpdated(new Date());
       setSettingsCollapsed(true);
       localStorage.setItem(STORAGE_KEYS.SETTINGS_COLLAPSED, 'true');
+
+      // Evaluate notification rules
+      if (notificationsEnabled) {
+        try {
+          const currentRules = notificationStorage.getRules();
+          const fired = evaluateRules(
+            currentRules,
+            validatedMetrics,
+            previousMetricsRef.current,
+            deploymentCache
+          );
+          if (fired.length > 0) {
+            const currentMuted = notificationStorage.isMuted();
+            for (const entry of fired) {
+              sendBrowserNotification(entry, currentMuted);
+            }
+            notificationStorage.appendHistory(fired);
+            setNotificationHistory(notificationStorage.getHistory());
+          }
+        } catch (err) {
+          logger.error('Notification evaluation error:', err);
+        }
+      }
+      previousMetricsRef.current = validatedMetrics;
 
       // Fetch aggregate trends after main metrics
       fetchAggregateTrends(validatedMetrics.projects, cfg.timeframe);
@@ -728,6 +769,48 @@ const App = () => {
     setStatusFilter(filter);
   };
 
+  // Notification handlers
+  const handleToggleNotificationsEnabled = useCallback(() => {
+    const newVal = !notificationsEnabled;
+    setNotificationsEnabled(newVal);
+    notificationStorage.setEnabled(newVal);
+  }, [notificationsEnabled]);
+
+  const handleToggleNotificationMuted = useCallback(() => {
+    const newVal = !notificationMuted;
+    setNotificationMuted(newVal);
+    notificationStorage.setMuted(newVal);
+  }, [notificationMuted]);
+
+  const handleAddNotificationRule = useCallback((rule: Omit<NotificationRule, 'id'>) => {
+    const created = notificationStorage.addRule(rule);
+    if (created) {
+      setNotificationRules(notificationStorage.getRules());
+    }
+  }, []);
+
+  const handleUpdateNotificationRule = useCallback((id: string, updates: Partial<NotificationRule>) => {
+    notificationStorage.updateRule(id, updates);
+    setNotificationRules(notificationStorage.getRules());
+  }, []);
+
+  const handleDeleteNotificationRule = useCallback((id: string) => {
+    notificationStorage.deleteRule(id);
+    setNotificationRules(notificationStorage.getRules());
+  }, []);
+
+  const handleMarkAllNotificationsRead = useCallback(() => {
+    notificationStorage.markAllRead();
+    setNotificationHistory(notificationStorage.getHistory());
+  }, []);
+
+  const handleNotificationEntryClick = useCallback((entry: NotificationEntry) => {
+    setSelectedProjectId(entry.projectId);
+    window.location.hash = `project/${entry.projectId}`;
+  }, []);
+
+  const unreadNotificationCount = notificationHistory.filter(e => !e.read).length;
+
   // Clear saved settings
   const clearSettings = () => {
     clearConfig();
@@ -803,6 +886,15 @@ const App = () => {
               darkMode={darkMode}
             />
           )}
+          {metrics && notificationsEnabled && (
+            <NotificationBell
+              history={notificationHistory}
+              unreadCount={unreadNotificationCount}
+              onMarkAllRead={handleMarkAllNotificationsRead}
+              onClickEntry={handleNotificationEntryClick}
+              darkMode={darkMode}
+            />
+          )}
           <button
             className="icon-btn settings-btn"
             onClick={handleSettingsToggle}
@@ -847,6 +939,17 @@ const App = () => {
           onSaveConfig={() => setShowSaveDialog(true)}
           onUpdateConfig={handleUpdateConfig}
           onManageConfigs={() => setShowConfigManager(true)}
+        />
+        <NotificationSettings
+          enabled={notificationsEnabled}
+          muted={notificationMuted}
+          rules={notificationRules}
+          projects={metrics?.projects || []}
+          onToggleEnabled={handleToggleNotificationsEnabled}
+          onToggleMuted={handleToggleNotificationMuted}
+          onAddRule={handleAddNotificationRule}
+          onUpdateRule={handleUpdateNotificationRule}
+          onDeleteRule={handleDeleteNotificationRule}
         />
         <div className="settings-footer">
           <button className="text-btn danger" onClick={clearSettings}>
