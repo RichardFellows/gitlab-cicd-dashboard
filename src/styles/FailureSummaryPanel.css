@@ -1,0 +1,96 @@
+/* FailureSummaryPanel styles */
+.failure-summary-panel {
+  margin-top: 16px;
+}
+
+.failure-summary-empty {
+  text-align: center;
+  padding: 16px;
+  color: #28a745;
+  font-weight: 500;
+}
+
+.failure-summary-panel.dark .failure-summary-empty {
+  color: #3fb950;
+}
+
+.failure-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.failure-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border: 1px solid #dc354533;
+  border-radius: 6px;
+  background: #dc354508;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.failure-summary-item:hover {
+  background: #dc354515;
+  border-color: #dc354566;
+}
+
+.failure-summary-panel.dark .failure-summary-item {
+  background: #f8514912;
+  border-color: #f8514933;
+  color: #c9d1d9;
+}
+
+.failure-summary-panel.dark .failure-summary-item:hover {
+  background: #f8514922;
+  border-color: #f8514966;
+}
+
+.failure-summary-project-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #dc3545;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.failure-summary-panel.dark .failure-summary-project-name {
+  color: #f85149;
+}
+
+.failure-summary-jobs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #666;
+  text-align: right;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.failure-summary-panel.dark .failure-summary-jobs {
+  color: #8b949e;
+}
+
+.failure-count {
+  white-space: nowrap;
+  font-weight: 500;
+  color: #dc3545;
+}
+
+.failure-summary-panel.dark .failure-count {
+  color: #f85149;
+}
+
+.failure-job-names {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 250px;
+}
