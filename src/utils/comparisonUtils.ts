@@ -53,9 +53,11 @@ export function formatDateLabels(labels: string[]): string[] {
   return labels.map(dateStr => {
     const parts = dateStr.split('-');
     if (parts.length === 3) {
-      const month = parseInt(parts[1], 10) - 1;
+      const month = parseInt(parts[1], 10);
       const day = parseInt(parts[2], 10);
-      return `${monthNames[month]} ${day}`;
+      if (!isNaN(month) && !isNaN(day) && month >= 1 && month <= 12) {
+        return `${monthNames[month - 1]} ${day}`;
+      }
     }
     return dateStr;
   });
