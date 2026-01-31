@@ -49,6 +49,11 @@ const App = () => {
   // Environment view state - deployment cache
   const [deploymentCache, setDeploymentCache] = useState<Map<number, DeploymentsByEnv>>(new Map());
 
+  // Comparison view state
+  const [selectedForComparison, setSelectedForComparison] = useState<Set<number>>(new Set());
+  const [comparisonMode, setComparisonMode] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+
   // Auto-refresh state
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
   const staleDismissedRef = useRef(false);
@@ -603,6 +608,55 @@ const App = () => {
     };
     reader.readAsText(file);
   }, []);
+
+  // Comparison handlers
+  const toggleComparisonSelection = useCallback((projectId: number) => {
+    setSelectedForComparison(prev => {
+      const next = new Set(prev);
+      if (next.has(projectId)) {
+        next.delete(projectId);
+      } else if (next.size < 4) {
+        next.add(projectId);
+      }
+      return next;
+    });
+  }, []);
+
+  const enterComparisonMode = useCallback(() => {
+    if (selectedForComparison.size >= 2) {
+      setComparisonMode(true);
+    }
+  }, [selectedForComparison.size]);
+
+  const exitComparisonMode = useCallback(() => {
+    setComparisonMode(false);
+    setSelectedForComparison(new Set());
+    setSelectionMode(false);
+  }, []);
+
+  const toggleSelectionMode = useCallback(() => {
+    setSelectionMode(prev => {
+      if (prev) {
+        // Exiting selection mode clears selection
+        setSelectedForComparison(new Set());
+      }
+      return !prev;
+    });
+  }, []);
+
+  const clearComparisonSelection = useCallback(() => {
+    setSelectedForComparison(new Set());
+  }, []);
+
+  // Comparison handlers used in render (suppress unused-var during incremental build)
+  void toggleComparisonSelection;
+  void enterComparisonMode;
+  void exitComparisonMode;
+  void toggleSelectionMode;
+  void clearComparisonSelection;
+  void comparisonMode;
+  void selectionMode;
+  void selectedForComparison;
 
   // Handle load button click
   const handleLoad = useCallback(() => {
