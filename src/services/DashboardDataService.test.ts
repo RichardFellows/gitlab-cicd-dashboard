@@ -807,4 +807,243 @@ Thanks!`;
       expect(result).toHaveLength(0);
     });
   });
+
+  // ============================================
+  // Deployment Timeline Tests (Priority 8)
+  // ============================================
+
+  describe('getProjectDeploymentHistory', () => {
+    it('returns all deploy jobs (not just latest per env)', async () => {
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+      vi.mocked(mockGitLabService.getProjectJobs).mockResolvedValueOnce([
+        {
+          id: 10,
+          name: 'deploy-to-dev',
+          stage: 'deploy',
+          status: 'success',
+          web_url: 'https://gitlab.com/job/10',
+          created_at: now.toISOString(),
+          finished_at: now.toISOString(),
+          pipeline: { id: 200, iid: 60, ref: 'main', web_url: 'https://gitlab.com/pipeline/200' },
+        },
+        {
+          id: 11,
+          name: 'deploy-to-dev',
+          stage: 'deploy',
+          status: 'success',
+          web_url: 'https://gitlab.com/job/11',
+          created_at: yesterday.toISOString(),
+          finished_at: yesterday.toISOString(),
+          pipeline: { id: 199, iid: 59, ref: 'main', web_url: 'https://gitlab.com/pipeline/199' },
+        },
+        {
+          id: 12,
+          name: 'deploy-to-uat',
+          stage: 'deploy',
+          status: 'failed',
+          web_url: 'https://gitlab.com/job/12',
+          created_at: now.toISOString(),
+          finished_at: now.toISOString(),
+          pipeline: { id: 200, iid: 60, ref: 'feature/TEST-1', web_url: '' },
+        },
+        {
+          id: 13,
+          name: 'build',
+          stage: 'build',
+          status: 'success',
+          web_url: 'https://gitlab.com/job/13',
+          created_at: now.toISOString(),
+        },
+      ] as (Job & { pipeline: { id: number; iid: number; ref: string; web_url: string } })[]);
+
+      vi.mocked(mockGitLabService.getJobArtifact)
+        .mockResolvedValueOnce({ version: '2.0.1' })
+        .mockResolvedValueOnce({ version: '2.0.0' })
+        .mockResolvedValueOnce(null);
+
+      const result = await service.getProjectDeploymentHistory(123, 'test-project');
+
+      // Should return 3 deploy jobs (not the build job), all including both dev deploys
+      expect(result).toHaveLength(3);
+      expect(result[0].projectId).toBe(123);
+      expect(result[0].projectName).toBe('test-project');
+      expect(result.every(e => e.environment === 'dev' || e.environment === 'uat')).toBe(true);
+    });
+
+    it('filters out jobs older than 30 days', async () => {
+      const now = new Date();
+      const thirtyOneDaysAgo = new Date(now.getTime() - 31 * 24 * 60 * 60 * 1000);
+
+      vi.mocked(mockGitLabService.getProjectJobs).mockResolvedValueOnce([
+        {
+          id: 20,
+          name: 'deploy-to-dev',
+          stage: 'deploy',
+          status: 'success',
+          web_url: 'https://gitlab.com/job/20',
+          created_at: now.toISOString(),
+          finished_at: now.toISOString(),
+          pipeline: { id: 300, iid: 70, ref: 'main', web_url: '' },
+        },
+        {
+          id: 21,
+          name: 'deploy-to-dev',
+          stage: 'deploy',
+          status: 'success',
+          web_url: 'https://gitlab.com/job/21',
+          created_at: thirtyOneDaysAgo.toISOString(),
+          finished_at: thirtyOneDaysAgo.toISOString(),
+          pipeline: { id: 200, iid: 50, ref: 'main', web_url: '' },
+        },
+      ] as (Job & { pipeline: { id: number; iid: number; ref: string; web_url: string } })[]);
+
+      vi.mocked(mockGitLabService.getJobArtifact).mockResolvedValue({ version: '1.0.0' });
+
+      const result = await service.getProjectDeploymentHistory(123, 'test-project');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].jobId).toBe(20);
+    });
+
+    it('falls back to pipeline IID when artifact unavailable', async () => {
+      const now = new Date();
+
+      vi.mocked(mockGitLabService.getProjectJobs).mockResolvedValueOnce([
+        {
+          id: 30,
+          name: 'deploy-to-prod',
+          stage: 'deploy',
+          status: 'success',
+          web_url: 'https://gitlab.com/job/30',
+          created_at: now.toISOString(),
+          finished_at: now.toISOString(),
+          pipeline: { id: 400, iid: 80, ref: 'main', web_url: '' },
+        },
+      ] as (Job & { pipeline: { id: number; iid: number; ref: string; web_url: string } })[]);
+
+      vi.mocked(mockGitLabService.getJobArtifact).mockResolvedValueOnce(null);
+
+      const result = await service.getProjectDeploymentHistory(123, 'test-project');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].version).toBe('#80');
+    });
+
+    it('returns empty array on API error', async () => {
+      vi.mocked(mockGitLabService.getProjectJobs).mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await service.getProjectDeploymentHistory(123, 'test-project');
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('detectRollbacks', () => {
+    it('marks rollback when version decreases for same project+env', () => {
+      const history = [
+        makeHistoryEntry(1, 'proj-a', 'dev', '2.0.0', '2026-01-15T10:00:00Z'),
+        makeHistoryEntry(1, 'proj-a', 'dev', '1.9.0', '2026-01-15T11:00:00Z'),
+      ];
+
+      service.detectRollbacks(history);
+
+      expect(history[0].isRollback).toBe(false);
+      // Entry at 11:00 has version 1.9.0 which is less than 2.0.0 at 10:00
+      expect(history[1].isRollback).toBe(true);
+      expect(history[1].rolledBackFrom).toBe('2.0.0');
+    });
+
+    it('does not mark rollback when versions increase', () => {
+      const history = [
+        makeHistoryEntry(1, 'proj-a', 'dev', '1.0.0', '2026-01-15T10:00:00Z'),
+        makeHistoryEntry(1, 'proj-a', 'dev', '1.1.0', '2026-01-15T11:00:00Z'),
+        makeHistoryEntry(1, 'proj-a', 'dev', '1.2.0', '2026-01-15T12:00:00Z'),
+      ];
+
+      service.detectRollbacks(history);
+
+      expect(history.every(e => !e.isRollback)).toBe(true);
+    });
+
+    it('does not mark rollback when same version redeployed', () => {
+      const history = [
+        makeHistoryEntry(1, 'proj-a', 'dev', '1.0.0', '2026-01-15T10:00:00Z'),
+        makeHistoryEntry(1, 'proj-a', 'dev', '1.0.0', '2026-01-15T11:00:00Z'),
+      ];
+
+      service.detectRollbacks(history);
+
+      expect(history.every(e => !e.isRollback)).toBe(true);
+    });
+
+    it('tracks rollbacks per environment independently', () => {
+      const history = [
+        makeHistoryEntry(1, 'proj-a', 'dev', '2.0.0', '2026-01-15T10:00:00Z'),
+        makeHistoryEntry(1, 'proj-a', 'dev', '1.0.0', '2026-01-15T11:00:00Z'), // rollback
+        makeHistoryEntry(1, 'proj-a', 'uat', '1.0.0', '2026-01-15T10:00:00Z'),
+        makeHistoryEntry(1, 'proj-a', 'uat', '2.0.0', '2026-01-15T11:00:00Z'), // not rollback
+      ];
+
+      service.detectRollbacks(history);
+
+      expect(history[1].isRollback).toBe(true); // dev rollback
+      expect(history[3].isRollback).toBe(false); // uat upgrade
+    });
+
+    it('tracks rollbacks per project independently', () => {
+      const history = [
+        makeHistoryEntry(1, 'proj-a', 'dev', '2.0.0', '2026-01-15T10:00:00Z'),
+        makeHistoryEntry(1, 'proj-a', 'dev', '1.0.0', '2026-01-15T11:00:00Z'), // rollback
+        makeHistoryEntry(2, 'proj-b', 'dev', '1.0.0', '2026-01-15T10:00:00Z'),
+        makeHistoryEntry(2, 'proj-b', 'dev', '2.0.0', '2026-01-15T11:00:00Z'), // not rollback
+      ];
+
+      service.detectRollbacks(history);
+
+      expect(history[1].isRollback).toBe(true);
+      expect(history[3].isRollback).toBe(false);
+    });
+
+    it('skips null versions gracefully', () => {
+      const history = [
+        makeHistoryEntry(1, 'proj-a', 'dev', '2.0.0', '2026-01-15T10:00:00Z'),
+        makeHistoryEntry(1, 'proj-a', 'dev', null, '2026-01-15T11:00:00Z'),
+        makeHistoryEntry(1, 'proj-a', 'dev', '1.0.0', '2026-01-15T12:00:00Z'),
+      ];
+
+      service.detectRollbacks(history);
+
+      // null version entries should not be marked as rollback
+      expect(history[1].isRollback).toBe(false);
+      // After null, can't compare so shouldn't mark as rollback either
+      expect(history[2].isRollback).toBe(false);
+    });
+  });
 });
+
+// Helper to create DeploymentHistoryEntry for tests
+function makeHistoryEntry(
+  projectId: number,
+  projectName: string,
+  env: 'dev' | 'sit' | 'uat' | 'prod',
+  version: string | null,
+  timestamp: string
+) {
+  return {
+    jobId: Math.floor(Math.random() * 10000),
+    jobName: `deploy-to-${env}`,
+    environment: env as import('../types').EnvironmentName,
+    version,
+    status: 'success' as import('../types').DeploymentStatus,
+    timestamp,
+    pipelineId: 100,
+    pipelineRef: 'main',
+    jobUrl: 'https://gitlab.com/job/1',
+    projectId,
+    projectName,
+    isRollback: false,
+    rolledBackFrom: undefined,
+  };
+}
