@@ -416,7 +416,7 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .comparison-charts__grid {
     grid-template-columns: 1fr;
   }
@@ -429,6 +429,28 @@
   .comparison-action-bar {
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  .comparison-table__wrapper,
+  .comparison-deployments__wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .comparison-table__table,
+  .comparison-deployments__table {
+    min-width: 500px;
+  }
+}
+
+@media (max-width: 480px) {
+  .comparison-header__projects {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .comparison-charts__panel {
+    padding: 10px;
   }
 }
 

@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Project, DashboardMetrics, ViewType, AggregatedTrend } from '../types';
+import { Project, DashboardMetrics, ViewType } from '../types';
 
 // Mock chart.js and react-chartjs-2
 vi.mock('chart.js', () => ({
