@@ -4,6 +4,7 @@ import { formatDuration, getSuccessRateClass, categorizeProject } from '../utils
 import { Chart, registerables } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import MetricsPanel from './MetricsPanel';
+import PortfolioHealthChart from './PortfolioHealthChart';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -149,6 +150,9 @@ const SummarySection: FC<SummarySectionProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Portfolio Health */}
+      <PortfolioHealthChart projects={metrics.projects} darkMode={darkMode} />
 
       {/* Aggregate Trend Charts */}
       <MetricsPanel
