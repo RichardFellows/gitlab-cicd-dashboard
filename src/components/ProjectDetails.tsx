@@ -1,8 +1,12 @@
-import { FC, useState, useEffect } from 'react';
-import { Project, MergeRequest, STORAGE_KEYS } from '../types';
+import { FC, useState, useEffect, useCallback, useMemo } from 'react';
+import { Project, MergeRequest, FailureCategory, FailureFrequency, Job, STORAGE_KEYS } from '../types';
 import GitLabApiService from '../services/GitLabApiService';
 import DashboardDataService from '../services/DashboardDataService';
 import ProjectMetricsTrends from './ProjectMetricsTrends';
+import JobLogViewer from './JobLogViewer';
+import FailureCategoryBadge from './FailureCategoryBadge';
+import FailureFrequencyIndicator from './FailureFrequencyIndicator';
+import { calculateFailureFrequency } from '../utils/failureDiagnosis';
 import { logger } from '../utils/logger';
 import {
   formatPipelineStatus,
@@ -34,13 +38,46 @@ const ProjectDetails: FC<ProjectDetailsProps> = ({
   const [mergeRequests, setMergeRequests] = useState<MergeRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Failure diagnosis state
+  const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
+  const [jobCategories, setJobCategories] = useState<Map<number, FailureCategory>>(new Map());
+  const [frequencies, setFrequencies] = useState<Map<string, FailureFrequency>>(new Map());
+  const [projectJobs, setProjectJobs] = useState<Job[]>([]);
 
   useEffect(() => {
     if (project) {
       loadMergeRequests(project.id);
+      loadProjectJobs(project.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project]);
+
+  // Compute failure frequencies when projectJobs are loaded
+  const failedJobs = useMemo(
+    () => project?.metrics.mainBranchPipeline.failedJobs ?? [],
+    [project]
+  );
+
+  useEffect(() => {
+    if (projectJobs.length > 0 && failedJobs.length > 0) {
+      const freqMap = new Map<string, FailureFrequency>();
+      for (const job of failedJobs) {
+        if (!freqMap.has(job.name)) {
+          freqMap.set(job.name, calculateFailureFrequency(projectJobs, job.name));
+        }
+      }
+      setFrequencies(freqMap);
+    }
+  }, [projectJobs, failedJobs]);
+
+  const loadProjectJobs = async (projectId: number) => {
+    try {
+      const jobs = await gitLabService.getProjectJobs(projectId, { per_page: 50 });
+      setProjectJobs(jobs);
+    } catch (err) {
+      logger.error(`Failed to load project jobs for frequency analysis:`, err);
+    }
+  };
 
   const loadMergeRequests = async (projectId: number) => {
     try {
@@ -49,7 +86,6 @@ const ProjectDetails: FC<ProjectDetailsProps> = ({
       
       // Ensure the API service has the token set correctly
       if (!gitLabService.privateToken) {
-        // Try to get the token from localStorage using the correct storage key
         const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
         if (savedToken) {
           gitLabService.setPrivateToken(savedToken);
@@ -75,6 +111,26 @@ const ProjectDetails: FC<ProjectDetailsProps> = ({
       setLoading(false);
     }
   };
+
+  const toggleLogViewer = useCallback((jobId: number) => {
+    setExpandedLogs(prev => {
+      const next = new Set(prev);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleCategoryDetected = useCallback((jobId: number, category: FailureCategory) => {
+    setJobCategories(prev => {
+      const next = new Map(prev);
+      next.set(jobId, category);
+      return next;
+    });
+  }, []);
 
   if (!project) {
     return (
@@ -123,25 +179,67 @@ const ProjectDetails: FC<ProjectDetailsProps> = ({
               </span>
             </div>
             
-            {project.metrics.mainBranchPipeline.failedJobs && project.metrics.mainBranchPipeline.failedJobs.length > 0 && (
+            {failedJobs.length > 0 && (
               <div className="failed-jobs">
                 <details open>
-                  <summary className="failed-jobs-summary">Failed Jobs ({project.metrics.mainBranchPipeline.failedJobs.length})</summary>
+                  <summary className="failed-jobs-summary">Failed Jobs ({failedJobs.length})</summary>
                   <div className="failed-jobs-list">
-                    {project.metrics.mainBranchPipeline.failedJobs.map(job => (
-                      <div key={job.id} className="job-item failed">
-                        <div className="job-header">
-                          <span className="job-name">{job.name}</span>
-                          <span className="job-stage">{job.stage}</span>
-                        </div>
-                        <div className="job-details">
-                          <div className="job-reason">{job.failure_reason || 'Unknown failure'}</div>
-                          <div className="job-actions">
-                            <a href={job.web_url} target="_blank" className="job-link" rel="noreferrer">View Job</a>
+                    {failedJobs.map(job => {
+                      const category = jobCategories.get(job.id);
+                      const freq = frequencies.get(job.name);
+                      const isExpanded = expandedLogs.has(job.id);
+
+                      return (
+                        <div key={job.id} className="job-item failed">
+                          <div className="job-header">
+                            <span className="job-name">{job.name}</span>
+                            <span className="job-stage">{job.stage}</span>
+                            {category && (
+                              <FailureCategoryBadge category={category} compact />
+                            )}
+                            {freq && freq.totalCount > 0 && (
+                              <FailureFrequencyIndicator
+                                failedCount={freq.failedCount}
+                                totalCount={freq.totalCount}
+                                compact
+                              />
+                            )}
                           </div>
+                          <div className="job-details">
+                            <div className="job-reason">{job.failure_reason || 'Unknown failure'}</div>
+                            <div className="job-actions">
+                              <button
+                                className="job-log-toggle"
+                                onClick={() => toggleLogViewer(job.id)}
+                                style={{
+                                  background: 'none',
+                                  border: '1px solid #666',
+                                  borderRadius: '4px',
+                                  padding: '2px 8px',
+                                  cursor: 'pointer',
+                                  fontSize: '11px',
+                                  color: darkMode ? '#c9d1d9' : '#333',
+                                  marginRight: '6px',
+                                }}
+                              >
+                                {isExpanded ? '▼ Hide Log' : '▶ View Log'}
+                              </button>
+                              <a href={job.web_url} target="_blank" className="job-link" rel="noreferrer">View Job</a>
+                            </div>
+                          </div>
+                          {isExpanded && (
+                            <JobLogViewer
+                              projectId={project.id}
+                              jobId={job.id}
+                              jobWebUrl={job.web_url}
+                              gitLabService={gitLabService}
+                              darkMode={darkMode}
+                              onCategoryDetected={(cat) => handleCategoryDetected(job.id, cat)}
+                            />
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </details>
               </div>
