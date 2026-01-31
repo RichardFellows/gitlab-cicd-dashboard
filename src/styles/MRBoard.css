@@ -593,6 +593,34 @@
   color: #adb5bd;
 }
 
+.dark-mode .mr-board__error {
+  color: #f44336;
+}
+
+.dark-mode .mr-card__failed-jobs {
+  color: #f44336;
+}
+
+.dark-mode .mr-card-details__job-failure {
+  color: #f44336;
+}
+
+.dark-mode .mr-card-details__pipeline-jobs li a {
+  color: #9d7fe8;
+}
+
+.dark-mode .mr-board-column__header {
+  color: #e9ecef;
+}
+
+.dark-mode .mr-board__count {
+  color: #adb5bd;
+}
+
+.dark-mode .mr-card__title a {
+  color: #e9ecef;
+}
+
 /* ============================================
    Responsive
    ============================================ */
