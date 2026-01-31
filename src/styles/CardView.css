@@ -78,6 +78,12 @@
   margin-bottom: 10px;
 }
 
+.project-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Metric alerts in card view */
 .project-card .metric-alerts {
   display: flex;

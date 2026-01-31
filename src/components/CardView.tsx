@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useState, useMemo } from 'react';
 import { Project } from '../types';
 import {
   categorizeProject,
@@ -11,7 +11,10 @@ import {
   escapeHtml
 } from '../utils/formatting';
 import MetricAlert from './MetricAlert';
+import HealthBadge from './HealthBadge';
+import HealthBreakdown from './HealthBreakdown';
 import { shouldShowFailureRateAlert, shouldShowCoverageAlert } from '../utils/constants';
+import { calculateHealthScore } from '../utils/healthScore';
 import '../styles/CardView.css';
 
 interface CardViewProps {
@@ -112,6 +115,10 @@ interface ProjectCardProps {
 
 const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
   const category = categorizeProject(project);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+
+  // Calculate health score
+  const health = useMemo(() => calculateHealthScore(project.metrics), [project.metrics]);
 
   // Calculate failure rate for alerts
   const failureRate = project.metrics.totalPipelines > 0
@@ -169,15 +176,23 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
             {project.name}
           </a>
         </h3>
-        <a
-          href={project.web_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="gitlab-link"
-          title="Open in GitLab"
-        >
-          <i className="gitlab-icon">↗️</i>
-        </a>
+        <div className="project-header-actions">
+          <HealthBadge
+            score={health.total}
+            band={health.band}
+            size="sm"
+            onClick={() => setShowBreakdown(!showBreakdown)}
+          />
+          <a
+            href={project.web_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="gitlab-link"
+            title="Open in GitLab"
+          >
+            <i className="gitlab-icon">↗️</i>
+          </a>
+        </div>
       </div>
 
       {/* Metric Alerts */}
@@ -190,6 +205,11 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
             <MetricAlert type="low-coverage" value={project.metrics.codeCoverage.coverage} />
           )}
         </div>
+      )}
+
+      {/* Health Score Breakdown */}
+      {showBreakdown && (
+        <HealthBreakdown signals={health.signals} />
       )}
 
       <div className="project-metrics">
