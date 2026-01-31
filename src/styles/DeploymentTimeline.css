@@ -695,3 +695,36 @@
 .dark-mode .environment-view__tab--active::after {
   background: #9d7fe8;
 }
+
+.environment-view__export-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.environment-view__export-btn:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+.environment-view__export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dark-mode .environment-view__export-btn {
+  background: #2d2d2d;
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+.dark-mode .environment-view__export-btn:hover:not(:disabled) {
+  background: #3a3a3a;
+}

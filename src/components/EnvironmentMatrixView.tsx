@@ -4,6 +4,7 @@ import DashboardDataService from '../services/DashboardDataService';
 import DeploymentCell from './DeploymentCell';
 import DeploymentDetails from './DeploymentDetails';
 import DeploymentTimeline from './DeploymentTimeline';
+import { generateEnvironmentCsv, downloadCsv } from '../utils/exportCsv';
 import '../styles/EnvironmentMatrix.css';
 import '../styles/DeploymentTimeline.css';
 
@@ -33,6 +34,12 @@ const EnvironmentMatrixView: FC<EnvironmentMatrixViewProps> = ({
 }) => {
   const [subView, setSubView] = useState<SubView>('matrix');
 
+  const handleExportCsv = useCallback(() => {
+    const csv = generateEnvironmentCsv(deploymentCache, projects);
+    const date = new Date().toISOString().split('T')[0];
+    downloadCsv(csv, `gitlab-deployments-${date}.csv`);
+  }, [deploymentCache, projects]);
+
   // Empty state
   if (projects.length === 0) {
     return (
@@ -59,6 +66,15 @@ const EnvironmentMatrixView: FC<EnvironmentMatrixViewProps> = ({
           type="button"
         >
           Timeline
+        </button>
+        <button
+          className="environment-view__export-btn"
+          onClick={handleExportCsv}
+          disabled={deploymentCache.size === 0}
+          title="Export deployment data as CSV"
+          type="button"
+        >
+          📊 Export CSV
         </button>
       </div>
 
