@@ -1,5 +1,6 @@
 import GitLabApiService from './GitLabApiService';
-import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject, MainBranchTrend, CoverageTrend, AggregatedTrend, CoverageStatus, EnvironmentName, Deployment, DeploymentsByEnv, DeployInfoArtifact, DeploymentStatus, ParsedSignoff, Signoff, PostDeployTestStatus, ReadinessStatus, VersionReadiness, Project, MRWithProject } from '../types';
+import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject, MainBranchTrend, CoverageTrend, AggregatedTrend, CoverageStatus, EnvironmentName, Deployment, DeploymentsByEnv, DeployInfoArtifact, DeploymentStatus, DeploymentHistoryEntry, ParsedSignoff, Signoff, PostDeployTestStatus, ReadinessStatus, VersionReadiness, Project, MRWithProject } from '../types';
+import { compareVersions } from '../utils/versionCompare';
 import { METRICS_THRESHOLDS, DEPLOY_JOB_REGEX, JIRA_KEY_REGEX, SIGNOFF_REGEX, CODEOWNERS_USER_REGEX } from '../utils/constants';
 import { logger } from '../utils/logger';
 
@@ -1103,6 +1104,144 @@ class DashboardDataService {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
+
+  // ============================================
+  // Deployment Timeline Methods (Priority 8)
+  // ============================================
+
+  /**
+   * Get all recent deployment jobs for a project (not just latest per env).
+   * Returns multiple deployments per environment, sorted by timestamp descending.
+   * @param projectId - The GitLab project ID
+   * @param projectName - The project name for display
+   * @returns Array of deployment history entries
+   */
+  async getProjectDeploymentHistory(
+    projectId: number,
+    projectName: string
+  ): Promise<DeploymentHistoryEntry[]> {
+    try {
+      const jobs = await this.gitLabService.getProjectJobs(projectId, {
+        scope: ['success', 'failed'],
+        per_page: 100,
+      });
+
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const deployments: DeploymentHistoryEntry[] = [];
+
+      for (const job of jobs) {
+        const environment = this.parseDeployJobName(job.name);
+        if (!environment) continue;
+
+        // Filter to last 30 days
+        const jobTimestamp = job.finished_at || job.created_at;
+        if (new Date(jobTimestamp) < thirtyDaysAgo) continue;
+
+        const pipelineRef = (job as JobWithPipeline).pipeline?.ref || '';
+        const jiraKey = this.extractJiraKey(pipelineRef);
+
+        deployments.push({
+          jobId: job.id,
+          jobName: job.name,
+          environment,
+          version: null,
+          status: job.status as DeploymentStatus,
+          timestamp: jobTimestamp,
+          pipelineId: (job as JobWithPipeline).pipeline?.id || 0,
+          pipelineIid: (job as JobWithPipeline).pipeline?.iid,
+          pipelineRef,
+          jobUrl: job.web_url,
+          pipelineUrl: (job as JobWithPipeline).pipeline?.web_url,
+          jiraKey,
+          projectId,
+          projectName,
+          isRollback: false,
+          rolledBackFrom: undefined,
+        });
+      }
+
+      // Resolve versions from artifacts in batches (limit concurrency to 5)
+      const batchSize = 5;
+      for (let i = 0; i < deployments.length; i += batchSize) {
+        const batch = deployments.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(async (deployment) => {
+            try {
+              const artifact = await this.gitLabService.getJobArtifact<DeployInfoArtifact>(
+                projectId,
+                deployment.jobId,
+                'deploy-info.json'
+              );
+              if (artifact && artifact.version) {
+                deployment.version = artifact.version;
+              } else {
+                deployment.version = deployment.pipelineIid
+                  ? `#${deployment.pipelineIid}`
+                  : null;
+              }
+            } catch {
+              deployment.version = deployment.pipelineIid
+                ? `#${deployment.pipelineIid}`
+                : null;
+            }
+          })
+        );
+      }
+
+      // Sort by timestamp descending (newest first)
+      deployments.sort((a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+
+      return deployments;
+    } catch (error) {
+      logger.error(`Failed to get deployment history for project ${projectId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Detect rollbacks in deployment history.
+   * A rollback is when a deployment's version is lower than the previous
+   * deployment for the same project+environment.
+   * @param history - Array of deployment history entries
+   * @returns The same array with isRollback and rolledBackFrom set
+   */
+  detectRollbacks(history: DeploymentHistoryEntry[]): DeploymentHistoryEntry[] {
+    // Group by projectId + environment
+    const groups = new Map<string, DeploymentHistoryEntry[]>();
+
+    for (const entry of history) {
+      const key = `${entry.projectId}:${entry.environment}`;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(entry);
+    }
+
+    // Within each group, sort by timestamp ascending and detect rollbacks
+    for (const entries of groups.values()) {
+      entries.sort((a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
+      for (let i = 1; i < entries.length; i++) {
+        const prev = entries[i - 1];
+        const curr = entries[i];
+
+        // Skip if either version is null or they can't be compared
+        if (curr.version === null || prev.version === null) continue;
+
+        const comparison = compareVersions(curr.version, prev.version);
+        if (comparison < 0) {
+          curr.isRollback = true;
+          curr.rolledBackFrom = prev.version;
+        }
+      }
+    }
+
+    return history;
   }
 
   // ============================================
