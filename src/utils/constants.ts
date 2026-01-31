@@ -75,6 +75,22 @@ export const CHART_COLORS_DARK = {
 };
 
 /**
+ * Auto-refresh interval options (value in milliseconds, 0 = off)
+ */
+export const AUTO_REFRESH_OPTIONS = [
+  { label: 'Off', value: 0 },
+  { label: '2 min', value: 2 * 60 * 1000 },
+  { label: '5 min', value: 5 * 60 * 1000 },
+  { label: '15 min', value: 15 * 60 * 1000 },
+] as const;
+
+/** Threshold in ms — data older than this is considered "stale" (30 minutes) */
+export const STALE_DATA_THRESHOLD = 30 * 60 * 1000;
+
+/** Threshold in ms — data older than this shows aging indicator (5 minutes) */
+export const AGING_DATA_THRESHOLD = 5 * 60 * 1000;
+
+/**
  * Helper function to check if a project should show failure rate alert
  */
 export const shouldShowFailureRateAlert = (failureRate: number): boolean => {

@@ -257,7 +257,8 @@ export const STORAGE_KEYS = {
   DASHBOARD_CONFIG: 'gitlab_cicd_dashboard_config',
   HEALTH_SORT_ORDER: 'gitlab_cicd_dashboard_health_sort',
   SAVED_CONFIGS: 'gitlab_cicd_dashboard_saved_configs',
-  ACTIVE_CONFIG_ID: 'gitlab_cicd_dashboard_active_config_id'
+  ACTIVE_CONFIG_ID: 'gitlab_cicd_dashboard_active_config_id',
+  AUTO_REFRESH_INTERVAL: 'gitlab_cicd_dashboard_auto_refresh_interval'
 };
 
 // View types enum
