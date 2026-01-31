@@ -266,7 +266,8 @@ export const STORAGE_KEYS = {
   MR_BOARD_FILTERS: 'gitlab_cicd_dashboard_mr_board_filters',
   MR_BOARD_SORT: 'gitlab_cicd_dashboard_mr_board_sort',
   MY_USERNAME: 'gitlab_cicd_dashboard_my_username',
-  TIMELINE_FILTERS: 'gitlab_cicd_dashboard_timeline_filters'
+  TIMELINE_FILTERS: 'gitlab_cicd_dashboard_timeline_filters',
+  EXPORT_OPTIONS: 'gitlab_cicd_dashboard_export_options'
 };
 
 // View types enum
@@ -517,4 +518,25 @@ export interface TimelineFilters {
   statuses: ('success' | 'failed' | 'rollback')[];
   dateFrom: string | null;         // ISO date
   dateTo: string | null;           // ISO date
+}
+
+// ============================================
+// Exportable Reports Types (Priority 10)
+// ============================================
+
+/** PDF export section options */
+export interface PdfExportOptions {
+  includeSummary: boolean;
+  includeProjectTable: boolean;
+  includeTrendCharts: boolean;
+  includeEnvironmentMatrix: boolean;
+  includeDetailedBreakdown: boolean;
+}
+
+/** Chart reference map for PDF image capture */
+export interface ChartRefMap {
+  successRate?: HTMLCanvasElement | null;
+  duration?: HTMLCanvasElement | null;
+  coverage?: HTMLCanvasElement | null;
+  distribution?: HTMLCanvasElement | null;
 }
