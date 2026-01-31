@@ -76,6 +76,7 @@ const App = () => {
     isOffline,
     isRateLimited,
     resetTimer: resetAutoRefreshTimer,
+    reportRateLimit,
   } = useAutoRefresh({
     interval: autoRefreshInterval,
     onRefresh: autoRefreshCallback,
@@ -428,7 +429,15 @@ const App = () => {
       fetchAggregateTrends(validatedMetrics.projects, cfg.timeframe);
     } catch (error) {
       logger.error('Dashboard loading error:', error);
-      setError(`Failed to load dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+      // Detect rate limiting (HTTP 429)
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (errMsg.includes('429') || errMsg.toLowerCase().includes('rate limit')) {
+        reportRateLimit();
+        setError('Rate limited by GitLab API — next auto-refresh will be delayed.');
+      } else {
+        setError(`Failed to load dashboard data: ${errMsg}`);
+      }
     } finally {
       setLoading(false);
     }
