@@ -1,0 +1,113 @@
+/* RefreshStatusBar */
+.refresh-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg-color);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Left section */
+.refresh-status-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.manual-refresh-btn {
+  font-size: 14px;
+  padding: 3px 6px;
+}
+
+.data-age-text {
+  white-space: nowrap;
+}
+
+.data-age-none {
+  color: var(--text-muted);
+}
+
+.data-age-fresh {
+  color: var(--success-color);
+}
+
+.data-age-aging {
+  color: var(--warning-color);
+}
+
+.data-age-stale {
+  color: var(--danger-color);
+  font-weight: 600;
+}
+
+/* Centre section */
+.refresh-status-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.refresh-loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.refresh-pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
+}
+
+.refresh-offline-indicator {
+  color: var(--danger-color);
+  font-weight: 600;
+}
+
+.refresh-rate-limited-indicator {
+  color: var(--warning-color);
+  font-weight: 600;
+}
+
+/* Right section */
+.refresh-status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.refresh-countdown {
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.refresh-interval-select {
+  padding: 3px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--card-bg-color);
+  color: var(--text-color);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.refresh-interval-select:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
