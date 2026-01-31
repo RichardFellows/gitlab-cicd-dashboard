@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react';
+import { FC, useMemo, useRef, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -52,6 +52,7 @@ interface TrendChartProps {
   yAxisMax?: number;
   showLegend?: boolean;
   compact?: boolean;
+  onCanvasReady?: (canvas: HTMLCanvasElement | null) => void;
 }
 
 const TrendChart: FC<TrendChartProps> = ({
@@ -63,8 +64,22 @@ const TrendChart: FC<TrendChartProps> = ({
   yAxisLabel,
   yAxisMax,
   showLegend = false,
-  compact = false
+  compact = false,
+  onCanvasReady,
 }) => {
+  const chartRef = useRef<ChartJS<'line'> | null>(null);
+
+  // Expose canvas element to parent when chart mounts
+  useEffect(() => {
+    if (onCanvasReady) {
+      onCanvasReady(chartRef.current?.canvas ?? null);
+    }
+    return () => {
+      if (onCanvasReady) onCanvasReady(null);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onCanvasReady, chartRef.current]);
+
   const chartData: ChartData<'line'> = useMemo(() => {
     const chartDatasets = datasets.map(ds => ({
       label: ds.label,
@@ -227,7 +242,7 @@ const TrendChart: FC<TrendChartProps> = ({
     <div className={`trend-chart ${compact ? 'compact' : ''}`}>
       {compact && <h4 className="chart-title">{title}</h4>}
       <div className="chart-wrapper" style={{ height }}>
-        <Line data={chartData} options={options} />
+        <Line ref={chartRef} data={chartData} options={options} />
       </div>
     </div>
   );

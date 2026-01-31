@@ -8,9 +8,10 @@ interface MetricsPanelProps {
   trends: AggregatedTrend[];
   loading?: boolean;
   darkMode?: boolean;
+  onChartCanvasReady?: (name: string, canvas: HTMLCanvasElement | null) => void;
 }
 
-const MetricsPanel: FC<MetricsPanelProps> = ({ trends, loading = false, darkMode = false }) => {
+const MetricsPanel: FC<MetricsPanelProps> = ({ trends, loading = false, darkMode = false, onChartCanvasReady }) => {
   // Format date labels (show only day/month for brevity)
   const labels = useMemo(() => {
     return trends.map(t => {
@@ -82,6 +83,7 @@ const MetricsPanel: FC<MetricsPanelProps> = ({ trends, loading = false, darkMode
             label: `${METRICS_THRESHOLDS.FAILURE_RATE_WARNING}% Warning`,
             color: CHART_COLORS.warning
           }}
+          onCanvasReady={onChartCanvasReady ? (c) => onChartCanvasReady('successRate', c) : undefined}
         />
         <TrendChart
           title="Build Duration"
@@ -90,6 +92,7 @@ const MetricsPanel: FC<MetricsPanelProps> = ({ trends, loading = false, darkMode
           height={150}
           compact
           yAxisLabel="seconds"
+          onCanvasReady={onChartCanvasReady ? (c) => onChartCanvasReady('duration', c) : undefined}
         />
         <TrendChart
           title="Code Coverage"
@@ -104,6 +107,7 @@ const MetricsPanel: FC<MetricsPanelProps> = ({ trends, loading = false, darkMode
             label: `${METRICS_THRESHOLDS.COVERAGE_TARGET}% Target`,
             color: CHART_COLORS.success
           }}
+          onCanvasReady={onChartCanvasReady ? (c) => onChartCanvasReady('coverage', c) : undefined}
         />
       </div>
     </div>
