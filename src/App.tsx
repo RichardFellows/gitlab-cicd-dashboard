@@ -1197,6 +1197,7 @@ const App = () => {
               onToggleComparisonSelection={toggleComparisonSelection}
               onCompare={enterComparisonMode}
               onClearSelection={clearComparisonSelection}
+              keyboardSelectedIndex={keyboardSelectedIndex}
             />
           )}
 

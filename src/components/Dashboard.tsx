@@ -24,6 +24,7 @@ interface DashboardProps {
   onToggleComparisonSelection?: (projectId: number) => void;
   onCompare?: () => void;
   onClearSelection?: () => void;
+  keyboardSelectedIndex?: number;
 }
 
 const Dashboard: FC<DashboardProps> = ({
@@ -43,6 +44,7 @@ const Dashboard: FC<DashboardProps> = ({
   onToggleComparisonSelection,
   onCompare,
   onClearSelection,
+  keyboardSelectedIndex = -1,
 }) => {
   // Filter projects based on status and search query
   const filteredProjects = useMemo(() => {
@@ -113,6 +115,7 @@ const Dashboard: FC<DashboardProps> = ({
             selectionMode={selectionMode}
             selectedIds={selectedForComparison}
             onToggleSelection={onToggleComparisonSelection}
+            keyboardSelectedIndex={keyboardSelectedIndex}
           />
         ) : (
           <CardView
@@ -121,6 +124,7 @@ const Dashboard: FC<DashboardProps> = ({
             selectionMode={selectionMode}
             selectedIds={selectedForComparison}
             onToggleSelection={onToggleComparisonSelection}
+            keyboardSelectedIndex={keyboardSelectedIndex}
           />
         )}
       </section>

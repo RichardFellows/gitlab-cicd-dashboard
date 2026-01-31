@@ -1,4 +1,4 @@
-import { FC, useState, useMemo } from 'react';
+import { FC, useState, useMemo, useEffect, useRef } from 'react';
 import { Project } from '../types';
 import {
   categorizeProject,
@@ -23,9 +23,12 @@ interface CardViewProps {
   selectionMode?: boolean;
   selectedIds?: Set<number>;
   onToggleSelection?: (projectId: number) => void;
+  keyboardSelectedIndex?: number;
 }
 
-const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode = false, selectedIds, onToggleSelection }) => {
+const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode = false, selectedIds, onToggleSelection, keyboardSelectedIndex = -1 }) => {
+  // Determine the keyboard-selected project ID from the flat index
+  const keyboardSelectedId = keyboardSelectedIndex >= 0 ? projects[keyboardSelectedIndex]?.id ?? -1 : -1;
   // Group projects by status
   const groupedProjects: Record<string, Project[]> = {
     failed: [],
@@ -57,6 +60,7 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode 
                 selectionMode={selectionMode}
                 isSelected={selectedIds?.has(project.id) ?? false}
                 onToggleSelection={onToggleSelection}
+                isKeyboardSelected={project.id === keyboardSelectedId}
               />
             ))}
           </div>
@@ -76,6 +80,7 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode 
                 selectionMode={selectionMode}
                 isSelected={selectedIds?.has(project.id) ?? false}
                 onToggleSelection={onToggleSelection}
+                isKeyboardSelected={project.id === keyboardSelectedId}
               />
             ))}
           </div>
@@ -95,6 +100,7 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode 
                 selectionMode={selectionMode}
                 isSelected={selectedIds?.has(project.id) ?? false}
                 onToggleSelection={onToggleSelection}
+                isKeyboardSelected={project.id === keyboardSelectedId}
               />
             ))}
           </div>
@@ -114,6 +120,7 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode 
                 selectionMode={selectionMode}
                 isSelected={selectedIds?.has(project.id) ?? false}
                 onToggleSelection={onToggleSelection}
+                isKeyboardSelected={project.id === keyboardSelectedId}
               />
             ))}
           </div>
@@ -129,11 +136,20 @@ interface ProjectCardProps {
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelection?: (projectId: number) => void;
+  isKeyboardSelected?: boolean;
 }
 
-const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect, selectionMode = false, isSelected = false, onToggleSelection }) => {
+const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect, selectionMode = false, isSelected = false, onToggleSelection, isKeyboardSelected = false }) => {
   const category = categorizeProject(project);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Scroll keyboard-selected card into view
+  useEffect(() => {
+    if (isKeyboardSelected && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isKeyboardSelected]);
 
   // Calculate health score
   const health = useMemo(() => calculateHealthScore(project.metrics), [project.metrics]);
@@ -179,7 +195,12 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect, selection
   const commitsToShow = getCommitsToShow();
 
   return (
-    <div className={`project-card ${category}${isSelected ? ' comparison-selected' : ''}`} style={{ position: 'relative' }}>
+    <div
+      ref={cardRef}
+      className={`project-card ${category}${isSelected ? ' comparison-selected' : ''}${isKeyboardSelected ? ' keyboard-selected' : ''}`}
+      style={{ position: 'relative' }}
+      aria-label={isKeyboardSelected ? `${project.name} (keyboard selected)` : undefined}
+    >
       {selectionMode && (
         <label className="comparison-checkbox" onClick={(e) => e.stopPropagation()}>
           <input

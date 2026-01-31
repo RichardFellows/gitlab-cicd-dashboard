@@ -46,12 +46,19 @@
   padding: 15px;
   border-left: 4px solid var(--secondary-color);
   box-shadow: 0 2px 4px var(--shadow-color);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, outline 0.2s;
 }
 
 .project-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+/* Keyboard navigation highlight */
+.project-card.keyboard-selected {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(110, 73, 203, 0.15), 0 4px 8px var(--shadow-color);
 }
 
 .project-card.failed {

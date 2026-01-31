@@ -1,4 +1,4 @@
-import { FC, useState, useCallback, useMemo } from 'react';
+import { FC, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Project, MergeRequest, STORAGE_KEYS } from '../types';
 import {
   categorizeProject,
@@ -25,13 +25,25 @@ interface TableViewProps {
   selectionMode?: boolean;
   selectedIds?: Set<number>;
   onToggleSelection?: (projectId: number) => void;
+  keyboardSelectedIndex?: number;
 }
 
-const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabService, selectionMode = false, selectedIds, onToggleSelection }) => {
+const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabService, selectionMode = false, selectedIds, onToggleSelection, keyboardSelectedIndex = -1 }) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [healthExpanded, setHealthExpanded] = useState<Record<number, boolean>>({});
   const [mergeRequestsData, setMergeRequestsData] = useState<Record<number, MergeRequest[]>>({});
   const [loadingMRs, setLoadingMRs] = useState<Record<number, boolean>>({});
+
+  // Keyboard selection: derive selected project ID from flat index
+  const keyboardSelectedId = keyboardSelectedIndex >= 0 ? projects[keyboardSelectedIndex]?.id ?? -1 : -1;
+  const selectedRowRef = useRef<HTMLTableRowElement>(null);
+
+  // Scroll keyboard-selected row into view
+  useEffect(() => {
+    if (keyboardSelectedId >= 0 && selectedRowRef.current) {
+      selectedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [keyboardSelectedId]);
 
   // Health sort: 'asc' | 'desc' | null
   const [healthSort, setHealthSort] = useState<'asc' | 'desc' | null>(() => {
@@ -160,8 +172,10 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
               <>
                 <tr 
                   key={`row-${project.id}`}
-                  className={`project-row ${category} ${isExpanded ? 'expanded' : ''}${selectionMode && selectedIds?.has(project.id) ? ' comparison-selected' : ''}`}
+                  ref={project.id === keyboardSelectedId ? selectedRowRef : undefined}
+                  className={`project-row ${category} ${isExpanded ? 'expanded' : ''}${selectionMode && selectedIds?.has(project.id) ? ' comparison-selected' : ''}${project.id === keyboardSelectedId ? ' keyboard-selected' : ''}`}
                   data-project-id={project.id}
+                  aria-label={project.id === keyboardSelectedId ? `${project.name} (keyboard selected)` : undefined}
                 >
                   {selectionMode && (
                     <td>
