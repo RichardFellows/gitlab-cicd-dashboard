@@ -11,8 +11,9 @@
   border-left: 3px solid transparent;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   position: relative;
+  margin-bottom: 2px;
 }
 
 .timeline-entry:hover {
@@ -49,6 +50,16 @@
 
 .dark-mode .timeline-entry--rollback:hover {
   background: rgba(255, 152, 0, 0.12);
+}
+
+/* Focus styles for keyboard navigation */
+.timeline-entry:focus-visible {
+  outline: 2px solid #6e49cb;
+  outline-offset: 2px;
+}
+
+.dark-mode .timeline-entry:focus-visible {
+  outline-color: #9d7fe8;
 }
 
 /* Time column */
@@ -279,7 +290,8 @@
   margin-top: 0.75rem;
   padding-top: 0.75rem;
   border-top: 1px solid #eee;
-  animation: timelineSlideDown 0.2s ease-out;
+  animation: timelineSlideDown 0.25s ease-out;
+  overflow: hidden;
 }
 
 .dark-mode .timeline-entry__details {
