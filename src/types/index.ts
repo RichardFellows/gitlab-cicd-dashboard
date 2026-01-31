@@ -422,3 +422,39 @@ export interface NotificationEntry {
   timestamp: string;
   read: boolean;
 }
+
+// ============================================
+// Failure Diagnosis Types (Priority 6)
+// ============================================
+
+/** Category types for pipeline failure classification */
+export type FailureCategoryType =
+  | 'dependency'       // npm/package/module errors
+  | 'infrastructure'   // connection, memory, system errors
+  | 'test-failure'     // assertion and test framework errors
+  | 'timeout'          // execution time exceeded
+  | 'unknown';         // no pattern matched
+
+/** Detected failure category with metadata */
+export interface FailureCategory {
+  type: FailureCategoryType;
+  icon: string;            // Emoji icon
+  label: string;           // Human-readable label
+  matchedPattern: string;  // The pattern that matched (for debugging)
+  confidence: 'high' | 'medium' | 'low';
+}
+
+/** Failure frequency for a specific job */
+export interface FailureFrequency {
+  jobName: string;
+  failedCount: number;
+  totalCount: number;
+  isFlaky: boolean;        // true if fails inconsistently (>0 but <80% failures)
+}
+
+/** A single highlighted log line with severity level */
+export interface HighlightedLine {
+  text: string;
+  level: 'error' | 'warning' | 'info' | 'normal';
+  lineNumber: number;
+}
