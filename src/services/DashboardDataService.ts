@@ -1,6 +1,7 @@
 import GitLabApiService from './GitLabApiService';
 import { DashboardMetrics, PipelineTrend, PipelinePerformanceAnalysis, Commit, ProjectMetrics, Pipeline, Job, DashboardConfig, GitLabApiProject, MainBranchTrend, CoverageTrend, AggregatedTrend, CoverageStatus, EnvironmentName, Deployment, DeploymentsByEnv, DeployInfoArtifact, DeploymentStatus, ParsedSignoff, Signoff, PostDeployTestStatus, ReadinessStatus, VersionReadiness } from '../types';
 import { METRICS_THRESHOLDS, DEPLOY_JOB_REGEX, JIRA_KEY_REGEX, SIGNOFF_REGEX, CODEOWNERS_USER_REGEX } from '../utils/constants';
+import { logger } from '../utils/logger';
 
 class DashboardDataService {
   gitLabService: GitLabApiService;
@@ -54,7 +55,7 @@ class DashboardDataService {
       this.metrics = metrics;
       return metrics;
     } catch (error) {
-      console.error("Failed to get group metrics:", error);
+      logger.error("Failed to get group metrics:", error);
       throw error;
     }
   }
@@ -85,7 +86,7 @@ class DashboardDataService {
         sourceStats.groupsLoaded++;
         return projects.filter(project => !project.name.startsWith('DELETE-'));
       } catch (error) {
-        console.error(`Failed to fetch projects from group ${group.id}:`, error);
+        logger.error(`Failed to fetch projects from group ${group.id}:`, error);
         sourceStats.failedGroups.push(group.id);
         return [];
       }
@@ -113,7 +114,7 @@ class DashboardDataService {
         }
         throw new Error(`Project ${projectSource.id} not found`);
       } catch (error) {
-        console.error(`Failed to fetch project ${projectSource.id}:`, error);
+        logger.error(`Failed to fetch project ${projectSource.id}:`, error);
         sourceStats.failedProjects.push(projectSource.id);
         return null;
       }
@@ -151,7 +152,7 @@ class DashboardDataService {
     }
 
     const uniqueProjects = Array.from(projectMap.values());
-    console.log(`Fetching metrics for ${uniqueProjects.length} unique projects (from ${groupProjects.length} group projects + ${individualProjects.length} individual projects)`);
+    logger.debug(`Fetching metrics for ${uniqueProjects.length} unique projects (from ${groupProjects.length} group projects + ${individualProjects.length} individual projects)`);
 
     // Collect metrics for each unique project
     const projectMetrics = await Promise.all(
@@ -285,7 +286,7 @@ class DashboardDataService {
         .filter(p => ['success', 'failed', 'canceled'].includes(p.status))
         .slice(0, 10);
 
-      console.log(`Fetching duration for ${completedPipelines.length} completed pipelines in project ${projectId}`);
+      logger.debug(`Fetching duration for ${completedPipelines.length} completed pipelines in project ${projectId}`);
 
       // Fetch details for completed pipelines to get duration
       const pipelineDetailsPromises = completedPipelines.map(async (pipeline) => {
@@ -293,7 +294,7 @@ class DashboardDataService {
           const details = await this.gitLabService.getPipelineDetails(projectId, pipeline.id);
           return details;
         } catch (error) {
-          console.error(`Failed to get details for pipeline ${pipeline.id}:`, error);
+          logger.error(`Failed to get details for pipeline ${pipeline.id}:`, error);
           return null;
         }
       });
@@ -308,11 +309,11 @@ class DashboardDataService {
       }
 
       // Log summary of duration calculation
-      console.log(`Project ${projectId}: Found ${pipelinesWithDuration} pipelines with duration out of ${completedPipelines.length} fetched`);
+      logger.debug(`Project ${projectId}: Found ${pipelinesWithDuration} pipelines with duration out of ${completedPipelines.length} fetched`);
 
       const avgDuration =
         pipelinesWithDuration > 0 ? totalDuration / pipelinesWithDuration : 0;
-      console.log(`Project ${projectId}: Average pipeline duration: ${avgDuration.toFixed(2)}s`);
+      logger.debug(`Project ${projectId}: Average pipeline duration: ${avgDuration.toFixed(2)}s`);
 
       return {
         totalPipelines,
@@ -329,7 +330,7 @@ class DashboardDataService {
         recentCommits,
       };
     } catch (error) {
-      console.error(`Failed to get metrics for project ${projectId}:`, error);
+      logger.error(`Failed to get metrics for project ${projectId}:`, error);
 
       // Return empty metrics in case of error
       return {
@@ -419,10 +420,10 @@ class DashboardDataService {
       
       aggregate.avgDuration = totalDurationWeighted / totalPipelinesWithDuration;
       
-      console.log(`Aggregate avg duration: ${aggregate.avgDuration.toFixed(2)}s (from ${projectsWithDuration.length} projects with duration data)`);
+      logger.debug(`Aggregate avg duration: ${aggregate.avgDuration.toFixed(2)}s (from ${projectsWithDuration.length} projects with duration data)`);
     } else {
       aggregate.avgDuration = 0;
-      console.log(`No projects with valid duration data found for aggregate calculation`);
+      logger.debug(`No projects with valid duration data found for aggregate calculation`);
     }
     return aggregate;
   }
@@ -491,7 +492,7 @@ class DashboardDataService {
       // Sort by date
       return trends.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     } catch (error) {
-      console.error(`Failed to get pipeline trends for project ${projectId}:`, error);
+      logger.error(`Failed to get pipeline trends for project ${projectId}:`, error);
       return [];
     }
   }
@@ -635,7 +636,7 @@ class DashboardDataService {
         pipelineDetails // Include raw data for custom visualizations
       };
     } catch (error) {
-      console.error(`Failed to get pipeline performance analysis for project ${projectId}:`, error);
+      logger.error(`Failed to get pipeline performance analysis for project ${projectId}:`, error);
       return {
         pipelineCount: 0,
         avgPipelineDuration: 0,
@@ -740,7 +741,7 @@ class DashboardDataService {
 
       return trends.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     } catch (error) {
-      console.error(`Failed to get main branch trends for project ${projectId}:`, error);
+      logger.error(`Failed to get main branch trends for project ${projectId}:`, error);
       return [];
     }
   }
@@ -813,7 +814,7 @@ class DashboardDataService {
 
       return trends.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     } catch (error) {
-      console.error(`Failed to get coverage trends for project ${projectId}:`, error);
+      logger.error(`Failed to get coverage trends for project ${projectId}:`, error);
       return [];
     }
   }
@@ -902,7 +903,7 @@ class DashboardDataService {
 
       return trends.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     } catch (error) {
-      console.error('Failed to get aggregated trends:', error);
+      logger.error('Failed to get aggregated trends:', error);
       return [];
     }
   }
@@ -1094,7 +1095,7 @@ class DashboardDataService {
         loading: false
       };
     } catch (error) {
-      console.error(`Failed to get deployments for project ${projectId}:`, error);
+      logger.error(`Failed to get deployments for project ${projectId}:`, error);
       return {
         projectId,
         deployments: {},
@@ -1170,7 +1171,7 @@ class DashboardDataService {
       this.codeownersCache.set(projectId, usernames);
       return usernames;
     } catch (error) {
-      console.error(`Failed to get CODEOWNERS for project ${projectId}:`, error);
+      logger.error(`Failed to get CODEOWNERS for project ${projectId}:`, error);
       this.codeownersCache.set(projectId, []);
       return [];
     }
@@ -1213,7 +1214,7 @@ class DashboardDataService {
 
       return signoffs;
     } catch (error) {
-      console.error(`Failed to get sign-offs for MR ${mrIid} in project ${projectId}:`, error);
+      logger.error(`Failed to get sign-offs for MR ${mrIid} in project ${projectId}:`, error);
       return [];
     }
   }
@@ -1259,7 +1260,7 @@ class DashboardDataService {
         jobName: relevantJob.name
       };
     } catch (error) {
-      console.error(`Failed to get post-deploy test status for pipeline ${pipelineId}:`, error);
+      logger.error(`Failed to get post-deploy test status for pipeline ${pipelineId}:`, error);
       return { exists: false, passed: null };
     }
   }
@@ -1398,7 +1399,7 @@ class DashboardDataService {
 
       return results;
     } catch (error) {
-      console.error(`Failed to get readiness for project ${projectId}:`, error);
+      logger.error(`Failed to get readiness for project ${projectId}:`, error);
       return [];
     }
   }

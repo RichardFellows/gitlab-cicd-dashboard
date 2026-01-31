@@ -1,4 +1,5 @@
 import { Project } from "../types";
+import { logger } from "./logger";
 
 /**
  * Categorize a project based on its pipeline status
@@ -110,7 +111,7 @@ export function formatCoverage(coverage: number | null, available?: boolean): st
   // Make sure coverage is a number
   const coverageNum = typeof coverage === 'number' ? coverage : parseFloat(String(coverage));
   if (isNaN(coverageNum)) {
-    console.warn('Invalid coverage value:', coverage);
+    logger.warn('Invalid coverage value:', coverage);
     return 'Invalid Data';
   }
   

@@ -12,6 +12,7 @@ import {
 import MetricAlert from './MetricAlert';
 import { shouldShowFailureRateAlert, shouldShowCoverageAlert } from '../utils/constants';
 import GitLabApiService from '../services/GitLabApiService';
+import { logger } from '../utils/logger';
 import '../styles/TableView.css';
 
 interface TableViewProps {
@@ -45,7 +46,7 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
       const mrs = await gitLabService.getProjectMergeRequests(projectId);
       setMergeRequestsData(prev => ({ ...prev, [projectId]: mrs }));
     } catch (error) {
-      console.error(`Failed to load MRs for project ${projectId}:`, error);
+      logger.error(`Failed to load MRs for project ${projectId}:`, error);
       setMergeRequestsData(prev => ({ ...prev, [projectId]: [] }));
     } finally {
       setLoadingMRs(prev => ({ ...prev, [projectId]: false }));

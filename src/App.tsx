@@ -3,6 +3,7 @@ import Dashboard from './components/Dashboard';
 import ControlPanel from './components/ControlPanel';
 import ProjectDetails from './components/ProjectDetails';
 import EnvironmentMatrixView from './components/EnvironmentMatrixView';
+import { logger } from './utils/logger';
 import ReadinessView from './components/ReadinessView';
 import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv } from './types';
 import GitLabApiService from './services/GitLabApiService';
@@ -88,12 +89,12 @@ const App = () => {
 
     // Auto-load dashboard if config is ready
     if (isConfigReady(savedConfig)) {
-      console.log('Auto-loading dashboard with saved config');
+      logger.debug('Auto-loading dashboard with saved config');
       setTimeout(() => {
         loadDashboard(savedConfig);
       }, 500);
     } else {
-      console.log('Not auto-loading dashboard, config not ready');
+      logger.debug('Not auto-loading dashboard, config not ready');
     }
   };
 
@@ -128,7 +129,7 @@ const App = () => {
         return updated;
       });
     } catch (error) {
-      console.error(`Failed to resolve group name for ${groupId}:`, error);
+      logger.error(`Failed to resolve group name for ${groupId}:`, error);
     } finally {
       setLoadingGroups(prev => {
         const next = new Set(prev);
@@ -160,7 +161,7 @@ const App = () => {
         return updated;
       });
     } catch (error) {
-      console.error(`Failed to resolve project name for ${projectId}:`, error);
+      logger.error(`Failed to resolve project name for ${projectId}:`, error);
     } finally {
       setLoadingProjects(prev => {
         const next = new Set(prev);
@@ -255,7 +256,7 @@ const App = () => {
 
   // Load dashboard data
   const loadDashboard = async (cfg: DashboardConfig) => {
-    console.log('Load Dashboard called with config:', {
+    logger.debug('Load Dashboard called with config:', {
       gitlabUrl: cfg.gitlabUrl,
       tokenLength: cfg.token ? cfg.token.length : 0,
       groups: cfg.groups.length,
@@ -275,7 +276,7 @@ const App = () => {
       // Configure GitLab service
       configureGitLabService(cfg);
 
-      console.log('GitLab service configured, fetching metrics...');
+      logger.debug('GitLab service configured, fetching metrics...');
 
       // Fetch metrics using multi-source method
       const dashboardMetrics = await dashboardService.getMultiSourceMetrics(cfg);
@@ -287,12 +288,12 @@ const App = () => {
 
       // Log source stats
       if (dashboardMetrics.sourceStats) {
-        console.log('Source stats:', dashboardMetrics.sourceStats);
+        logger.debug('Source stats:', dashboardMetrics.sourceStats);
         if (dashboardMetrics.sourceStats.failedGroups.length > 0) {
-          console.warn('Failed to load groups:', dashboardMetrics.sourceStats.failedGroups);
+          logger.warn('Failed to load groups:', dashboardMetrics.sourceStats.failedGroups);
         }
         if (dashboardMetrics.sourceStats.failedProjects.length > 0) {
-          console.warn('Failed to load projects:', dashboardMetrics.sourceStats.failedProjects);
+          logger.warn('Failed to load projects:', dashboardMetrics.sourceStats.failedProjects);
         }
       }
 
@@ -300,7 +301,7 @@ const App = () => {
       const validatedProjects = dashboardMetrics.projects.map((project: Project) => {
         try {
           if (!project.metrics) {
-            console.warn(`Project ${project.name} has no metrics, creating empty object`);
+            logger.warn(`Project ${project.name} has no metrics, creating empty object`);
             project.metrics = {} as ProjectMetrics;
           }
 
@@ -331,7 +332,7 @@ const App = () => {
 
           return project;
         } catch (err) {
-          console.error(`Error processing project ${project.name || 'unknown'}:`, err);
+          logger.error(`Error processing project ${project.name || 'unknown'}:`, err);
           return {
             id: project.id || 0,
             name: project.name || 'Unknown Project',
@@ -367,7 +368,7 @@ const App = () => {
       // Fetch aggregate trends after main metrics
       fetchAggregateTrends(validatedMetrics.projects, cfg.timeframe);
     } catch (error) {
-      console.error('Dashboard loading error:', error);
+      logger.error('Dashboard loading error:', error);
       setError(`Failed to load dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
@@ -391,9 +392,9 @@ const App = () => {
       );
 
       setAggregateTrends(trends);
-      console.log(`Loaded ${trends.length} aggregate trend data points`);
+      logger.debug(`Loaded ${trends.length} aggregate trend data points`);
     } catch (error) {
-      console.error('Failed to fetch aggregate trends:', error);
+      logger.error('Failed to fetch aggregate trends:', error);
       // Don't set error state - trends are optional
     } finally {
       setTrendsLoading(false);

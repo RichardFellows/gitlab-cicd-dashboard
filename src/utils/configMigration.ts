@@ -1,4 +1,5 @@
 import { DashboardConfig, STORAGE_KEYS } from '../types';
+import { logger } from './logger';
 
 const CURRENT_CONFIG_VERSION = 1;
 
@@ -66,14 +67,14 @@ export function loadConfig(): DashboardConfig {
 
       return parsed;
     } catch (error) {
-      console.error('Failed to parse saved config:', error);
+      logger.error('Failed to parse saved config:', error);
     }
   }
 
   // Try to migrate legacy config
   const legacyConfig = migrateLegacyConfig();
   if (legacyConfig) {
-    console.log('Migrated legacy config to new format');
+    logger.debug('Migrated legacy config to new format');
     saveConfig(legacyConfig);
 
     // Clean up legacy keys

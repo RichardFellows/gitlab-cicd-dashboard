@@ -3,6 +3,7 @@ import { Project, MergeRequest, STORAGE_KEYS } from '../types';
 import GitLabApiService from '../services/GitLabApiService';
 import DashboardDataService from '../services/DashboardDataService';
 import ProjectMetricsTrends from './ProjectMetricsTrends';
+import { logger } from '../utils/logger';
 import {
   formatPipelineStatus,
   getPipelineStatusClass,
@@ -52,7 +53,7 @@ const ProjectDetails: FC<ProjectDetailsProps> = ({
         const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
         if (savedToken) {
           gitLabService.setPrivateToken(savedToken);
-          console.log('Restored API token from localStorage');
+          logger.debug('Restored API token from localStorage');
         } else {
           throw new Error('GitLab API token not found. Please return to the dashboard and enter your token.');
         }
@@ -62,12 +63,12 @@ const ProjectDetails: FC<ProjectDetailsProps> = ({
       setMergeRequests(mrs);
       
       if (mrs.length === 0) {
-        console.log(`No merge requests found for project ${projectId}`);
+        logger.debug(`No merge requests found for project ${projectId}`);
       } else {
-        console.log(`Successfully loaded ${mrs.length} merge requests for project ${projectId}`);
+        logger.debug(`Successfully loaded ${mrs.length} merge requests for project ${projectId}`);
       }
     } catch (error) {
-      console.error(`Failed to load merge requests for project ${projectId}:`, error);
+      logger.error(`Failed to load merge requests for project ${projectId}:`, error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(`Failed to load merge requests: ${errorMessage}`);
     } finally {

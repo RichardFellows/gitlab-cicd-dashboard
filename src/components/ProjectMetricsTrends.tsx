@@ -1,6 +1,7 @@
 import { FC, useState, useEffect, useMemo } from 'react';
 import TrendChart, { TrendDataset } from './TrendChart';
 import { MainBranchTrend, CoverageTrend } from '../types';
+import { logger } from '../utils/logger';
 import DashboardDataService from '../services/DashboardDataService';
 import { METRICS_THRESHOLDS, CHART_COLORS } from '../utils/constants';
 import '../styles/ProjectMetricsTrends.css';
@@ -45,7 +46,7 @@ const ProjectMetricsTrends: FC<ProjectMetricsTrendsProps> = ({
         setMainBranchTrends(mainTrends);
         setCoverageTrends(covTrends);
       } catch (err) {
-        console.error('Failed to fetch project trends:', err);
+        logger.error('Failed to fetch project trends:', err);
         setError('Failed to load trend data');
       } finally {
         setLoading(false);
