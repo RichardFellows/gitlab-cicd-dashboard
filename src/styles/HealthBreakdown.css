@@ -128,6 +128,16 @@
   background-color: #f44336;
 }
 
+/* Responsive */
+@media (max-width: 600px) {
+  .health-breakdown__header,
+  .health-breakdown__row {
+    grid-template-columns: 100px 50px 80px 1fr;
+    gap: 4px;
+    font-size: 12px;
+  }
+}
+
 /* Expand/collapse animation */
 @keyframes healthBreakdownSlideIn {
   from {

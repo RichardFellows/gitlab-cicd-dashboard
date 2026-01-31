@@ -65,6 +65,23 @@
   flex-shrink: 0;
 }
 
+/* Responsive */
+@media (max-width: 600px) {
+  .portfolio-health__content {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .portfolio-health__chart-area {
+    flex-direction: column;
+  }
+
+  .portfolio-health__chart {
+    width: 80px;
+    height: 80px;
+  }
+}
+
 /* Dark mode */
 .dark-mode .portfolio-health {
   background: #1e1e1e;
