@@ -258,7 +258,11 @@ export const STORAGE_KEYS = {
   HEALTH_SORT_ORDER: 'gitlab_cicd_dashboard_health_sort',
   SAVED_CONFIGS: 'gitlab_cicd_dashboard_saved_configs',
   ACTIVE_CONFIG_ID: 'gitlab_cicd_dashboard_active_config_id',
-  AUTO_REFRESH_INTERVAL: 'gitlab_cicd_dashboard_auto_refresh_interval'
+  AUTO_REFRESH_INTERVAL: 'gitlab_cicd_dashboard_auto_refresh_interval',
+  NOTIFICATION_RULES: 'gitlab_cicd_dashboard_notification_rules',
+  NOTIFICATION_HISTORY: 'gitlab_cicd_dashboard_notification_history',
+  NOTIFICATIONS_ENABLED: 'gitlab_cicd_dashboard_notifications_enabled',
+  NOTIFICATION_MUTED: 'gitlab_cicd_dashboard_notification_muted'
 };
 
 // View types enum
@@ -382,4 +386,39 @@ export interface VersionReadiness {
     webUrl: string;
     title: string;
   };
+}
+
+// ============================================
+// Notification Rules Types (Priority 4)
+// ============================================
+
+// Notification rule types
+export type NotificationRuleType =
+  | 'pipeline-failure'      // Main branch pipeline failed
+  | 'coverage-drop'         // Coverage below threshold
+  | 'duration-spike'        // Duration increased above threshold %
+  | 'deployment-failure';   // Failed deployment to specified environment
+
+export interface NotificationRule {
+  id: string;                           // Unique identifier
+  type: NotificationRuleType;
+  name: string;                         // Display name
+  enabled: boolean;
+  scope: 'all' | number[];             // 'all' projects or specific project IDs
+  threshold?: number;                   // For coverage-drop (%) or duration-spike (%)
+  environment?: EnvironmentName;        // For deployment-failure
+  createdAt: string;
+}
+
+export interface NotificationEntry {
+  id: string;
+  ruleId: string;
+  ruleName: string;
+  ruleType: NotificationRuleType;
+  projectId: number;
+  projectName: string;
+  message: string;
+  value: number;                        // The metric value that triggered it
+  timestamp: string;
+  read: boolean;
 }
