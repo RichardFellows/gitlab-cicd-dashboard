@@ -311,3 +311,24 @@
   padding: 12px;
   text-align: center;
 }
+
+/* Dark mode refinements */
+.dark-mode .notification-toggle-switch {
+  background-color: #3a3a5a;
+}
+
+.dark-mode .notification-toggle-switch::after {
+  background: #ddd;
+}
+
+.dark-mode .notification-rule-form select,
+.dark-mode .notification-rule-form input[type="text"],
+.dark-mode .notification-rule-form input[type="number"] {
+  background: var(--background-color);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.dark-mode .notification-rule-item-actions button.danger:hover {
+  background-color: rgba(244, 67, 54, 0.15);
+}
