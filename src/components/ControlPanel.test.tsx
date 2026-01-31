@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ControlPanel from './ControlPanel';
-import { GroupSource, ProjectSource } from '../types';
+import { GroupSource, ProjectSource, DashboardConfig, SavedConfigEntry } from '../types';
 
 // Mock props
 const createMockProps = (overrides = {}) => ({
@@ -22,6 +22,21 @@ const createMockProps = (overrides = {}) => ({
   loadingGroups: new Set<string>(),
   loadingProjects: new Set<string>(),
   canLoad: true,
+  savedConfigs: [] as SavedConfigEntry[],
+  activeConfigId: null as string | null,
+  currentConfig: {
+    version: 1,
+    gitlabUrl: 'https://gitlab.com',
+    token: 'test-token',
+    timeframe: 30,
+    groups: [{ id: '12345', name: 'test-group', addedAt: new Date().toISOString() }],
+    projects: [],
+  } as DashboardConfig,
+  hasUnsavedChanges: false,
+  onSelectConfig: vi.fn(),
+  onSaveConfig: vi.fn(),
+  onUpdateConfig: vi.fn(),
+  onManageConfigs: vi.fn(),
   ...overrides
 });
 

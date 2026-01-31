@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import Dashboard from './components/Dashboard';
 import ControlPanel from './components/ControlPanel';
+import SaveConfigDialog from './components/SaveConfigDialog';
+import ConfigManager from './components/ConfigManager';
 import ProjectDetails from './components/ProjectDetails';
 import EnvironmentMatrixView from './components/EnvironmentMatrixView';
 import { logger } from './utils/logger';
 import ReadinessView from './components/ReadinessView';
-import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv } from './types';
+import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv, SavedConfigEntry } from './types';
 import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
 import { loadConfig, saveConfig, clearConfig, isConfigReady, createDefaultConfig } from './utils/configMigration';
+import { getSavedConfigs, getActiveConfigId, setActiveConfigId, saveNewConfig, updateConfigEntry, renameConfigEntry, deleteConfigEntry, exportConfig, importConfig, hasUnsavedChanges as checkUnsavedChanges } from './utils/configStorage';
 import './styles/index.css';
 
 // Initialize services
@@ -41,6 +44,12 @@ const App = () => {
 
   // Environment view state - deployment cache
   const [deploymentCache, setDeploymentCache] = useState<Map<number, DeploymentsByEnv>>(new Map());
+
+  // Saved config state
+  const [savedConfigs, setSavedConfigs] = useState<SavedConfigEntry[]>([]);
+  const [activeConfigId, setActiveConfigIdState] = useState<string | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showConfigManager, setShowConfigManager] = useState(false);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -78,6 +87,10 @@ const App = () => {
   const loadSavedSettings = () => {
     const savedConfig = loadConfig();
     setConfig(savedConfig);
+
+    // Load saved configurations
+    setSavedConfigs(getSavedConfigs());
+    setActiveConfigIdState(getActiveConfigId());
 
     const savedViewType = localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) as ViewType || ViewType.TABLE;
     const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
@@ -435,6 +448,107 @@ const App = () => {
     }
   }, [deploymentCache]);
 
+  // Compute unsaved changes
+  const unsavedChanges = (() => {
+    if (!activeConfigId) return false;
+    const activeEntry = savedConfigs.find(c => c.id === activeConfigId);
+    if (!activeEntry) return false;
+    return checkUnsavedChanges(config, activeEntry.config);
+  })();
+
+  // Saved config handlers
+  const handleSelectConfig = useCallback((id: string) => {
+    if (unsavedChanges) {
+      const confirmed = window.confirm('You have unsaved changes. Switch without saving?');
+      if (!confirmed) return;
+    }
+    const entry = savedConfigs.find(c => c.id === id);
+    if (!entry) return;
+
+    const newConfig = { ...entry.config };
+    setConfig(newConfig);
+    saveConfig(newConfig);
+    setActiveConfigIdState(id);
+    setActiveConfigId(id);
+
+    // Auto-load if config is ready
+    if (isConfigReady(newConfig)) {
+      setDeploymentCache(new Map());
+      loadDashboard(newConfig);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedConfigs, unsavedChanges]);
+
+  const handleSaveConfig = useCallback((name: string) => {
+    try {
+      const entry = saveNewConfig(name, config);
+      setSavedConfigs(getSavedConfigs());
+      setActiveConfigIdState(entry.id);
+      setActiveConfigId(entry.id);
+      setShowSaveDialog(false);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to save configuration.');
+    }
+  }, [config]);
+
+  const handleUpdateConfig = useCallback(() => {
+    if (!activeConfigId) return;
+    try {
+      updateConfigEntry(activeConfigId, config);
+      setSavedConfigs(getSavedConfigs());
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to update configuration.');
+    }
+  }, [activeConfigId, config]);
+
+  const handleDeleteConfig = useCallback((id: string) => {
+    deleteConfigEntry(id);
+    setSavedConfigs(getSavedConfigs());
+    if (activeConfigId === id) {
+      setActiveConfigIdState(null);
+    }
+  }, [activeConfigId]);
+
+  const handleRenameConfig = useCallback((id: string, newName: string) => {
+    renameConfigEntry(id, newName);
+    setSavedConfigs(getSavedConfigs());
+  }, []);
+
+  const handleExportConfig = useCallback((id: string, includeToken: boolean) => {
+    const entry = savedConfigs.find(c => c.id === id);
+    if (!entry) return;
+
+    const blob = exportConfig(entry, includeToken);
+    const safeName = entry.name.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '-').toLowerCase();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeName}.gitlab-dashboard.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [savedConfigs]);
+
+  const handleImportConfig = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const jsonString = e.target?.result as string;
+        const entry = importConfig(jsonString);
+        saveNewConfig(entry.name, entry.config);
+        setSavedConfigs(getSavedConfigs());
+
+        if (!entry.config.token) {
+          alert('This configuration does not include a token. Please enter your GitLab token after loading it.');
+        }
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Failed to import configuration.');
+      }
+    };
+    reader.readAsText(file);
+  }, []);
+
   // Handle load button click
   const handleLoad = useCallback(() => {
     // Clear deployment cache on new load
@@ -601,6 +715,14 @@ const App = () => {
           loadingGroups={loadingGroups}
           loadingProjects={loadingProjects}
           canLoad={canLoad}
+          savedConfigs={savedConfigs}
+          activeConfigId={activeConfigId}
+          currentConfig={config}
+          hasUnsavedChanges={unsavedChanges}
+          onSelectConfig={handleSelectConfig}
+          onSaveConfig={() => setShowSaveDialog(true)}
+          onUpdateConfig={handleUpdateConfig}
+          onManageConfigs={() => setShowConfigManager(true)}
         />
         <div className="settings-footer">
           <button className="text-btn danger" onClick={clearSettings}>
@@ -705,6 +827,31 @@ const App = () => {
           dashboardService={dashboardService}
           timeframe={config.timeframe}
           darkMode={darkMode}
+        />
+      )}
+
+      {showSaveDialog && (
+        <SaveConfigDialog
+          existingNames={savedConfigs.map(c => c.name)}
+          defaultName={
+            config.groups.length > 0 && config.groups[0].name
+              ? config.groups[0].name
+              : ''
+          }
+          onSave={handleSaveConfig}
+          onCancel={() => setShowSaveDialog(false)}
+        />
+      )}
+
+      {showConfigManager && (
+        <ConfigManager
+          savedConfigs={savedConfigs}
+          activeConfigId={activeConfigId}
+          onRename={handleRenameConfig}
+          onDelete={handleDeleteConfig}
+          onExport={handleExportConfig}
+          onImport={handleImportConfig}
+          onClose={() => setShowConfigManager(false)}
         />
       )}
     </div>
