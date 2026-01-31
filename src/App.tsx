@@ -9,6 +9,7 @@ import RefreshStatusBar from './components/RefreshStatusBar';
 import StaleDataBanner from './components/StaleDataBanner';
 import { logger } from './utils/logger';
 import ReadinessView from './components/ReadinessView';
+import ComparisonView from './components/ComparisonView';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import { AUTO_REFRESH_OPTIONS } from './utils/constants';
 import { DashboardMetrics, Project, ProjectMetrics, ProjectStatusFilter, STORAGE_KEYS, ViewType, DashboardConfig, GroupSource, ProjectSource, AggregatedTrend, DeploymentsByEnv, SavedConfigEntry } from './types';
@@ -648,15 +649,14 @@ const App = () => {
     setSelectedForComparison(new Set());
   }, []);
 
-  // Comparison handlers used in render (suppress unused-var during incremental build)
-  void toggleComparisonSelection;
-  void enterComparisonMode;
-  void exitComparisonMode;
-  void toggleSelectionMode;
-  void clearComparisonSelection;
-  void comparisonMode;
-  void selectionMode;
-  void selectedForComparison;
+  // Handle removing a project from comparison view
+  const removeProjectFromComparison = useCallback((projectId: number) => {
+    setSelectedForComparison(prev => {
+      const next = new Set(prev);
+      next.delete(projectId);
+      return next;
+    });
+  }, []);
 
   // Handle load button click
   const handleLoad = useCallback(() => {
@@ -871,7 +871,7 @@ const App = () => {
 
       {!loading && !error && metrics && !selectedProjectId && (
         <>
-          {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && (
+          {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && !comparisonMode && (
             <div className="filter-bar">
               <input
                 type="text"
@@ -933,7 +933,7 @@ const App = () => {
             />
           )}
 
-          {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && (
+          {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && !comparisonMode && (
             <Dashboard
               metrics={metrics}
               viewType={viewType}
@@ -945,6 +945,24 @@ const App = () => {
               trendsLoading={trendsLoading}
               darkMode={darkMode}
               gitLabService={gitLabService}
+              selectionMode={selectionMode}
+              selectedForComparison={selectedForComparison}
+              onToggleSelectionMode={toggleSelectionMode}
+              onToggleComparisonSelection={toggleComparisonSelection}
+              onCompare={enterComparisonMode}
+              onClearSelection={clearComparisonSelection}
+            />
+          )}
+
+          {comparisonMode && (
+            <ComparisonView
+              projects={metrics.projects.filter(p => selectedForComparison.has(p.id))}
+              dashboardService={dashboardService}
+              deploymentCache={deploymentCache}
+              timeframe={config.timeframe}
+              darkMode={darkMode}
+              onBack={exitComparisonMode}
+              onRemoveProject={removeProjectFromComparison}
             />
           )}
         </>
