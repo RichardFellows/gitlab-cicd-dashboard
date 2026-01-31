@@ -215,3 +215,55 @@
 .log-gitlab-link:hover {
   text-decoration: underline;
 }
+
+/* Job log toggle button in project details */
+.job-log-toggle {
+  background: none;
+  border: 1px solid #666;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #333;
+  margin-right: 6px;
+  transition: background 0.15s;
+}
+
+.job-log-toggle:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .job-log-toggle {
+  color: #c9d1d9;
+  border-color: #484f58;
+}
+
+.dark .job-log-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Scrollbar styling for log container */
+.log-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.log-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.log-container::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+.log-container::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+.job-log-viewer.dark .log-container::-webkit-scrollbar-thumb {
+  background: #30363d;
+}
+
+.job-log-viewer.dark .log-container::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
