@@ -1072,6 +1072,56 @@ class GitLabApiService {
       return null;
     }
   }
+  /**
+   * Get the trace (log) of a specific job
+   * Endpoint: GET /projects/:id/jobs/:job_id/trace
+   * Returns plain text log content
+   * Uses Range header to limit to last ~100KB
+   * @param {string|number} projectId - The GitLab project ID
+   * @param {string|number} jobId - The job ID
+   * @param {number} maxBytes - Maximum bytes to fetch from end of log (default 102400 = ~100KB)
+   * @returns {Promise<string>} - Job log text, or empty string on error
+   */
+  async getJobTrace(
+    projectId: string | number,
+    jobId: string | number,
+    maxBytes: number = 102400
+  ): Promise<string> {
+    try {
+      const path = `/projects/${projectId}/jobs/${jobId}/trace`;
+      const url = this.getApiUrl(path, '');
+
+      const headers: HeadersInit = {
+        'Accept': 'text/plain',
+      };
+
+      // Add authentication
+      if (this.privateToken) {
+        headers['PRIVATE-TOKEN'] = this.privateToken;
+      }
+
+      // Use Range header to fetch only the last portion of the log
+      headers['Range'] = `bytes=-${maxBytes}`;
+
+      const response = await fetch(url, { headers });
+
+      // 404 = job not found, 403 = no access
+      if (response.status === 404 || response.status === 403) {
+        logger.debug(`Job trace not available for job ${jobId} (status ${response.status})`);
+        return '';
+      }
+
+      if (!response.ok && response.status !== 206) {
+        logger.error(`Error fetching job trace: ${response.statusText} (${response.status})`);
+        return '';
+      }
+
+      return await response.text();
+    } catch (error) {
+      logger.error(`Failed to fetch trace for job ${jobId}:`, error);
+      return '';
+    }
+  }
 }
 
 export default GitLabApiService;
