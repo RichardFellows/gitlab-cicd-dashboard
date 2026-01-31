@@ -78,6 +78,7 @@ const Dashboard: FC<DashboardProps> = ({
         aggregateTrends={aggregateTrends}
         trendsLoading={trendsLoading}
         darkMode={darkMode}
+        onProjectSelect={onProjectSelect}
       />
 
       <section className="projects-section">
