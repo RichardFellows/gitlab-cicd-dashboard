@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DashboardDataService from './DashboardDataService';
 import GitLabApiService from './GitLabApiService';
-import { MainBranchTrend, ProjectMetrics, Job } from '../types';
+import { MainBranchTrend, ProjectMetrics, Job, Project, MergeRequest } from '../types';
 
 // Mock GitLabApiService
 vi.mock('./GitLabApiService');
@@ -712,6 +712,99 @@ Thanks!`;
         { exists: false, passed: null }
       );
       expect(result).toBe('ready');
+    });
+  });
+
+  describe('getAllOpenMergeRequests', () => {
+    const makeProject = (id: number, name: string, totalOpen: number): Project => ({
+      id,
+      name,
+      web_url: `https://gitlab.com/${name}`,
+      path_with_namespace: `group/${name}`,
+      metrics: {
+        mergeRequestCounts: { totalOpen, drafts: 0 },
+      } as Project['metrics'],
+    });
+
+    const makeMR = (iid: number, title: string): MergeRequest => ({
+      id: iid * 10,
+      iid,
+      title,
+      state: 'opened',
+      created_at: '2026-01-20T10:00:00Z',
+      updated_at: '2026-01-25T10:00:00Z',
+      source_branch: 'feature/test',
+      target_branch: 'main',
+      web_url: `https://gitlab.com/mr/${iid}`,
+      author: { id: 1, name: 'Alice', username: 'alice' },
+    });
+
+    it('fetches and annotates MRs from multiple projects', async () => {
+      const projects = [
+        makeProject(100, 'alpha', 2),
+        makeProject(200, 'beta', 1),
+      ];
+
+      vi.spyOn(mockGitLabService, 'getProjectMergeRequests')
+        .mockResolvedValueOnce([makeMR(1, 'MR 1'), makeMR(2, 'MR 2')])
+        .mockResolvedValueOnce([makeMR(3, 'MR 3')]);
+
+      const result = await service.getAllOpenMergeRequests(projects);
+
+      expect(result).toHaveLength(3);
+      expect(result[0].projectId).toBe(100);
+      expect(result[0].projectName).toBe('alpha');
+      expect(result[0].projectPath).toBe('group/alpha');
+      expect(result[2].projectId).toBe(200);
+      expect(result[2].projectName).toBe('beta');
+    });
+
+    it('skips projects with no open MRs', async () => {
+      const projects = [
+        makeProject(100, 'alpha', 2),
+        makeProject(200, 'beta', 0), // No open MRs
+      ];
+
+      vi.spyOn(mockGitLabService, 'getProjectMergeRequests')
+        .mockResolvedValueOnce([makeMR(1, 'MR 1')]);
+
+      const result = await service.getAllOpenMergeRequests(projects);
+
+      expect(result).toHaveLength(1);
+      expect(mockGitLabService.getProjectMergeRequests).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles individual project failures gracefully', async () => {
+      const projects = [
+        makeProject(100, 'alpha', 1),
+        makeProject(200, 'beta', 1),
+      ];
+
+      vi.spyOn(mockGitLabService, 'getProjectMergeRequests')
+        .mockResolvedValueOnce([makeMR(1, 'MR 1')])
+        .mockRejectedValueOnce(new Error('API error'));
+
+      const result = await service.getAllOpenMergeRequests(projects);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].projectName).toBe('alpha');
+    });
+
+    it('returns empty array when no projects have open MRs', async () => {
+      const projects = [
+        makeProject(100, 'alpha', 0),
+        makeProject(200, 'beta', 0),
+      ];
+
+      const result = await service.getAllOpenMergeRequests(projects);
+
+      expect(result).toHaveLength(0);
+      expect(mockGitLabService.getProjectMergeRequests).not.toHaveBeenCalled();
+    });
+
+    it('handles empty projects array', async () => {
+      const result = await service.getAllOpenMergeRequests([]);
+      expect(result).toHaveLength(0);
     });
   });
 });
