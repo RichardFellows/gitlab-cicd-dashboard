@@ -12,6 +12,7 @@ import ReadinessView from './components/ReadinessView';
 import ComparisonView from './components/ComparisonView';
 import NotificationBell from './components/NotificationBell';
 import NotificationSettings from './components/NotificationSettings';
+import MRBoardView from './components/MRBoardView';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import { AUTO_REFRESH_OPTIONS } from './utils/constants';
 import { evaluateRules, sendBrowserNotification } from './utils/notificationEngine';
@@ -869,6 +870,13 @@ const App = () => {
                 >
                   Ready
                 </button>
+                <button
+                  className={`view-btn ${viewType === ViewType.MR_BOARD ? 'active' : ''}`}
+                  onClick={() => handleViewTypeChange(ViewType.MR_BOARD)}
+                  title="MR Pipeline Board"
+                >
+                  MRs
+                </button>
               </div>
               {/* Manual refresh + data age moved to RefreshStatusBar */}
             </>
@@ -974,7 +982,7 @@ const App = () => {
 
       {!loading && !error && metrics && !selectedProjectId && (
         <>
-          {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && !comparisonMode && (
+          {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && viewType !== ViewType.MR_BOARD && !comparisonMode && (
             <div className="filter-bar">
               <input
                 type="text"
@@ -1036,7 +1044,15 @@ const App = () => {
             />
           )}
 
-          {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && !comparisonMode && (
+          {viewType === ViewType.MR_BOARD && (
+            <MRBoardView
+              projects={metrics.projects}
+              dashboardService={dashboardService}
+              darkMode={darkMode}
+            />
+          )}
+
+          {viewType !== ViewType.ENVIRONMENT && viewType !== ViewType.READINESS && viewType !== ViewType.MR_BOARD && !comparisonMode && (
             <Dashboard
               metrics={metrics}
               viewType={viewType}
