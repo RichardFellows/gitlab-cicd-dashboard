@@ -102,6 +102,7 @@ function makeDashboardMetrics(projects: Project[]): DashboardMetrics {
       runningPipelines: 0,
       avgSuccessRate,
       avgDuration,
+      testMetrics: { total: 0, success: 0, failed: 0, skipped: 0, available: false },
     },
   };
 }
