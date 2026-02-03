@@ -187,3 +187,54 @@
 - Mock projects should cover all edge cases: failed, canceled, warning (running), warning (low success rate), success, inactive
 
 ---
+
+## [2026-02-03] - bd-3qm.7 - US-007: Cards View — Failures First
+
+### What was implemented
+- **CardView.tsx**: Added health score sorting within each group (ascending - lowest/worst first)
+  - Projects are categorized into groups: Failed → Warning → Inactive → Success (order was already correct)
+  - Added sorting logic after grouping: `calculateHealthScore()` called for each project, sorted ascending
+  - Each group independently sorts by health score, showing most problematic projects first within their category
+- **CardViewOrdering.test.tsx**: Created comprehensive test suite (7 new tests)
+  - Test: "groups appear in correct order: Failed → Warning → Inactive → Success"
+  - Test: "within each group, projects are sorted by health score (lowest first)"
+  - Test: "group headers remain visible and show correct counts"
+  - Test: "groups with zero projects are not rendered"
+  - Test: "canceled pipelines are categorized as failed"
+  - Test: "projects with low success rate are categorized as warning even if status is success"
+  - Test: "health score sorting considers all health signals"
+
+### Files changed
+- `src/components/CardView.tsx` - Added health score sorting within groups
+- `src/components/CardViewOrdering.test.tsx` - New test file with 7 tests
+
+### Verification
+- ✅ All 758 tests pass (56 test files, +7 tests from previous build)
+- ✅ Group order: Failed → Warning → Inactive → Success (already correct)
+- ✅ Within each group: projects sorted by health score (ascending - worst first)
+- ✅ Group headers remain visible with correct counts
+- ✅ Consistent with US-001 problems-first philosophy
+- ✅ Canceled pipelines treated as failed
+- ✅ Low success rate projects (<75%) categorized as warning
+
+### Learnings
+
+**Patterns discovered:**
+- **Post-grouping sort**: After categorizing projects into groups, apply a secondary sort within each group using `Object.keys().forEach()` to iterate and sort each array
+- **Health score as sort key**: `calculateHealthScore(project.metrics).total` provides a unified sort metric across different project states
+- **Ascending for problems-first**: Use `healthA - healthB` (ascending) to show lowest scores first, aligning with "problems first" UX philosophy
+- **Group order vs. within-group order**: Two separate concerns - group rendering order (hardcoded in JSX) and within-group sorting (computed dynamically)
+
+**Gotchas encountered:**
+- Initial confusion about "reverse" in requirements - the group order was ALREADY correct (Failed → Warning → Inactive → Success), only the within-group sorting was missing
+- Must import `calculateHealthScore` from utils at component level to use in sort function
+- Health score calculation considers multiple signals (failure rate, coverage, success rate, etc.) so simple metric comparisons wouldn't match health-based sorting
+- Test assertions need to check textContent of cards within specific group containers (`.failed-group`, `.warning-group`, etc.) to verify ordering
+
+**Testing insights:**
+- Created mock projects with varying health profiles (different combinations of success rate, failure rate, coverage) to test sort behavior
+- Used DOM queries (`.querySelector('.failed-group')`) to isolate groups and verify ordering within each
+- Important to test edge cases: canceled pipelines, low success rate with success status, inactive projects (no pipeline)
+- Test naming should be descriptive of the acceptance criteria being verified
+
+---

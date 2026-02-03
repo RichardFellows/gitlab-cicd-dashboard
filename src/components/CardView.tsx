@@ -45,6 +45,15 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode 
     groupedProjects[mappedCategory].push(project);
   });
 
+  // Sort each group by health score (ascending - lowest/worst first)
+  Object.keys(groupedProjects).forEach(category => {
+    groupedProjects[category].sort((a, b) => {
+      const healthA = calculateHealthScore(a.metrics).total;
+      const healthB = calculateHealthScore(b.metrics).total;
+      return healthA - healthB; // ascending: lowest health first
+    });
+  });
+
   return (
     <div className="card-view-container">
       {/* Failed Projects Group */}
