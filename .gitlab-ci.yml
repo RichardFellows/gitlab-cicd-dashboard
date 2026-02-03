@@ -137,31 +137,20 @@ post-deploy-test:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_MERGE_REQUEST_IID
 
-# E2E tests with Playwright (all branches)
-# Note: Uses Playwright image but inherits node_modules from install job.
-# If native module issues occur, may need to run npm ci here instead.
+# E2E tests with Playwright - runs nightly on main only (scheduled)
+# Full test suite against production deployment
 e2e-test:
   stage: post-deploy
   image: mcr.microsoft.com/playwright:v1.58.0-jammy
   needs:
     - job: install
       artifacts: true
-    - job: deploy
-      artifacts: true
   script:
-    # BRANCH_SLUG is passed from deploy job via dotenv artifact
-    - |
-      if [ "$CI_COMMIT_REF_NAME" = "main" ]; then
-        export BASE_URL="https://gitlab-cicd-dashboard.pages.dev"
-      else
-        export BASE_URL="https://${BRANCH_SLUG}.gitlab-cicd-dashboard.pages.dev"
-      fi
-      echo "Running E2E tests against: $BASE_URL"
-      npx playwright test --reporter=list
+    - export BASE_URL=https://gitlab-cicd-dashboard.pages.dev
+    - echo "Running full E2E suite"
+    - npx playwright test --reporter=list
   rules:
-    - if: $CI_COMMIT_BRANCH
-    - if: $CI_MERGE_REQUEST_IID
-  allow_failure: true  # Don't block MR if E2E tests fail initially
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "main"'
   artifacts:
     when: always
     paths:
@@ -184,7 +173,7 @@ release:
   before_script:
     # Set up SSH for git operations
     - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - cat "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
@@ -203,5 +192,4 @@ release:
     - job: test
     - job: lint
     - job: build
-    - job: e2e-test
-      optional: true
+    - job: post-deploy-test

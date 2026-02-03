@@ -1,101 +1,73 @@
 # PROMPT.md - Ralph Wiggum Loop Instructions
 
-You are working on the GitLab CI/CD Dashboard project. Your goal is to complete tasks iteratively until the completion promise is met.
+You are adding automatic release notes and versioning to the GitLab CI/CD Dashboard.
 
 ## Completion Promise
 
-The task is DONE when ALL of the following pass:
+### Level 1: Local Verification
 ```bash
-npm run lint && npm run build && npm test && npx playwright test --project=chromium
+npm run lint && npm run build && npm test
 ```
 
-Output `DONE` only when all checks pass. If any fail, analyze the error and fix it.
+### Level 2: CI Pipeline (Final)
+The task is DONE when:
+1. The branch is pushed and MR created
+2. CI pipeline passes
+3. After merging to main, a GitLab Release is created automatically
 
 ## Current Task Queue
 
-Work through these tasks in order. Refer to `specs/priority-3-promotion-readiness/` for detailed requirements, design, and task breakdown.
+Refer to `specs/auto-release/` for detailed requirements and design.
 
-### Phase 1: API Layer
+### Phase 1: Dependencies & Configuration
 
-- [ ] **T1.1** Add `getMergeRequestByBranch()` to GitLabApiService
-- [ ] **T1.2** Add `getMergeRequestNotes()` to GitLabApiService
-- [ ] **T1.3** Add `getRepositoryFile()` to GitLabApiService
-- [ ] **T1.4** Add unit tests for new API methods
+- [ ] **T1.1** Install semantic-release dependencies
+- [ ] **T1.2** Create `.releaserc.json` configuration file
+- [ ] **T1.3** Create initial version tag (v1.0.0)
 
-### Phase 2: Sign-off Parsing
+### Phase 2: GitLab CI Integration
 
-- [ ] **T2.1** Add sign-off types to `src/types/index.ts`
-- [ ] **T2.2** Add `SIGNOFF_REGEX` to `src/utils/constants.ts`
-- [ ] **T2.3** Add `parseSignoffComment()` to DashboardDataService
-- [ ] **T2.4** Add `parseCodeowners()` to DashboardDataService
-- [ ] **T2.5** Add `getCodeowners()` to DashboardDataService
-- [ ] **T2.6** Add `getMRSignoffs()` to DashboardDataService
-- [ ] **T2.7** Add unit tests for parsing methods
+- [ ] **T2.1** Add `release` stage to `.gitlab-ci.yml`
+- [ ] **T2.2** Document GL_TOKEN setup in CLAUDE.md
 
-### Phase 3: Readiness Calculation
+### Phase 3: Token Setup
 
-- [ ] **T3.1** Add `getPostDeployTestStatus()` to DashboardDataService
-- [ ] **T3.2** Add `calculateReadinessStatus()` to DashboardDataService
-- [ ] **T3.3** Add `getProjectReadiness()` to DashboardDataService
-- [ ] **T3.4** Add unit tests for readiness calculation
+- [x] **T3.1** GL_TOKEN CI variable already configured ✓
 
-### Phase 4: UI Components
+### Phase 4: Testing
 
-- [ ] **T4.1** Add `READINESS` to `ViewType` enum
-- [ ] **T4.2** Create `ReadinessFilter.tsx` component
-- [ ] **T4.3** Create `ReadinessRow.tsx` component
-- [ ] **T4.4** Create `ReadinessDetails.tsx` component
-- [ ] **T4.5** Create `ReadinessView.tsx` component
-- [ ] **T4.6** Add component tests
+- [ ] **T4.1** Test dry run locally (optional)
+- [ ] **T4.2** Push branch and verify pipeline
+- [ ] **T4.3** After merge, verify GitLab Release is created
 
-### Phase 5: Integration
+### Phase 5: Documentation
 
-- [ ] **T5.1** Add view type toggle for Readiness view
-- [ ] **T5.2** Wire ReadinessView into App.tsx
-- [ ] **T5.3** Add CSS styles for readiness components
-- [ ] **T5.4** Update E2E tests
-
-### Phase 6: Polish
-
-- [ ] **T6.1** Handle edge cases
-- [ ] **T6.2** Caching and performance
-- [ ] **T6.3** Error handling
-- [ ] **T6.4** UX improvements
+- [ ] **T5.1** Update CLAUDE.md with release process
+- [ ] **T5.2** Update README.md with releases section
 
 ## Working Guidelines
 
-1. **Read the spec first** - Check `specs/priority-3-promotion-readiness/` for requirements and design
-2. **One task at a time** - Make a single focused change, then verify
-3. **Run tests after each change** - Don't accumulate multiple untested changes
-4. **Check existing code patterns** - Follow established style (especially Priority 2 components)
-
-## Project Context
-
-- React + TypeScript + Vite
-- Vitest for unit tests, Playwright for E2E
-- Feature branch: `feature/promotion-readiness`
-- Depends on Priority 2 (Environment Overview) - reuse deployment types and services
+1. Read `specs/auto-release/design.md` for exact configuration
+2. This is mostly config work, not code
+3. Use conventional commit format for your commits
+4. Test with `--dry-run` before pushing if possible
 
 ## Key Files
 
-- `specs/priority-3-promotion-readiness/` - Full specification
-- `src/services/GitLabApiService.ts` - API layer
-- `src/services/DashboardDataService.ts` - Business logic
-- `src/types/index.ts` - Type definitions
-- `src/components/EnvironmentMatrixView.tsx` - Reference for similar component patterns
+- `specs/auto-release/requirements.md` - What we're building
+- `specs/auto-release/design.md` - Exact configuration to use
+- `specs/auto-release/tasks.md` - Task breakdown
+- `.releaserc.json` - semantic-release config (create this)
+- `.gitlab-ci.yml` - Add release stage
+- `package.json` - Add devDependencies
 
-## Verification Commands
+## Verification
 
 ```bash
-# Quick check
-npm run lint
-
-# Full verification  
+# Local checks
 npm run lint && npm run build && npm test
 
-# E2E
-npx playwright test --project=chromium
-
-# Full completion promise
-npm run lint && npm run build && npm test && npx playwright test --project=chromium
+# Push and verify CI
+git push -u origin feature/auto-release
+glab ci status
 ```
