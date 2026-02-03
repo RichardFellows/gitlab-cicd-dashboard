@@ -70,7 +70,6 @@ describe('HealthBadge', () => {
   test('sm badge has correct dimensions (40px)', () => {
     render(<HealthBadge score={87} band="healthy" size="sm" />);
     const badge = screen.getByRole('button');
-    const styles = window.getComputedStyle(badge);
     expect(badge.className).toContain('health-badge--sm');
     // CSS class is applied, dimensions verified via CSS
   });

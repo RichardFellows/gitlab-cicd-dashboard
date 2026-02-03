@@ -12,7 +12,7 @@ Epic: bd-3qm
 | bd-3qm.4 | US-004: Remove Empty Failures Accordion | ✅ PASSED | 1 |
 | bd-3qm.5 | US-005: Compact Summary Bar | ⏳ PENDING | — |
 | bd-3qm.6 | US-006: Needs Attention Quick Filter | ✅ PASSED | 1 |
-| bd-3qm.7 | US-007: Cards View — Failures First | ⏳ PENDING | — |
+| bd-3qm.7 | US-007: Cards View — Failures First | ✅ PASSED | 1 |
 | bd-3qm.8 | US-008: Compact Card Design Option | ⏳ PENDING | — |
 | bd-3qm.9 | US-009: MR Board — Highlight Failed Stages | ⏳ PENDING | — |
 | bd-3qm.10 | US-010: Environment Matrix — Version Drift Indicator | ⏳ PENDING | — |

@@ -137,7 +137,7 @@ test.describe('Feature Showcase — New Features', () => {
 
   test('10 — Auto-Refresh Status Bar (F05)', async ({ page }) => {
     // The refresh status bar should be visible in the header
-    const refreshBar = page.locator('.refresh-status-bar, [class*="refresh"]').first();
+    // Screenshot captures the header area where refresh controls appear
     await page.screenshot({ 
       path: `${SCREENSHOT_DIR}/10-auto-refresh-bar.png`,
       clip: { x: 0, y: 0, width: 1280, height: 300 }

@@ -26,7 +26,7 @@ vi.mock('react-chartjs-2', () => ({
       ))}
     </div>
   ),
-  Line: ({ data }: any) => (
+  Line: () => (
     <div data-testid="mock-line-chart">Mock Line Chart</div>
   ),
 }));
