@@ -144,9 +144,21 @@ e2e-test:
 
 # Semantic release - creates tags and releases on main branch
 # Requires Node 22+ (semantic-release v25 dropped Node 20 support)
+# Uses RELEASE_TOKEN (project PAT) for git push permissions
 release:
   stage: release
   image: node:22
+  variables:
+    GITLAB_TOKEN: $RELEASE_TOKEN
+    GIT_AUTHOR_NAME: "craw-cube"
+    GIT_AUTHOR_EMAIL: "craw-cube@users.noreply.gitlab.com"
+    GIT_COMMITTER_NAME: "craw-cube"
+    GIT_COMMITTER_EMAIL: "craw-cube@users.noreply.gitlab.com"
+  before_script:
+    # Configure git to use the token for pushing
+    - git config --global user.email "$GIT_COMMITTER_EMAIL"
+    - git config --global user.name "$GIT_COMMITTER_NAME"
+    - git remote set-url origin "https://oauth2:${RELEASE_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
   script:
     - *install_dependencies
     - npx semantic-release
