@@ -19,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://gitlab.com/richard2/gitlab-cicd-dashboard.git"
+    "url": "git+https://gitlab.com/cube-craw/gitlab-cicd-dashboard.git"
   },
   "keywords": [
     "gitlab",
@@ -32,9 +32,9 @@
   "author": "Richard Fellows",
   "license": "MIT",
   "bugs": {
-    "url": "https://gitlab.com/richard2/gitlab-cicd-dashboard/-/issues"
+    "url": "https://gitlab.com/cube-craw/gitlab-cicd-dashboard/-/issues"
   },
-  "homepage": "https://gitlab.com/richard2/gitlab-cicd-dashboard#readme",
+  "homepage": "https://gitlab.com/cube-craw/gitlab-cicd-dashboard#readme",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -65,75 +65,6 @@
     "chart.js": "^4.4.8",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
-    "react": "^18.2.0",
-    "react-chartjs-2": "^5.2.0",
-    "react-dom": "^18.2.0"
-  }
-}
-=======
-{
-  "name": "gitlab-cicd-dashboard",
-  "version": "1.1.0",
-  "description": "A dashboard to visualize CI/CD metrics for GitLab repositories",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest --passWithNoTests",
-    "test:coverage": "vitest run --coverage --passWithNoTests",
-    "test:deployment": "node scripts/test-deployment.js",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://gitlab.com/richard2/gitlab-cicd-dashboard.git"
-  },
-  "keywords": [
-    "gitlab",
-    "cicd",
-    "dashboard",
-    "metrics",
-    "react",
-    "typescript"
-  ],
-  "author": "Richard Fellows",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://gitlab.com/richard2/gitlab-cicd-dashboard/-/issues"
-  },
-  "homepage": "https://gitlab.com/richard2/gitlab-cicd-dashboard#readme",
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.40.0",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/gitlab": "^13.2.9",
-    "@testing-library/jest-dom": "^6.4.0",
-    "@testing-library/react": "^14.2.0",
-    "@testing-library/user-event": "^14.5.0",
-    "@types/node": "^25.0.10",
-    "@types/react": "^18.2.55",
-    "@types/react-dom": "^18.2.19",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "eslint": "^8.56.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
-    "jsdom": "^24.0.0",
-    "semantic-release": "^25.0.2",
-    "typescript": "^5.3.3",
-    "vite": "^5.1.0",
-    "vitest": "^1.2.2"
-  },
-  "dependencies": {
-    "chart.js": "^4.4.8",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0"
