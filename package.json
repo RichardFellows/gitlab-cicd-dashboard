@@ -13,11 +13,13 @@
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "test:deployment": "node scripts/test-deployment.js",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "mock:api": "node scripts/mock-gitlab-api.mjs",
+    "test:e2e:mock": "playwright test e2e/mock-populated.spec.ts --project=chromium"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://gitlab.com/richard2/gitlab-cicd-dashboard.git"
+    "url": "git+https://gitlab.com/cube-craw/gitlab-cicd-dashboard.git"
   },
   "keywords": [
     "gitlab",
@@ -30,9 +32,9 @@
   "author": "Richard Fellows",
   "license": "MIT",
   "bugs": {
-    "url": "https://gitlab.com/richard2/gitlab-cicd-dashboard/-/issues"
+    "url": "https://gitlab.com/cube-craw/gitlab-cicd-dashboard/-/issues"
   },
-  "homepage": "https://gitlab.com/richard2/gitlab-cicd-dashboard#readme",
+  "homepage": "https://gitlab.com/cube-craw/gitlab-cicd-dashboard#readme",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -61,6 +63,8 @@
   },
   "dependencies": {
     "chart.js": "^4.4.8",
+    "jspdf": "^4.0.0",
+    "jspdf-autotable": "^5.0.7",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0"

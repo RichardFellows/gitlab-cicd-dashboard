@@ -75,6 +75,29 @@ export const CHART_COLORS_DARK = {
 };
 
 /**
+ * Comparison view colour palettes (up to 4 projects)
+ * Chosen for distinguishability (including colour-blind safety)
+ */
+export const COMPARISON_COLOURS = ['#6e49cb', '#e67e22', '#27ae60', '#e74c3c'];
+export const COMPARISON_COLOURS_DARK = ['#9d7fe8', '#f39c12', '#2ecc71', '#ff6b6b'];
+
+/**
+ * Auto-refresh interval options (value in milliseconds, 0 = off)
+ */
+export const AUTO_REFRESH_OPTIONS = [
+  { label: 'Off', value: 0 },
+  { label: '2 min', value: 2 * 60 * 1000 },
+  { label: '5 min', value: 5 * 60 * 1000 },
+  { label: '15 min', value: 15 * 60 * 1000 },
+] as const;
+
+/** Threshold in ms — data older than this is considered "stale" (30 minutes) */
+export const STALE_DATA_THRESHOLD = 30 * 60 * 1000;
+
+/** Threshold in ms — data older than this shows aging indicator (5 minutes) */
+export const AGING_DATA_THRESHOLD = 5 * 60 * 1000;
+
+/**
  * Helper function to check if a project should show failure rate alert
  */
 export const shouldShowFailureRateAlert = (failureRate: number): boolean => {

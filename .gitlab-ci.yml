@@ -28,6 +28,7 @@ test:
     - npm test
   rules:
     - if: $CI_COMMIT_BRANCH
+    - if: $CI_MERGE_REQUEST_IID
 
 # Run linting
 lint:
@@ -37,6 +38,7 @@ lint:
     - npm run lint
   rules:
     - if: $CI_COMMIT_BRANCH
+    - if: $CI_MERGE_REQUEST_IID
 
 # Build the project
 build:
@@ -52,6 +54,7 @@ build:
     expire_in: 1 week
   rules:
     - if: $CI_COMMIT_BRANCH
+    - if: $CI_MERGE_REQUEST_IID
 
 # Deploy to Cloudflare Pages
 # - main branch -> production (gitlab-cicd-dashboard.pages.dev)
@@ -66,8 +69,9 @@ deploy:
     - npm install -g wrangler
     # Create a short branch slug (max 25 chars) to avoid Cloudflare truncation
     # Also strip trailing hyphens since Cloudflare normalizes them away
+    # Use CI_COMMIT_REF_NAME (works for both branch and MR pipelines)
     - |
-      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+      if [ "$CI_COMMIT_REF_NAME" = "main" ]; then
         BRANCH_SLUG="main"
       else
         BRANCH_SLUG=$(echo "${CI_COMMIT_REF_SLUG}" | cut -c1-25 | sed 's/-*$//')
@@ -82,8 +86,9 @@ deploy:
       dotenv: deploy.env
   rules:
     - if: $CI_COMMIT_BRANCH
+    - if: $CI_MERGE_REQUEST_IID
   environment:
-    name: $CI_COMMIT_BRANCH
+    name: $CI_COMMIT_REF_SLUG
     url: https://${CI_COMMIT_REF_SLUG}.gitlab-cicd-dashboard.pages.dev
 
 # Post-deployment verification (all branches)
@@ -94,7 +99,7 @@ post-deploy-test:
     # Use production URL for main, branch-specific URL for others
     # BRANCH_SLUG is passed from deploy job via dotenv artifact
     - |
-      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+      if [ "$CI_COMMIT_REF_NAME" = "main" ]; then
         DEPLOY_URL="https://gitlab-cicd-dashboard.pages.dev"
       else
         DEPLOY_URL="https://${BRANCH_SLUG}.gitlab-cicd-dashboard.pages.dev"
@@ -103,6 +108,7 @@ post-deploy-test:
       npm run test:deployment "$DEPLOY_URL"
   rules:
     - if: $CI_COMMIT_BRANCH
+    - if: $CI_MERGE_REQUEST_IID
   needs:
     - job: deploy
       artifacts: true
@@ -115,7 +121,7 @@ e2e-test:
     - npm ci
     # BRANCH_SLUG is passed from deploy job via dotenv artifact
     - |
-      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+      if [ "$CI_COMMIT_REF_NAME" = "main" ]; then
         export BASE_URL="https://gitlab-cicd-dashboard.pages.dev"
       else
         export BASE_URL="https://${BRANCH_SLUG}.gitlab-cicd-dashboard.pages.dev"
@@ -124,6 +130,7 @@ e2e-test:
       npx playwright test --reporter=list
   rules:
     - if: $CI_COMMIT_BRANCH
+    - if: $CI_MERGE_REQUEST_IID
   needs:
     - job: deploy
       artifacts: true

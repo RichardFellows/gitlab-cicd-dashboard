@@ -1,95 +1,202 @@
 # GitLab CI/CD Dashboard
 
-A dashboard to visualize CI/CD metrics for GitLab repositories under a specific group ID.
+A feature-rich dashboard for visualizing CI/CD metrics, deployment status, and merge request health across GitLab groups and projects.
+
+![Dashboard Table View](showcase/mock/01-table-light.png)
 
 ## Features
 
-- Track pipeline success/failure rates
-- Monitor build times
-- View test coverage
-- Compare metrics across repositories
-- Real-time data updates
-- Main branch pipeline status
-- Recent commits display
-- Settings persistence with localStorage
+### Core Dashboard
+- **Multi-source configuration** — monitor multiple GitLab groups and individual projects from a single dashboard
+- **Pipeline metrics** — success/failure rates, build durations, code coverage tracking
+- **Health scoring** — composite health score (0–100) per project with colour-coded badges
+- **Portfolio health** — aggregate health donut chart and summary statistics
+- **Pipeline trends** — failure rate, build duration, and coverage trend charts over configurable timeframes (7/30/90 days)
+- **Dark mode** — full dark theme with chart support
+- **Persistent settings** — all configuration saved to localStorage
+
+### Views
+
+| View | Description |
+|------|-------------|
+| **Table** | Sortable project table with health scores, pipeline status, success rate, duration, open MRs, coverage |
+| **Cards** | Card-based layout grouped by status (Failed → Warning → Successful) with detailed per-project metrics |
+| **Environment Matrix** | Grid showing deployment status across DEV/SIT/UAT/PROD per project |
+| **Readiness** | Promotion readiness view — deployment status, sign-offs, post-deploy test results per environment |
+| **MR Board** | Kanban-style board grouping open MRs by pipeline status (Passing/Failing/Running/Draft/No Pipeline) |
+
+### Features (F01–F10)
+
+- **F01 Health Score** — composite scoring algorithm weighing success rate, coverage, duration, failure rate
+- **F02 Comparison View** — side-by-side multi-project comparison with overlay charts
+- **F03 Saved Configs** — save/load/export/import dashboard configurations
+- **F04 Notification Rules** — browser notifications for pipeline failures, coverage drops, duration spikes
+- **F05 Auto-Refresh** — configurable auto-refresh with visibility API pause and stale data banner
+- **F06 Failure Diagnosis** — job log viewer with pattern detection (dependency/infra/test/timeout), failure frequency analysis
+- **F07 MR Pipeline Board** — cross-project MR aggregation in Kanban columns
+- **F08 Deployment Timeline** — activity feed with rollback detection and version comparison
+- **F09 Keyboard Shortcuts** — 13 shortcuts for navigation (j/k, view switching, search focus, etc.)
+- **F10 Exportable Reports** — CSV export and lazy-loaded PDF generation (jspdf)
 
 ## Getting Started
 
-### Basic Usage
+### Prerequisites
 
-1. Clone this repository
-2. Open `index.html` in your browser
-3. Enter your GitLab private token and group ID
-4. View your CI/CD metrics
+- Node.js 18+ (20+ recommended)
+- npm
 
-### Running Locally with Dev Server (Recommended)
+### Install & Run
 
-When running locally, you may encounter CORS (Cross-Origin Resource Sharing) issues when trying to access the GitLab API. We've included an all-in-one development server that handles this automatically:
+```bash
+npm install
+npm run dev
+```
 
-1. Make sure you have Node.js installed (version 12 or higher)
-2. Open a terminal and navigate to the project directory
-3. Run the development server:
-   ```
-   npm start
-   ```
+Open http://localhost:5050, enter your GitLab URL, private token, and group/project IDs.
 
-This will:
-- Start the proxy server on an available port
-- Start an HTTP server on port 5050
-- Automatically open your browser to `http://localhost:5050`
-- Configure the dashboard to use the correct proxy URL
+### Running with Mock Data (No Token Required)
 
-The dashboard will automatically use the proxy to avoid CORS issues. Your browser will open to the dashboard once everything is running.
+For demos, development, or UI work — use the built-in mock GitLab API:
 
-### Alternative: Manual Setup
+```bash
+# Terminal 1: Start mock API server (12 realistic projects)
+npm run mock:api
 
-If you prefer to run the servers manually:
+# Terminal 2: Run dashboard
+npm run dev
+```
 
-1. Start the proxy server:
-   ```
-   npm run proxy
-   ```
-2. In another terminal, start a local web server:
-   ```
-   npm run serve
-   ```
-3. Open your browser to `http://localhost:5050`
+Then configure the dashboard with any token and group ID `99001`.
 
-## Files
+Or run the full mock showcase test suite:
 
-- `index.html` - Main dashboard interface
-- `gitlab-api-service.js` - Service to fetch data from GitLab API
-- `dashboard-data-service.js` - Service to process dashboard metrics
-- `index.js` - Main application logic
-- `pipeline-performance.js` - Pipeline metrics calculations
-- `proxy.js` - CORS proxy server for local development
-- `start.js` - Combined development server script
-- `package.json` - Project metadata and npm scripts
+```bash
+npm run test:e2e:mock
+```
+
+This captures 22 screenshots across all views in `showcase/mock/`.
+
+## Testing
+
+```bash
+# Unit tests (733 tests across 53 files)
+npm test
+
+# Unit tests with coverage
+npm run test:coverage
+
+# E2E tests (requires Playwright browsers)
+npx playwright install chromium
+npm run test:e2e
+
+# E2E with mock data (no GitLab token needed)
+npm run test:e2e:mock
+```
+
+### Test Structure
+
+| Location | Type | Description |
+|----------|------|-------------|
+| `src/**/*.test.ts` | Unit | Component and utility tests (vitest + testing-library) |
+| `e2e/dashboard.spec.ts` | E2E | Basic UI tests (no data required) |
+| `e2e/dashboard-with-data.spec.ts` | E2E | Full tests with real GitLab token (`GITLAB_TOKEN` env) |
+| `e2e/feature-showcase.spec.ts` | E2E | Screenshot capture of UI elements |
+| `e2e/mock-populated.spec.ts` | E2E | **Full populated dashboard screenshots using mock API** |
+
+### Mock GitLab API Server
+
+`scripts/mock-gitlab-api.mjs` is a standalone Node.js HTTP server (no dependencies) that implements 16 GitLab API v4 endpoints with realistic generated data:
+
+- **12 projects** with varied statuses, coverage levels, and pipeline histories
+- **Deterministic output** — seeded PRNG for reproducible screenshots
+- **Realistic data** — proper JIRA branch naming, multiple authors, deploy jobs, test reports, job traces, CODEOWNERS, MR notes with sign-offs
+- Runs on port 4000 by default (`MOCK_PORT` env to override)
+
+The Playwright test (`e2e/mock-populated.spec.ts`) auto-starts the mock server and intercepts browser requests via `page.route()`, so no proxy configuration changes are needed.
+
+## Screenshots
+
+All screenshots are generated automatically from the mock API and live in `showcase/mock/`. See the [full showcase gallery](showcase/mock/).
+
+<details>
+<summary>View screenshots</summary>
+
+### Table View
+| Light | Dark |
+|-------|------|
+| ![](showcase/mock/01-table-light.png) | ![](showcase/mock/02-table-dark.png) |
+
+### Card View
+| Light | Dark |
+|-------|------|
+| ![](showcase/mock/03-cards-light.png) | ![](showcase/mock/04-cards-dark.png) |
+
+### Environment Matrix
+| Light | Dark |
+|-------|------|
+| ![](showcase/mock/05-envs-light.png) | ![](showcase/mock/06-envs-dark.png) |
+
+### Readiness View
+| Light | Dark |
+|-------|------|
+| ![](showcase/mock/07-readiness-light.png) | ![](showcase/mock/08-readiness-dark.png) |
+
+### MR Pipeline Board
+| Light | Dark |
+|-------|------|
+| ![](showcase/mock/09-mr-board-light.png) | ![](showcase/mock/10-mr-board-dark.png) |
+
+### Other Views
+| Project Details | Keyboard Shortcuts | Mobile |
+|----------------|-------------------|--------|
+| ![](showcase/mock/11-project-details-light.png) | ![](showcase/mock/13-keyboard-shortcuts.png) | ![](showcase/mock/19-mobile-light.png) |
+
+</details>
+
+## Tech Stack
+
+- **React 18** + TypeScript
+- **Vite** — dev server and build
+- **Chart.js** + react-chartjs-2 — trend charts and donut charts
+- **jspdf** + jspdf-autotable — PDF export
+- **Vitest** — unit testing
+- **Playwright** — E2E testing
+- **GitLab API v4** — data source
+
+## npm Scripts
+
+| Script | Description |
+|--------|-------------|
+| `dev` | Start Vite dev server (port 5050) |
+| `build` | TypeScript check + Vite production build |
+| `test` | Run unit tests |
+| `test:coverage` | Unit tests with coverage report |
+| `test:e2e` | Run all Playwright E2E tests |
+| `test:e2e:mock` | Run mock-populated E2E tests (no token needed) |
+| `mock:api` | Start the mock GitLab API server |
+| `preview` | Preview production build |
+
+## Project Structure
+
+```
+├── src/
+│   ├── components/      # React components (Dashboard, ProjectDetails, views, etc.)
+│   ├── services/        # GitLabApiService, DashboardDataService
+│   ├── utils/           # Health scoring, notifications, export, diagnosis, etc.
+│   ├── types/           # TypeScript type definitions
+│   └── test/            # Test setup and mocks
+├── e2e/                 # Playwright E2E tests
+├── scripts/             # Mock API server, deployment scripts
+├── showcase/            # Generated screenshots
+│   └── mock/            # Mock-data populated screenshots (22 images)
+├── specs/               # Feature specifications (Ralph workflow)
+└── docs/                # Additional documentation
+```
 
 ## Versioning
 
-This project uses [semantic-release](https://github.com/semantic-release/semantic-release) for automatic versioning and changelog generation.
+Uses [semantic-release](https://github.com/semantic-release/semantic-release) with [Conventional Commits](https://www.conventionalcommits.org/).
 
-### Commit Message Format
+## License
 
-We use [Conventional Commits](https://www.conventionalcommits.org/) format:
-
-- `feat:` - New feature (bumps minor version)
-- `fix:` - Bug fix (bumps patch version)
-- `docs:` - Documentation changes
-- `style:` - Code style changes (formatting, etc.)
-- `refactor:` - Code refactoring
-- `test:` - Adding or updating tests
-- `chore:` - Maintenance tasks
-
-Breaking changes should include `BREAKING CHANGE:` in the commit body or use `!` suffix (e.g., `feat!:` or `fix!:`).
-
-### Releases
-
-Releases are automatically created when commits are pushed to the `main` branch. The release process:
-
-1. Analyzes commit messages since the last release
-2. Determines the next version number
-3. Updates CHANGELOG.md
-4. Creates a Git tag
-5. Creates a GitLab release
+Private project.

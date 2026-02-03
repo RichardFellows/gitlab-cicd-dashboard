@@ -1,6 +1,7 @@
 import { FC } from 'react';
 import SourceManager from './SourceManager';
-import { GroupSource, ProjectSource } from '../types';
+import ConfigSelector from './ConfigSelector';
+import { GroupSource, ProjectSource, SavedConfigEntry, DashboardConfig } from '../types';
 
 interface ControlPanelProps {
   gitlabUrl: string;
@@ -20,6 +21,15 @@ interface ControlPanelProps {
   loadingGroups: Set<string>;
   loadingProjects: Set<string>;
   canLoad: boolean;
+  // Saved config props
+  savedConfigs: SavedConfigEntry[];
+  activeConfigId: string | null;
+  currentConfig: DashboardConfig;
+  hasUnsavedChanges: boolean;
+  onSelectConfig: (id: string) => void;
+  onSaveConfig: () => void;
+  onUpdateConfig: () => void;
+  onManageConfigs: () => void;
 }
 
 const ControlPanel: FC<ControlPanelProps> = ({
@@ -39,7 +49,15 @@ const ControlPanel: FC<ControlPanelProps> = ({
   loading,
   loadingGroups,
   loadingProjects,
-  canLoad
+  canLoad,
+  savedConfigs,
+  activeConfigId,
+  currentConfig,
+  hasUnsavedChanges,
+  onSelectConfig,
+  onSaveConfig,
+  onUpdateConfig,
+  onManageConfigs,
 }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +71,17 @@ const ControlPanel: FC<ControlPanelProps> = ({
 
   return (
     <form className="controls control-panel-multi" onSubmit={handleSubmit}>
+      <ConfigSelector
+        savedConfigs={savedConfigs}
+        activeConfigId={activeConfigId}
+        currentConfig={currentConfig}
+        hasUnsavedChanges={hasUnsavedChanges}
+        onSelectConfig={onSelectConfig}
+        onSaveConfig={onSaveConfig}
+        onUpdateConfig={onUpdateConfig}
+        onManageConfigs={onManageConfigs}
+        disabled={loading}
+      />
       <div className="control-row">
         <div className="control-group">
           <label htmlFor="gitlab-url">GitLab Instance URL</label>

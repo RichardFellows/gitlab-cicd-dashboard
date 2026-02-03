@@ -37,6 +37,22 @@
 
 .project-row {
   cursor: pointer;
+  transition: background-color 0.2s, outline 0.2s;
+}
+
+/* Keyboard navigation highlight */
+.project-row.keyboard-selected {
+  background-color: rgba(110, 73, 203, 0.08);
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
+.dark-mode .project-row.keyboard-selected {
+  background-color: rgba(157, 127, 232, 0.12);
+}
+
+.project-row.keyboard-selected td:first-child {
+  position: relative;
 }
 
 .project-row.success .status-indicator {

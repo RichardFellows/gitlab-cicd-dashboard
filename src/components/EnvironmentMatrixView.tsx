@@ -1,32 +1,120 @@
 import { FC, useState, useEffect, useCallback } from 'react';
 import { Project, ENVIRONMENT_ORDER, DeploymentsByEnv, EnvironmentName } from '../types';
+import DashboardDataService from '../services/DashboardDataService';
 import DeploymentCell from './DeploymentCell';
 import DeploymentDetails from './DeploymentDetails';
+import DeploymentTimeline from './DeploymentTimeline';
+import { generateEnvironmentCsv, downloadCsv } from '../utils/exportCsv';
 import '../styles/EnvironmentMatrix.css';
+import '../styles/DeploymentTimeline.css';
+
+type SubView = 'matrix' | 'timeline';
 
 interface EnvironmentMatrixViewProps {
   projects: Project[];
   deploymentCache: Map<number, DeploymentsByEnv>;
   fetchProjectDeployments: (projectId: number) => Promise<void>;
   jiraBaseUrl?: string;
+  dashboardService?: DashboardDataService;
+  darkMode?: boolean;
 }
 
 /**
- * Environment matrix view showing projects as rows and environments as columns.
- * Displays deployment version + status for each project/environment combination.
+ * Environment matrix view with Matrix | Timeline tab toggle.
+ * Matrix shows projects as rows and environments as columns.
+ * Timeline shows chronological deployment activity feed.
  */
 const EnvironmentMatrixView: FC<EnvironmentMatrixViewProps> = ({
   projects,
   deploymentCache,
   fetchProjectDeployments,
-  jiraBaseUrl
+  jiraBaseUrl,
+  dashboardService,
+  darkMode
 }) => {
+  const [subView, setSubView] = useState<SubView>('matrix');
+
+  const handleExportCsv = useCallback(() => {
+    const csv = generateEnvironmentCsv(deploymentCache, projects);
+    const date = new Date().toISOString().split('T')[0];
+    downloadCsv(csv, `gitlab-deployments-${date}.csv`);
+  }, [deploymentCache, projects]);
+
+  // Empty state
+  if (projects.length === 0) {
+    return (
+      <div className="environment-matrix environment-matrix--empty">
+        <p>No projects configured. Add groups or projects in the settings above.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Tab toggle */}
+      <div className="environment-view__tabs">
+        <button
+          className={`environment-view__tab ${subView === 'matrix' ? 'environment-view__tab--active' : ''}`}
+          onClick={() => setSubView('matrix')}
+          type="button"
+        >
+          Matrix
+        </button>
+        <button
+          className={`environment-view__tab ${subView === 'timeline' ? 'environment-view__tab--active' : ''}`}
+          onClick={() => setSubView('timeline')}
+          type="button"
+        >
+          Timeline
+        </button>
+        <button
+          className="environment-view__export-btn"
+          onClick={handleExportCsv}
+          disabled={deploymentCache.size === 0}
+          title="Export deployment data as CSV"
+          type="button"
+        >
+          📊 Export CSV
+        </button>
+      </div>
+
+      {/* Matrix sub-view */}
+      {subView === 'matrix' && (
+        <EnvironmentMatrix
+          projects={projects}
+          deploymentCache={deploymentCache}
+          fetchProjectDeployments={fetchProjectDeployments}
+          jiraBaseUrl={jiraBaseUrl}
+        />
+      )}
+
+      {/* Timeline sub-view */}
+      {subView === 'timeline' && dashboardService && (
+        <DeploymentTimeline
+          projects={projects}
+          dashboardService={dashboardService}
+          darkMode={darkMode}
+          jiraBaseUrl={jiraBaseUrl}
+        />
+      )}
+    </div>
+  );
+};
+
+/**
+ * The actual environment matrix table (extracted from the old top-level component).
+ */
+const EnvironmentMatrix: FC<{
+  projects: Project[];
+  deploymentCache: Map<number, DeploymentsByEnv>;
+  fetchProjectDeployments: (projectId: number) => Promise<void>;
+  jiraBaseUrl?: string;
+}> = ({ projects, deploymentCache, fetchProjectDeployments, jiraBaseUrl }) => {
   // Track which cell is expanded (projectId-environment key)
   const [expandedCell, setExpandedCell] = useState<string | null>(null);
 
   // Fetch deployments for visible projects on mount
   useEffect(() => {
-    // Fetch for all projects (could optimize with IntersectionObserver for large lists)
     projects.forEach(project => {
       if (!deploymentCache.has(project.id)) {
         fetchProjectDeployments(project.id);
@@ -44,15 +132,6 @@ const EnvironmentMatrixView: FC<EnvironmentMatrixViewProps> = ({
   const handleCloseDetails = useCallback(() => {
     setExpandedCell(null);
   }, []);
-
-  // Empty state
-  if (projects.length === 0) {
-    return (
-      <div className="environment-matrix environment-matrix--empty">
-        <p>No projects configured. Add groups or projects in the settings above.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="environment-matrix">

@@ -1,9 +1,11 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { DashboardMetrics, ProjectStatusFilter, AggregatedTrend } from '../types';
 import { formatDuration, getSuccessRateClass, categorizeProject } from '../utils/formatting';
 import { Chart, registerables } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import MetricsPanel from './MetricsPanel';
+import PortfolioHealthChart from './PortfolioHealthChart';
+import FailureSummaryPanel from './FailureSummaryPanel';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -15,6 +17,8 @@ interface SummarySectionProps {
   aggregateTrends?: AggregatedTrend[];
   trendsLoading?: boolean;
   darkMode?: boolean;
+  onProjectSelect?: (projectId: number) => void;
+  onChartCanvasReady?: (name: string, canvas: HTMLCanvasElement | null) => void;
 }
 
 const SummarySection: FC<SummarySectionProps> = ({
@@ -23,8 +27,11 @@ const SummarySection: FC<SummarySectionProps> = ({
   onFilterChange,
   aggregateTrends = [],
   trendsLoading = false,
-  darkMode = false
+  darkMode = false,
+  onProjectSelect,
+  onChartCanvasReady,
 }) => {
+  const [failuresCollapsed, setFailuresCollapsed] = useState(false);
   // Count projects by their pipeline status
   const projectStatusCounts = {
     success: 0,
@@ -150,11 +157,47 @@ const SummarySection: FC<SummarySectionProps> = ({
         </div>
       </div>
 
+      {/* Portfolio Health */}
+      <PortfolioHealthChart projects={metrics.projects} darkMode={darkMode} />
+
+      {/* Failure Summary */}
+      {projectStatusCounts.failed > 0 && onProjectSelect && (
+        <div className="failure-summary-section" style={{ marginTop: '16px' }}>
+          <button
+            onClick={() => setFailuresCollapsed(!failuresCollapsed)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              font: 'inherit',
+              fontWeight: 600,
+              fontSize: '16px',
+              color: darkMode ? '#c9d1d9' : '#333',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>{failuresCollapsed ? '▶' : '▼'}</span>
+            Failures ({projectStatusCounts.failed})
+          </button>
+          {!failuresCollapsed && (
+            <FailureSummaryPanel
+              projects={metrics.projects}
+              onProjectSelect={onProjectSelect}
+              darkMode={darkMode}
+            />
+          )}
+        </div>
+      )}
+
       {/* Aggregate Trend Charts */}
       <MetricsPanel
         trends={aggregateTrends}
         loading={trendsLoading}
         darkMode={darkMode}
+        onChartCanvasReady={onChartCanvasReady}
       />
     </section>
   );

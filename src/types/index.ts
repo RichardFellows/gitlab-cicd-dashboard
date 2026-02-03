@@ -228,6 +228,23 @@ export interface DashboardConfig {
   jiraBaseUrl?: string;  // Optional JIRA base URL for linking (e.g., "https://jira.company.com/browse")
 }
 
+// Saved configuration entry wrapping a DashboardConfig with metadata
+export interface SavedConfigEntry {
+  id: string;                    // Unique identifier (timestamp + random suffix)
+  name: string;                  // User-provided display name
+  config: DashboardConfig;       // The actual configuration
+  createdAt: string;             // ISO timestamp
+  updatedAt: string;             // ISO timestamp
+}
+
+// Export format for sharing configurations (token optionally excluded)
+export interface ExportedConfig {
+  version: number;               // Schema version for forward compat
+  name: string;
+  config: DashboardConfig;       // Token may be empty string
+  exportedAt: string;            // ISO timestamp
+}
+
 // Storage keys for localStorage
 export const STORAGE_KEYS = {
   GITLAB_URL: 'gitlab_cicd_dashboard_url',
@@ -237,7 +254,20 @@ export const STORAGE_KEYS = {
   VIEW_TYPE: 'gitlab_cicd_dashboard_view_type',
   DARK_MODE: 'gitlab_cicd_dashboard_dark_mode',
   SETTINGS_COLLAPSED: 'gitlab_cicd_dashboard_settings_collapsed',
-  DASHBOARD_CONFIG: 'gitlab_cicd_dashboard_config'
+  DASHBOARD_CONFIG: 'gitlab_cicd_dashboard_config',
+  HEALTH_SORT_ORDER: 'gitlab_cicd_dashboard_health_sort',
+  SAVED_CONFIGS: 'gitlab_cicd_dashboard_saved_configs',
+  ACTIVE_CONFIG_ID: 'gitlab_cicd_dashboard_active_config_id',
+  AUTO_REFRESH_INTERVAL: 'gitlab_cicd_dashboard_auto_refresh_interval',
+  NOTIFICATION_RULES: 'gitlab_cicd_dashboard_notification_rules',
+  NOTIFICATION_HISTORY: 'gitlab_cicd_dashboard_notification_history',
+  NOTIFICATIONS_ENABLED: 'gitlab_cicd_dashboard_notifications_enabled',
+  NOTIFICATION_MUTED: 'gitlab_cicd_dashboard_notification_muted',
+  MR_BOARD_FILTERS: 'gitlab_cicd_dashboard_mr_board_filters',
+  MR_BOARD_SORT: 'gitlab_cicd_dashboard_mr_board_sort',
+  MY_USERNAME: 'gitlab_cicd_dashboard_my_username',
+  TIMELINE_FILTERS: 'gitlab_cicd_dashboard_timeline_filters',
+  EXPORT_OPTIONS: 'gitlab_cicd_dashboard_export_options'
 };
 
 // View types enum
@@ -245,11 +275,12 @@ export enum ViewType {
   CARD = 'card',
   TABLE = 'table',
   ENVIRONMENT = 'environment',
-  READINESS = 'readiness'
+  READINESS = 'readiness',
+  MR_BOARD = 'mr-board'
 }
 
 // Project status filter type
-export type ProjectStatusFilter = 'all' | 'success' | 'warning' | 'failed' | 'inactive';
+export type ProjectStatusFilter = 'all' | 'success' | 'warning' | 'failed' | 'inactive' | 'needs-attention';
 
 // ============================================
 // Environment Overview Types (Priority 2)
@@ -361,4 +392,151 @@ export interface VersionReadiness {
     webUrl: string;
     title: string;
   };
+}
+
+// ============================================
+// Notification Rules Types (Priority 4)
+// ============================================
+
+// Notification rule types
+export type NotificationRuleType =
+  | 'pipeline-failure'      // Main branch pipeline failed
+  | 'coverage-drop'         // Coverage below threshold
+  | 'duration-spike'        // Duration increased above threshold %
+  | 'deployment-failure';   // Failed deployment to specified environment
+
+export interface NotificationRule {
+  id: string;                           // Unique identifier
+  type: NotificationRuleType;
+  name: string;                         // Display name
+  enabled: boolean;
+  scope: 'all' | number[];             // 'all' projects or specific project IDs
+  threshold?: number;                   // For coverage-drop (%) or duration-spike (%)
+  environment?: EnvironmentName;        // For deployment-failure
+  createdAt: string;
+}
+
+export interface NotificationEntry {
+  id: string;
+  ruleId: string;
+  ruleName: string;
+  ruleType: NotificationRuleType;
+  projectId: number;
+  projectName: string;
+  message: string;
+  value: number;                        // The metric value that triggered it
+  timestamp: string;
+  read: boolean;
+}
+
+// ============================================
+// Failure Diagnosis Types (Priority 6)
+// ============================================
+
+/** Category types for pipeline failure classification */
+export type FailureCategoryType =
+  | 'dependency'       // npm/package/module errors
+  | 'infrastructure'   // connection, memory, system errors
+  | 'test-failure'     // assertion and test framework errors
+  | 'timeout'          // execution time exceeded
+  | 'unknown';         // no pattern matched
+
+/** Detected failure category with metadata */
+export interface FailureCategory {
+  type: FailureCategoryType;
+  icon: string;            // Emoji icon
+  label: string;           // Human-readable label
+  matchedPattern: string;  // The pattern that matched (for debugging)
+  confidence: 'high' | 'medium' | 'low';
+}
+
+/** Failure frequency for a specific job */
+export interface FailureFrequency {
+  jobName: string;
+  failedCount: number;
+  totalCount: number;
+  isFlaky: boolean;        // true if fails inconsistently (>0 but <80% failures)
+}
+
+/** A single highlighted log line with severity level */
+export interface HighlightedLine {
+  text: string;
+  level: 'error' | 'warning' | 'info' | 'normal';
+  lineNumber: number;
+}
+
+// ============================================
+// MR Pipeline Status Board Types (Priority 7)
+// ============================================
+
+/** MR with project context for cross-project display */
+export interface MRWithProject extends MergeRequest {
+  projectId: number;
+  projectName: string;
+  projectPath?: string;
+}
+
+/** MR Board filter state */
+export interface MRBoardFilters {
+  projectIds: number[];           // Empty = all projects
+  authorSearch: string;           // Username or name substring
+  myMRsOnly: boolean;
+  myUsername: string;              // Configured username for "My MRs"
+}
+
+/** MR sort options */
+export type MRSortOption =
+  | 'newest'
+  | 'oldest'
+  | 'last-activity'
+  | 'project-name';
+
+/** MR pipeline status for grouping */
+export type MRPipelineGroup =
+  | 'passing'
+  | 'failing'
+  | 'running'
+  | 'draft'
+  | 'no-pipeline';
+
+// ============================================
+// Deployment Timeline Types (Priority 8)
+// ============================================
+
+/** Extended deployment entry with history context */
+export interface DeploymentHistoryEntry extends Deployment {
+  projectId: number;
+  projectName: string;
+  isRollback: boolean;
+  rolledBackFrom?: string;       // Previous version (if rollback)
+}
+
+/** Timeline filter state */
+export interface TimelineFilters {
+  projectIds: number[];            // Empty = all
+  environments: EnvironmentName[]; // Empty = all
+  statuses: ('success' | 'failed' | 'rollback')[];
+  dateFrom: string | null;         // ISO date
+  dateTo: string | null;           // ISO date
+}
+
+// ============================================
+// Exportable Reports Types (Priority 10)
+// ============================================
+
+/** PDF export section options */
+export interface PdfExportOptions {
+  includeSummary: boolean;
+  includeProjectTable: boolean;
+  includeTrendCharts: boolean;
+  includeEnvironmentMatrix: boolean;
+  includeDetailedBreakdown: boolean;
+}
+
+/** Chart reference map for PDF image capture */
+export interface ChartRefMap {
+  successRate?: HTMLCanvasElement | null;
+  duration?: HTMLCanvasElement | null;
+  coverage?: HTMLCanvasElement | null;
+  distribution?: HTMLCanvasElement | null;
 }

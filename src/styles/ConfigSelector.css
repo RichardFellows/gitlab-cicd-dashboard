@@ -1,0 +1,99 @@
+/* Config Selector Styles */
+.config-selector {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.config-selector-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-selector-label {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.config-selector-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.config-selector-dropdown-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.config-selector-dropdown {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: var(--card-bg-color);
+  color: var(--text-color);
+  cursor: pointer;
+  appearance: auto;
+}
+
+.config-selector-dropdown:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(110, 73, 203, 0.2);
+}
+
+.config-selector-dropdown:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.config-unsaved-indicator {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--warning-color);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.config-action-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s, border-color 0.2s;
+  background-color: var(--card-bg-color);
+  color: var(--text-color);
+}
+
+.config-action-btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  background-color: var(--background-color);
+}
+
+.config-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.config-save-btn {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.config-save-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}

@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useState, useMemo, useEffect, useRef } from 'react';
 import { Project } from '../types';
 import {
   categorizeProject,
@@ -11,15 +11,24 @@ import {
   escapeHtml
 } from '../utils/formatting';
 import MetricAlert from './MetricAlert';
+import HealthBadge from './HealthBadge';
+import HealthBreakdown from './HealthBreakdown';
 import { shouldShowFailureRateAlert, shouldShowCoverageAlert } from '../utils/constants';
+import { calculateHealthScore } from '../utils/healthScore';
 import '../styles/CardView.css';
 
 interface CardViewProps {
   projects: Project[];
   onProjectSelect: (projectId: number) => void;
+  selectionMode?: boolean;
+  selectedIds?: Set<number>;
+  onToggleSelection?: (projectId: number) => void;
+  keyboardSelectedIndex?: number;
 }
 
-const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
+const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode = false, selectedIds, onToggleSelection, keyboardSelectedIndex = -1 }) => {
+  // Determine the keyboard-selected project ID from the flat index
+  const keyboardSelectedId = keyboardSelectedIndex >= 0 ? projects[keyboardSelectedIndex]?.id ?? -1 : -1;
   // Group projects by status
   const groupedProjects: Record<string, Project[]> = {
     failed: [],
@@ -36,6 +45,15 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
     groupedProjects[mappedCategory].push(project);
   });
 
+  // Sort each group by health score (ascending - lowest/worst first)
+  Object.keys(groupedProjects).forEach(category => {
+    groupedProjects[category].sort((a, b) => {
+      const healthA = calculateHealthScore(a.metrics).total;
+      const healthB = calculateHealthScore(b.metrics).total;
+      return healthA - healthB; // ascending: lowest health first
+    });
+  });
+
   return (
     <div className="card-view-container">
       {/* Failed Projects Group */}
@@ -48,6 +66,10 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
                 key={project.id}
                 project={project}
                 onProjectSelect={onProjectSelect}
+                selectionMode={selectionMode}
+                isSelected={selectedIds?.has(project.id) ?? false}
+                onToggleSelection={onToggleSelection}
+                isKeyboardSelected={project.id === keyboardSelectedId}
               />
             ))}
           </div>
@@ -64,6 +86,10 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
                 key={project.id}
                 project={project}
                 onProjectSelect={onProjectSelect}
+                selectionMode={selectionMode}
+                isSelected={selectedIds?.has(project.id) ?? false}
+                onToggleSelection={onToggleSelection}
+                isKeyboardSelected={project.id === keyboardSelectedId}
               />
             ))}
           </div>
@@ -80,6 +106,10 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
                 key={project.id}
                 project={project}
                 onProjectSelect={onProjectSelect}
+                selectionMode={selectionMode}
+                isSelected={selectedIds?.has(project.id) ?? false}
+                onToggleSelection={onToggleSelection}
+                isKeyboardSelected={project.id === keyboardSelectedId}
               />
             ))}
           </div>
@@ -96,6 +126,10 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
                 key={project.id}
                 project={project}
                 onProjectSelect={onProjectSelect}
+                selectionMode={selectionMode}
+                isSelected={selectedIds?.has(project.id) ?? false}
+                onToggleSelection={onToggleSelection}
+                isKeyboardSelected={project.id === keyboardSelectedId}
               />
             ))}
           </div>
@@ -108,10 +142,26 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect }) => {
 interface ProjectCardProps {
   project: Project;
   onProjectSelect: (projectId: number) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (projectId: number) => void;
+  isKeyboardSelected?: boolean;
 }
 
-const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
+const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect, selectionMode = false, isSelected = false, onToggleSelection, isKeyboardSelected = false }) => {
   const category = categorizeProject(project);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Scroll keyboard-selected card into view
+  useEffect(() => {
+    if (isKeyboardSelected && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isKeyboardSelected]);
+
+  // Calculate health score
+  const health = useMemo(() => calculateHealthScore(project.metrics), [project.metrics]);
 
   // Calculate failure rate for alerts
   const failureRate = project.metrics.totalPipelines > 0
@@ -154,7 +204,22 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
   const commitsToShow = getCommitsToShow();
 
   return (
-    <div className={`project-card ${category}`}>
+    <div
+      ref={cardRef}
+      className={`project-card ${category}${isSelected ? ' comparison-selected' : ''}${isKeyboardSelected ? ' keyboard-selected' : ''}`}
+      style={{ position: 'relative' }}
+      aria-label={isKeyboardSelected ? `${project.name} (keyboard selected)` : undefined}
+    >
+      {selectionMode && (
+        <label className="comparison-checkbox" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelection?.(project.id)}
+            aria-label={`Select ${project.name} for comparison`}
+          />
+        </label>
+      )}
       <div className="project-header">
         <h3>
           <a 
@@ -169,15 +234,23 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
             {project.name}
           </a>
         </h3>
-        <a
-          href={project.web_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="gitlab-link"
-          title="Open in GitLab"
-        >
-          <i className="gitlab-icon">↗️</i>
-        </a>
+        <div className="project-header-actions">
+          <HealthBadge
+            score={health.total}
+            band={health.band}
+            size="sm"
+            onClick={() => setShowBreakdown(!showBreakdown)}
+          />
+          <a
+            href={project.web_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="gitlab-link"
+            title="Open in GitLab"
+          >
+            <i className="gitlab-icon">↗️</i>
+          </a>
+        </div>
       </div>
 
       {/* Metric Alerts */}
@@ -190,6 +263,11 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect }) => {
             <MetricAlert type="low-coverage" value={project.metrics.codeCoverage.coverage} />
           )}
         </div>
+      )}
+
+      {/* Health Score Breakdown */}
+      {showBreakdown && (
+        <HealthBreakdown signals={health.signals} />
       )}
 
       <div className="project-metrics">

@@ -1,0 +1,334 @@
+/* NotificationSettings */
+.notification-settings {
+  background: var(--card-bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.notification-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.notification-settings-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notification-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notification-toggle-row:last-child {
+  border-bottom: none;
+}
+
+.notification-toggle-label {
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.notification-toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background-color: var(--border-color);
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: none;
+  padding: 0;
+}
+
+.notification-toggle-switch.active {
+  background-color: var(--success-color);
+}
+
+.notification-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.notification-toggle-switch.active::after {
+  transform: translateX(18px);
+}
+
+.notification-permission-status {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.notification-permission-granted {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+}
+
+.notification-permission-denied {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+}
+
+.notification-permission-default {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: var(--warning-color);
+}
+
+.dark-mode .notification-permission-granted {
+  background-color: rgba(76, 175, 80, 0.15);
+}
+
+.dark-mode .notification-permission-denied {
+  background-color: rgba(244, 67, 54, 0.15);
+}
+
+.dark-mode .notification-permission-default {
+  background-color: rgba(255, 202, 40, 0.15);
+}
+
+/* Rule list */
+.notification-rule-list {
+  margin-top: 12px;
+}
+
+.notification-rule-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.notification-rule-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.notification-rule-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-rule-item-name {
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notification-rule-item-type {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.notification-rule-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.notification-rule-item-actions button {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+
+.notification-rule-item-actions button:hover {
+  background-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.notification-rule-item-actions button.danger:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.notification-add-btn {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin-top: 8px;
+  background: none;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  color: var(--primary-color);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.notification-add-btn:hover {
+  background-color: var(--border-color);
+}
+
+.notification-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Rule Form Styles */
+.notification-rule-form {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 8px;
+  background: var(--card-bg-color);
+}
+
+.notification-form-field {
+  margin-bottom: 10px;
+}
+
+.notification-form-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.notification-form-field select,
+.notification-form-field input[type="text"],
+.notification-form-field input[type="number"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 13px;
+  background: var(--card-bg-color);
+  color: var(--text-color);
+  box-sizing: border-box;
+}
+
+.notification-scope-radios {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.notification-radio-label {
+  font-size: 13px;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.notification-project-list {
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px;
+}
+
+.notification-project-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-color);
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.notification-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.notification-form-errors {
+  margin-bottom: 8px;
+}
+
+.notification-form-error {
+  font-size: 12px;
+  color: var(--danger-color);
+  margin: 2px 0;
+}
+
+.notification-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.notification-form-actions button {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.notification-form-actions button[type="submit"] {
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+}
+
+.notification-form-actions button[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notification-not-supported {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+}
+
+/* Dark mode refinements */
+.dark-mode .notification-toggle-switch {
+  background-color: #3a3a5a;
+}
+
+.dark-mode .notification-toggle-switch::after {
+  background: #ddd;
+}
+
+.dark-mode .notification-rule-form select,
+.dark-mode .notification-rule-form input[type="text"],
+.dark-mode .notification-rule-form input[type="number"] {
+  background: var(--background-color);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.dark-mode .notification-rule-item-actions button.danger:hover {
+  background-color: rgba(244, 67, 54, 0.15);
+}

@@ -4,6 +4,7 @@ import DashboardDataService from '../services/DashboardDataService';
 import ReadinessFilter, { ReadinessFilters } from './ReadinessFilter';
 import ReadinessRow from './ReadinessRow';
 import ReadinessDetails from './ReadinessDetails';
+import { logger } from '../utils/logger';
 import '../styles/ReadinessView.css';
 
 interface ReadinessViewProps {
@@ -58,7 +59,7 @@ const ReadinessView: FC<ReadinessViewProps> = ({
 
       setReadinessData(allReadiness);
     } catch (err) {
-      console.error('Failed to fetch readiness data:', err);
+      logger.error('Failed to fetch readiness data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load readiness data');
     } finally {
       setLoading(false);

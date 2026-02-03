@@ -1,4 +1,4 @@
-import { FC, useState, useCallback } from 'react';
+import { FC, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Project, MergeRequest, STORAGE_KEYS } from '../types';
 import {
   categorizeProject,
@@ -10,20 +10,80 @@ import {
   getPipelineStatusClass
 } from '../utils/formatting';
 import MetricAlert from './MetricAlert';
+import HealthBadge from './HealthBadge';
+import HealthBreakdown from './HealthBreakdown';
 import { shouldShowFailureRateAlert, shouldShowCoverageAlert } from '../utils/constants';
+import { calculateHealthScore, HealthScore } from '../utils/healthScore';
 import GitLabApiService from '../services/GitLabApiService';
+import { logger } from '../utils/logger';
 import '../styles/TableView.css';
 
 interface TableViewProps {
   projects: Project[];
   onProjectSelect: (projectId: number) => void;
   gitLabService?: GitLabApiService;
+  selectionMode?: boolean;
+  selectedIds?: Set<number>;
+  onToggleSelection?: (projectId: number) => void;
+  keyboardSelectedIndex?: number;
 }
 
-const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabService }) => {
+const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabService, selectionMode = false, selectedIds, onToggleSelection, keyboardSelectedIndex = -1 }) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const [healthExpanded, setHealthExpanded] = useState<Record<number, boolean>>({});
   const [mergeRequestsData, setMergeRequestsData] = useState<Record<number, MergeRequest[]>>({});
   const [loadingMRs, setLoadingMRs] = useState<Record<number, boolean>>({});
+
+  // Keyboard selection: derive selected project ID from flat index
+  const keyboardSelectedId = keyboardSelectedIndex >= 0 ? projects[keyboardSelectedIndex]?.id ?? -1 : -1;
+  const selectedRowRef = useRef<HTMLTableRowElement>(null);
+
+  // Scroll keyboard-selected row into view
+  useEffect(() => {
+    if (keyboardSelectedId >= 0 && selectedRowRef.current) {
+      selectedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [keyboardSelectedId]);
+
+  // Health sort: 'asc' | 'desc' | null
+  // Default to 'asc' (ascending, worst first) per US-001
+  const [healthSort, setHealthSort] = useState<'asc' | 'desc' | null>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.HEALTH_SORT_ORDER);
+    if (saved === 'asc' || saved === 'desc') {
+      return saved;
+    }
+    // No saved preference, set default to 'asc'
+    localStorage.setItem(STORAGE_KEYS.HEALTH_SORT_ORDER, 'asc');
+    return 'asc';
+  });
+
+  // Compute health scores for all projects
+  const healthScores = useMemo(() => {
+    const map: Record<number, HealthScore> = {};
+    for (const p of projects) {
+      map[p.id] = calculateHealthScore(p.metrics);
+    }
+    return map;
+  }, [projects]);
+
+  // Sort projects by health if health sort is active
+  const sortedProjects = useMemo(() => {
+    if (!healthSort) return projects;
+    const sorted = [...projects].sort((a, b) => {
+      const scoreA = healthScores[a.id]?.total ?? 0;
+      const scoreB = healthScores[b.id]?.total ?? 0;
+      return healthSort === 'asc' ? scoreA - scoreB : scoreB - scoreA;
+    });
+    return sorted;
+  }, [projects, healthSort, healthScores]);
+
+  const toggleHealthSort = () => {
+    // Cycle: asc → desc → asc (no null state as per US-001)
+    // User can always override, but there's always a default sort
+    const next = healthSort === 'asc' ? 'desc' : 'asc';
+    setHealthSort(next);
+    localStorage.setItem(STORAGE_KEYS.HEALTH_SORT_ORDER, next);
+  };
 
   // Load merge requests for a project
   const loadMergeRequests = useCallback(async (projectId: number) => {
@@ -45,7 +105,7 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
       const mrs = await gitLabService.getProjectMergeRequests(projectId);
       setMergeRequestsData(prev => ({ ...prev, [projectId]: mrs }));
     } catch (error) {
-      console.error(`Failed to load MRs for project ${projectId}:`, error);
+      logger.error(`Failed to load MRs for project ${projectId}:`, error);
       setMergeRequestsData(prev => ({ ...prev, [projectId]: [] }));
     } finally {
       setLoadingMRs(prev => ({ ...prev, [projectId]: false }));
@@ -77,7 +137,16 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
       <table className="projects-table">
         <thead>
           <tr>
+            {selectionMode && <th style={{ width: 40 }}></th>}
             <th>Project</th>
+            <th
+              className={`sortable-header ${healthSort ? 'sorted' : ''}`}
+              onClick={toggleHealthSort}
+              title="Sort by health score"
+              style={{ cursor: 'pointer' }}
+            >
+              Health {healthSort === 'asc' ? '↑' : healthSort === 'desc' ? '↓' : ''}
+            </th>
             <th>Pipeline Status</th>
             <th>Success Rate</th>
             <th>Avg Duration</th>
@@ -87,9 +156,10 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
           </tr>
         </thead>
         <tbody>
-          {projects.map(project => {
+          {sortedProjects.map(project => {
             const category = categorizeProject(project);
             const isExpanded = expandedRows[project.id] || false;
+            const health = healthScores[project.id];
 
             // Calculate failure rate for alerts
             const failureRate = project.metrics.totalPipelines > 0
@@ -106,9 +176,23 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
               <>
                 <tr 
                   key={`row-${project.id}`}
-                  className={`project-row ${category} ${isExpanded ? 'expanded' : ''}`}
+                  ref={project.id === keyboardSelectedId ? selectedRowRef : undefined}
+                  className={`project-row ${category} ${isExpanded ? 'expanded' : ''}${selectionMode && selectedIds?.has(project.id) ? ' comparison-selected' : ''}${project.id === keyboardSelectedId ? ' keyboard-selected' : ''}`}
                   data-project-id={project.id}
+                  aria-label={project.id === keyboardSelectedId ? `${project.name} (keyboard selected)` : undefined}
                 >
+                  {selectionMode && (
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds?.has(project.id) ?? false}
+                        onChange={() => onToggleSelection?.(project.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Select ${project.name} for comparison`}
+                        style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--primary-color, #6e49cb)' }}
+                      />
+                    </td>
+                  )}
                   <td>
                     <span className={`status-indicator ${category}`}></span>
                     <a
@@ -130,6 +214,16 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
                           <MetricAlert type="low-coverage" value={project.metrics.codeCoverage.coverage} compact />
                         )}
                       </span>
+                    )}
+                  </td>
+                  <td className="health-cell">
+                    {health && (
+                      <HealthBadge
+                        score={health.total}
+                        band={health.band}
+                        size="sm"
+                        onClick={() => setHealthExpanded(prev => ({ ...prev, [project.id]: !prev[project.id] }))}
+                      />
                     )}
                   </td>
                   <td>
@@ -178,7 +272,7 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
                     key={`details-${project.id}`}
                     className="project-details"
                   >
-                    <td colSpan={7}>
+                    <td colSpan={selectionMode ? 9 : 8}>
                       <div className="details-content">
                         <div className="metrics-bar">
                           <div className="metric">
@@ -247,6 +341,16 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
                           </div>
                         )}
                       </div>
+                    </td>
+                  </tr>
+                )}
+                {healthExpanded[project.id] && health && (
+                  <tr
+                    key={`health-${project.id}`}
+                    className="project-details health-breakdown-row"
+                  >
+                    <td colSpan={selectionMode ? 9 : 8}>
+                      <HealthBreakdown signals={health.signals} />
                     </td>
                   </tr>
                 )}

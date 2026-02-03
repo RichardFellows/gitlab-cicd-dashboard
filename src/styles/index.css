@@ -106,6 +106,30 @@ header {
   font-size: 14px;
 }
 
+/* Shortcuts hint button */
+.shortcuts-hint-btn {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.shortcuts-hint-btn kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 var(--border-color);
+}
+
 /* Text buttons */
 .text-btn {
   background: none;
@@ -363,6 +387,17 @@ label {
 .filter-chip.inactive.active {
   background-color: var(--inactive-color);
   border-color: var(--inactive-color);
+}
+
+.filter-chip.needs-attention {
+  font-weight: 600;
+}
+
+.filter-chip.needs-attention.active {
+  background: linear-gradient(135deg, var(--danger-color), var(--warning-color));
+  border-color: var(--danger-color);
+  color: white;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
 }
 
 /* Summary section layout */
@@ -630,4 +665,64 @@ label {
   .view-toggle .view-btn {
     flex: 1;
   }
+}
+/* Error Boundary */
+.error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.error-boundary h2 {
+  color: var(--danger-color);
+  margin-bottom: 12px;
+}
+
+.error-boundary-message {
+  color: var(--text-muted);
+  max-width: 600px;
+  margin-bottom: 20px;
+  word-break: break-word;
+}
+
+.error-boundary-retry {
+  padding: 10px 24px;
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.error-boundary-retry:hover {
+  opacity: 0.9;
+}
+
+/* Loading Skeleton */
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--border-color) 25%,
+    var(--card-bg-color) 50%,
+    var(--border-color) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Dark mode: shortcuts hint button kbd */
+.dark-mode .shortcuts-hint-btn kbd {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
 }

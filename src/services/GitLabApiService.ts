@@ -1,4 +1,5 @@
 import { MergeRequest, Pipeline, Commit, Job, TestMetrics, GitLabApiProject, PartialGitLabApiProject, STORAGE_KEYS, MRNote } from '../types';
+import { logger } from '../utils/logger';
 
 class GitLabApiService {
   baseUrl: string;
@@ -19,7 +20,7 @@ class GitLabApiService {
       const savedToken = window.localStorage.getItem(STORAGE_KEYS.TOKEN);
       if (savedToken) {
         this.privateToken = savedToken;
-        console.log('Loaded GitLab token from localStorage');
+        logger.debug('Loaded GitLab token from localStorage');
       }
     }
   }
@@ -75,7 +76,7 @@ class GitLabApiService {
       headers["PRIVATE-TOKEN"] = this.privateToken;
     }
     
-    console.log('Using authentication headers:', { 
+    logger.debug('Using authentication headers:', { 
       privateTokenLength: this.privateToken ? this.privateToken.length : 0,
       hasToken: !!this.privateToken,
       headerKeys: Object.keys(headers),
@@ -96,8 +97,8 @@ class GitLabApiService {
       const queryParams = '?include_subgroups=true&per_page=100';
       const url = this.getApiUrl(path, queryParams);
 
-      console.log(`Fetching group projects from: ${url}`);
-      console.log('Using headers:', JSON.stringify({
+      logger.debug(`Fetching group projects from: ${url}`);
+      logger.debug('Using headers:', JSON.stringify({
         privateTokenLength: this.privateToken ? this.privateToken.length : 0,
         hasToken: !!this.privateToken,
         headers: Object.keys(this.getAuthHeaders())
@@ -109,14 +110,14 @@ class GitLabApiService {
       };
       
       // Log the final request configuration
-      console.log('Request configuration:', { url, options: { ...fetchOptions, headers: Object.keys(fetchOptions.headers || {}) } });
+      logger.debug('Request configuration:', { url, options: { ...fetchOptions, headers: Object.keys(fetchOptions.headers || {}) } });
       
       const response = await fetch(url, fetchOptions);
 
-      console.log('API Response status:', response.status, response.statusText);
+      logger.debug('API Response status:', response.status, response.statusText);
       
       if (!response.ok) {
-        console.error('API Error Response:', {
+        logger.error('API Error Response:', {
           status: response.status,
           statusText: response.statusText,
           url: response.url,
@@ -126,12 +127,12 @@ class GitLabApiService {
         
         // Specific handling for common error codes
         if (response.status === 401) {
-          console.error('Authentication error (401): Token is invalid or missing. Check your GitLab access token.');
-          console.error('IMPORTANT: Make sure you have the right token format. GitLab API tokens should start with "glpat-"');
+          logger.error('Authentication error (401): Token is invalid or missing. Check your GitLab access token.');
+          logger.error('IMPORTANT: Make sure you have the right token format. GitLab API tokens should start with "glpat-"');
           
           // Check if using the proxy
           if (this.useProxy) {
-            console.error('Using proxy - make sure the proxy is correctly forwarding the authentication headers');
+            logger.error('Using proxy - make sure the proxy is correctly forwarding the authentication headers');
           }
         }
         
@@ -140,9 +141,9 @@ class GitLabApiService {
         try {
           const errorText = await response.text();
           errorDetails = errorText.substring(0, 1000); // Limit size
-          console.error('API Error Response body:', errorDetails);
+          logger.error('API Error Response body:', errorDetails);
         } catch (e) {
-          console.error('Could not read error response body');
+          logger.error('Could not read error response body');
         }
         
         // Throw with extra info for authentication errors
@@ -154,11 +155,11 @@ class GitLabApiService {
       }
 
       const data = await response.json();
-      console.log(`Received ${data.length} projects from API`);
+      logger.debug(`Received ${data.length} projects from API`);
       return data;
     } catch (error) {
-      console.error("Failed to fetch group projects:", error);
-      console.error("Error details:", {
+      logger.error("Failed to fetch group projects:", error);
+      logger.error("Error details:", {
         name: error instanceof Error ? error.name : 'Not an Error object',
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : 'No stack trace'
@@ -201,7 +202,7 @@ class GitLabApiService {
       }
 
       const pipelines = await response.json();
-      console.log(`Pipeline data for project ${projectId} (sample):`,
+      logger.debug(`Pipeline data for project ${projectId} (sample):`,
         pipelines.slice(0, 3).map((p: Pipeline) => ({
           id: p.id,
           status: p.status,
@@ -212,7 +213,7 @@ class GitLabApiService {
       );
       return pipelines;
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to fetch pipelines for project ${projectId}:`,
         error
       );
@@ -241,7 +242,7 @@ class GitLabApiService {
 
       return await response.json();
     } catch (error) {
-      console.error(`Failed to fetch jobs for pipeline ${pipelineId}:`, error);
+      logger.error(`Failed to fetch jobs for pipeline ${pipelineId}:`, error);
       throw error;
     }
   }
@@ -267,7 +268,7 @@ class GitLabApiService {
 
       return await response.json();
     } catch (error) {
-      console.error(`Failed to fetch details for pipeline ${pipelineId}:`, error);
+      logger.error(`Failed to fetch details for pipeline ${pipelineId}:`, error);
       throw error;
     }
   }
@@ -282,7 +283,7 @@ class GitLabApiService {
       // First check if project has any pipelines
       const pipelines = await this.getProjectPipelines(projectId, { per_page: 1 });
       if (!pipelines || pipelines.length === 0) {
-        console.log(`No pipelines found for project ${projectId}, cannot fetch test reports`);
+        logger.debug(`No pipelines found for project ${projectId}, cannot fetch test reports`);
         return { total: 0, success: 0, failed: 0, skipped: 0, available: false };
       }
 
@@ -296,7 +297,7 @@ class GitLabApiService {
       if (!response.ok) {
         // Test reports might not be enabled for all projects
         if (response.status === 404 || response.status === 400) {
-          console.log(`Test reports not available for project ${projectId} (status ${response.status})`);
+          logger.debug(`Test reports not available for project ${projectId} (status ${response.status})`);
           return { total: 0, success: 0, failed: 0, skipped: 0, available: false };
         }
         throw new Error(`Error fetching test reports: ${response.statusText}`);
@@ -305,7 +306,7 @@ class GitLabApiService {
       const data = await response.json();
       return { ...data, available: true };
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to fetch test reports for project ${projectId}:`,
         error
       );
@@ -335,7 +336,7 @@ class GitLabApiService {
       });
 
       if (!response.ok) {
-        console.log(`Error fetching main branch pipeline for project ${projectId}: ${response.statusText}`);
+        logger.debug(`Error fetching main branch pipeline for project ${projectId}: ${response.statusText}`);
         return {
           id: 0,
           status: 'unknown',
@@ -349,7 +350,7 @@ class GitLabApiService {
       const pipelines = await response.json();
 
       if (!pipelines || pipelines.length === 0) {
-        console.log(`No pipelines found for the main branch of project ${projectId}`);
+        logger.debug(`No pipelines found for the main branch of project ${projectId}`);
         return {
           id: 0,
           status: 'unknown',
@@ -383,14 +384,14 @@ class GitLabApiService {
 
           pipelineWithData.failedJobs = failedJobs;
         } catch (jobError) {
-          console.error(`Failed to fetch jobs for pipeline ${pipeline.id}:`, jobError);
+          logger.error(`Failed to fetch jobs for pipeline ${pipeline.id}:`, jobError);
           // Don't fail if we can't get jobs, just continue with what we have
         }
       }
 
       return pipelineWithData;
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to fetch main branch pipeline for project ${projectId}:`,
         error
       );
@@ -435,7 +436,7 @@ class GitLabApiService {
         drafts: draftMRs.length
       };
     } catch (error) {
-      console.error(`Failed to fetch merge request counts for project ${projectId}:`, error);
+      logger.error(`Failed to fetch merge request counts for project ${projectId}:`, error);
       return {
         totalOpen: 0,
         drafts: 0
@@ -464,7 +465,7 @@ class GitLabApiService {
 
       return await response.json();
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to fetch commits for MR ${mrIid}:`,
         error
       );
@@ -492,7 +493,7 @@ class GitLabApiService {
 
       return await response.json();
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to fetch project details for project ${projectId}:`,
         error
       );
@@ -515,7 +516,7 @@ class GitLabApiService {
       const pipelines = await this.getProjectPipelines(projectId, { ref: defaultBranch, per_page: 1 });
 
       if (!pipelines || pipelines.length === 0) {
-        console.log(`No pipelines found for project ${projectId}, cannot fetch code coverage`);
+        logger.debug(`No pipelines found for project ${projectId}, cannot fetch code coverage`);
         return { coverage: null, available: false };
       }
 
@@ -532,11 +533,11 @@ class GitLabApiService {
           const coverageStr = String(pipelineDetails.coverage);
           coverageValue = parseFloat(coverageStr);
           if (isNaN(coverageValue)) {
-            console.log(`Invalid coverage format for project ${projectId}: ${pipelineDetails.coverage}`);
+            logger.debug(`Invalid coverage format for project ${projectId}: ${pipelineDetails.coverage}`);
             coverageValue = null;
           }
         } catch (e) {
-          console.log(`Error parsing coverage for project ${projectId}: ${e}`);
+          logger.debug(`Error parsing coverage for project ${projectId}: ${e}`);
           coverageValue = null;
         }
 
@@ -547,7 +548,7 @@ class GitLabApiService {
           available: coverageValue !== null
         };
       } else {
-        console.log(`Code coverage not available for project ${projectId}`);
+        logger.debug(`Code coverage not available for project ${projectId}`);
         return {
           coverage: null,
           pipelineId: pipelineId,
@@ -556,7 +557,7 @@ class GitLabApiService {
         };
       }
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to fetch code coverage for project ${projectId}:`,
         error
       );
@@ -580,7 +581,7 @@ class GitLabApiService {
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.log(`Group ${groupId} not found`);
+          logger.debug(`Group ${groupId} not found`);
           return null;
         }
         throw new Error(`Error fetching group info: ${response.statusText}`);
@@ -593,7 +594,7 @@ class GitLabApiService {
         path: data.full_path || data.path
       };
     } catch (error) {
-      console.error(`Failed to fetch group info for ${groupId}:`, error);
+      logger.error(`Failed to fetch group info for ${groupId}:`, error);
       return null;
     }
   }
@@ -614,7 +615,7 @@ class GitLabApiService {
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.log(`Project ${projectId} not found`);
+          logger.debug(`Project ${projectId} not found`);
           return null;
         }
         throw new Error(`Error fetching project info: ${response.statusText}`);
@@ -628,7 +629,7 @@ class GitLabApiService {
         web_url: data.web_url
       };
     } catch (error) {
-      console.error(`Failed to fetch project info for ${projectId}:`, error);
+      logger.error(`Failed to fetch project info for ${projectId}:`, error);
       return null;
     }
   }
@@ -655,7 +656,7 @@ class GitLabApiService {
 
       return await response.json();
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to fetch commits for project ${projectId}:`,
         error
       );
@@ -684,7 +685,7 @@ class GitLabApiService {
       queryParams += '&include_pipeline=true';
       queryParams += '&with_pipeline_status=true';
 
-      console.log(`Requesting MRs for project ${projectId} with query params: ${queryParams}`);
+      logger.debug(`Requesting MRs for project ${projectId} with query params: ${queryParams}`);
 
       const path = `/projects/${projectId}/merge_requests`;
       const url = this.getApiUrl(path, queryParams);
@@ -701,14 +702,14 @@ class GitLabApiService {
       const mergeRequests: MergeRequest[] = await response.json();
       
       // Try different approach to get pipelines for MRs
-      console.log('Adding direct pipeline lookup for merge requests...');
+      logger.debug('Adding direct pipeline lookup for merge requests...');
       
       // Loop through merge requests to collect pipeline data
       for (let i = 0; i < mergeRequests.length; i++) {
         const mr = mergeRequests[i];
         
         if (!mr.head_pipeline) {
-          console.log(`MR ${mr.iid} (${mr.title.substring(0, 20)}...) has no head_pipeline, trying direct lookup`);
+          logger.debug(`MR ${mr.iid} (${mr.title.substring(0, 20)}...) has no head_pipeline, trying direct lookup`);
           
           try {
             // Try to get pipelines for the MR directly
@@ -721,27 +722,27 @@ class GitLabApiService {
             
             if (mrPipelinesResponse.ok) {
               const mrPipelines = await mrPipelinesResponse.json();
-              console.log(`Found ${mrPipelines.length} pipelines for MR ${mr.iid} via direct API call`);
+              logger.debug(`Found ${mrPipelines.length} pipelines for MR ${mr.iid} via direct API call`);
               
               if (mrPipelines.length > 0) {
                 // Add the first pipeline as the head_pipeline
                 mergeRequests[i].head_pipeline = mrPipelines[0];
-                console.log(`Added pipeline ${mrPipelines[0].id} to MR ${mr.iid}`);
+                logger.debug(`Added pipeline ${mrPipelines[0].id} to MR ${mr.iid}`);
               }
             } else {
-              console.log(`Error fetching pipelines for MR ${mr.iid}: ${mrPipelinesResponse.statusText}`);
+              logger.debug(`Error fetching pipelines for MR ${mr.iid}: ${mrPipelinesResponse.statusText}`);
             }
           } catch (error) {
-            console.error(`Error in direct pipeline lookup for MR ${mr.iid}:`, error);
+            logger.error(`Error in direct pipeline lookup for MR ${mr.iid}:`, error);
           }
         }
       }
       
-      console.log(`Retrieved ${mergeRequests.length} merge requests for project ${projectId}`);
+      logger.debug(`Retrieved ${mergeRequests.length} merge requests for project ${projectId}`);
       
       // Log first MR to inspect properties
       if (mergeRequests.length > 0) {
-        console.log('First merge request structure:', {
+        logger.debug('First merge request structure:', {
           iid: mergeRequests[0].iid,
           title: mergeRequests[0].title,
           has_head_pipeline: !!mergeRequests[0].head_pipeline,
@@ -751,7 +752,7 @@ class GitLabApiService {
         });
         
         // Log all MR pipeline info
-        console.log('All MR pipeline info:', mergeRequests.map(mr => ({
+        logger.debug('All MR pipeline info:', mergeRequests.map(mr => ({
           iid: mr.iid,
           title: mr.title.substring(0, 30) + (mr.title.length > 30 ? '...' : ''),
           has_pipeline: !!mr.head_pipeline,
@@ -771,17 +772,17 @@ class GitLabApiService {
             // Add the commits to the MR object (limited to 3 most recent commits)
             enhancedMR.recent_commits = commits.slice(0, 3);
           } catch (error) {
-            console.error(`Failed to fetch commits for MR ${mr.iid}:`, error);
+            logger.error(`Failed to fetch commits for MR ${mr.iid}:`, error);
           }
 
           // Get pipeline details if available
-          console.log(`MR ${mr.iid} (${mr.title}): head_pipeline =`, mr.head_pipeline);
+          logger.debug(`MR ${mr.iid} (${mr.title}): head_pipeline =`, mr.head_pipeline);
 
           // If we have a head_pipeline object, check if it has necessary properties
           if (mr.head_pipeline && typeof mr.head_pipeline === 'object') {
             // Check if it has an ID, which is required for fetching details
             if (!mr.head_pipeline.id) {
-              console.warn(`MR ${mr.iid} has head_pipeline object but missing ID:`, mr.head_pipeline);
+              logger.warn(`MR ${mr.iid} has head_pipeline object but missing ID:`, mr.head_pipeline);
               // Add a minimal placeholder to ensure UI shows something
               enhancedMR.head_pipeline = {
                 ...mr.head_pipeline,
@@ -794,10 +795,10 @@ class GitLabApiService {
             } else {
               try {
                 // Only fetch details if we have a valid pipeline ID
-                console.log(`Fetching pipeline details for MR ${mr.iid}, pipeline ID: ${mr.head_pipeline.id}`);
+                logger.debug(`Fetching pipeline details for MR ${mr.iid}, pipeline ID: ${mr.head_pipeline.id}`);
                 const pipelineDetails = await this.getPipelineDetails(projectId, mr.head_pipeline.id);
                 
-                console.log(`Got pipeline details for MR ${mr.iid}:`, {
+                logger.debug(`Got pipeline details for MR ${mr.iid}:`, {
                   pipeline_id: pipelineDetails.id,
                   status: pipelineDetails.status,
                   duration: pipelineDetails.duration || 'N/A',
@@ -831,11 +832,11 @@ class GitLabApiService {
                     enhancedMR.head_pipeline.jobs = jobs;
                     enhancedMR.head_pipeline.failedJobs = failedJobs;
                   } catch (jobError) {
-                    console.error(`Failed to fetch jobs for pipeline ${enhancedMR.head_pipeline.id}:`, jobError);
+                    logger.error(`Failed to fetch jobs for pipeline ${enhancedMR.head_pipeline.id}:`, jobError);
                   }
                 }
               } catch (error) {
-                console.error(`Failed to fetch pipeline details for MR ${mr.iid}:`, error);
+                logger.error(`Failed to fetch pipeline details for MR ${mr.iid}:`, error);
               }
             }
           }
@@ -846,7 +847,7 @@ class GitLabApiService {
 
       return detailedMRs;
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to fetch merge requests for project ${projectId}:`,
         error
       );
@@ -892,7 +893,7 @@ class GitLabApiService {
 
       return await response.json();
     } catch (error) {
-      console.error(`Failed to fetch jobs for project ${projectId}:`, error);
+      logger.error(`Failed to fetch jobs for project ${projectId}:`, error);
       throw error;
     }
   }
@@ -920,7 +921,7 @@ class GitLabApiService {
 
       // 404 means artifact not found - return null gracefully
       if (response.status === 404) {
-        console.log(`Artifact ${artifactPath} not found for job ${jobId}`);
+        logger.debug(`Artifact ${artifactPath} not found for job ${jobId}`);
         return null;
       }
 
@@ -930,7 +931,7 @@ class GitLabApiService {
 
       return await response.json();
     } catch (error) {
-      console.error(`Failed to fetch artifact ${artifactPath} for job ${jobId}:`, error);
+      logger.error(`Failed to fetch artifact ${artifactPath} for job ${jobId}:`, error);
       // Return null for any fetch error (artifact might not exist)
       return null;
     }
@@ -962,7 +963,7 @@ class GitLabApiService {
       const mergeRequests: MergeRequest[] = await response.json();
       return mergeRequests.length > 0 ? mergeRequests[0] : null;
     } catch (error) {
-      console.error(`Failed to fetch merge request for branch ${branch} in project ${projectId}:`, error);
+      logger.error(`Failed to fetch merge request for branch ${branch} in project ${projectId}:`, error);
       throw error;
     }
   }
@@ -1017,7 +1018,7 @@ class GitLabApiService {
 
       return allNotes;
     } catch (error) {
-      console.error(`Failed to fetch notes for MR ${mrIid} in project ${projectId}:`, error);
+      logger.error(`Failed to fetch notes for MR ${mrIid} in project ${projectId}:`, error);
       throw error;
     }
   }
@@ -1047,7 +1048,7 @@ class GitLabApiService {
 
       // 404 means file not found - return null gracefully
       if (response.status === 404) {
-        console.log(`File ${filePath} not found in project ${projectId}`);
+        logger.debug(`File ${filePath} not found in project ${projectId}`);
         return null;
       }
 
@@ -1066,9 +1067,59 @@ class GitLabApiService {
       // If not base64, return as-is (shouldn't happen normally)
       return { content: data.content || '' };
     } catch (error) {
-      console.error(`Failed to fetch file ${filePath} from project ${projectId}:`, error);
+      logger.error(`Failed to fetch file ${filePath} from project ${projectId}:`, error);
       // Return null for any fetch error
       return null;
+    }
+  }
+  /**
+   * Get the trace (log) of a specific job
+   * Endpoint: GET /projects/:id/jobs/:job_id/trace
+   * Returns plain text log content
+   * Uses Range header to limit to last ~100KB
+   * @param {string|number} projectId - The GitLab project ID
+   * @param {string|number} jobId - The job ID
+   * @param {number} maxBytes - Maximum bytes to fetch from end of log (default 102400 = ~100KB)
+   * @returns {Promise<string>} - Job log text, or empty string on error
+   */
+  async getJobTrace(
+    projectId: string | number,
+    jobId: string | number,
+    maxBytes: number = 102400
+  ): Promise<string> {
+    try {
+      const path = `/projects/${projectId}/jobs/${jobId}/trace`;
+      const url = this.getApiUrl(path, '');
+
+      const headers: HeadersInit = {
+        'Accept': 'text/plain',
+      };
+
+      // Add authentication
+      if (this.privateToken) {
+        headers['PRIVATE-TOKEN'] = this.privateToken;
+      }
+
+      // Use Range header to fetch only the last portion of the log
+      headers['Range'] = `bytes=-${maxBytes}`;
+
+      const response = await fetch(url, { headers });
+
+      // 404 = job not found, 403 = no access
+      if (response.status === 404 || response.status === 403) {
+        logger.debug(`Job trace not available for job ${jobId} (status ${response.status})`);
+        return '';
+      }
+
+      if (!response.ok && response.status !== 206) {
+        logger.error(`Error fetching job trace: ${response.statusText} (${response.status})`);
+        return '';
+      }
+
+      return await response.text();
+    } catch (error) {
+      logger.error(`Failed to fetch trace for job ${jobId}:`, error);
+      return '';
     }
   }
 }

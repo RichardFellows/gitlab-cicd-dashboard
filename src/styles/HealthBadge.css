@@ -1,0 +1,88 @@
+/* HealthBadge */
+.health-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+
+.health-badge:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.health-badge:focus-visible {
+  outline: 2px solid #6e49cb;
+  outline-offset: 2px;
+}
+
+/* Sizes */
+.health-badge--sm {
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+}
+
+.health-badge--md {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+}
+
+.health-badge--lg {
+  width: 48px;
+  height: 48px;
+  font-size: 18px;
+}
+
+/* Band colours */
+.health-badge--healthy {
+  background-color: #28a745;
+}
+
+.health-badge--warning {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.health-badge--critical {
+  background-color: #dc3545;
+}
+
+/* Dark mode */
+.dark-mode .health-badge--healthy {
+  background-color: #4caf50;
+}
+
+.dark-mode .health-badge--warning {
+  background-color: #ffca28;
+  color: #222;
+}
+
+.dark-mode .health-badge--critical {
+  background-color: #f44336;
+}
+
+/* Fade-in animation */
+@keyframes healthBadgeFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.health-badge {
+  animation: healthBadgeFadeIn 0.3s ease-out;
+}

@@ -1,0 +1,101 @@
+/* PortfolioHealthChart */
+.portfolio-health {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.portfolio-health__title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.portfolio-health__content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.portfolio-health__badge-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.portfolio-health__avg-label {
+  font-size: 12px;
+  color: #888;
+}
+
+.portfolio-health__chart-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.portfolio-health__chart {
+  width: 100px;
+  height: 100px;
+  position: relative;
+}
+
+.portfolio-health__legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.portfolio-health__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.portfolio-health__legend-color {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .portfolio-health__content {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .portfolio-health__chart-area {
+    flex-direction: column;
+  }
+
+  .portfolio-health__chart {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+/* Dark mode */
+.dark-mode .portfolio-health {
+  background: #1e1e1e;
+  border-color: #444;
+}
+
+.dark-mode .portfolio-health__title {
+  color: #e0e0e0;
+}
+
+.dark-mode .portfolio-health__avg-label {
+  color: #999;
+}
+
+.dark-mode .portfolio-health__legend {
+  color: #ccc;
+}
