@@ -86,3 +86,42 @@
 - Component was already fully clickable and styled with backgrounds, so only size adjustments needed
 
 ---
+
+## [2026-02-03] - bd-3qm.4 - US-004: Remove Empty Failures Accordion
+
+### What was implemented
+- **No code changes needed** - implementation was already correct in `SummarySection.tsx`
+  - Conditional rendering: `{projectStatusCounts.failed > 0 && onProjectSelect && (...)}` 
+  - Entire Failures accordion (header + content) only renders when failures > 0
+  - Summary stats card always shows "Failed: N" count (useful even when 0)
+- **SummarySection.test.tsx**: Created comprehensive test suite (6 new tests)
+  - Test: "hides Failures accordion when failure count is 0"
+  - Test: "shows Failures accordion when failure count > 0"
+  - Test: "allows expanding/collapsing Failures accordion"
+  - Test: "hides Failures accordion when onProjectSelect is not provided"
+  - Test: "shows correct count in Failures accordion header"
+  - Test: "still shows FAILED count in summary cards when failures=0"
+
+### Files changed
+- `src/components/SummarySection.test.tsx` - Created new test file with 6 tests
+
+### Verification
+- ✅ All 742 tests pass (54 test files, +6 tests from previous build)
+- ✅ Failures accordion completely hidden when failures=0
+- ✅ Accordion shows with correct count when failures>0
+- ✅ Summary card "Failed: 0" always visible (useful info)
+- ✅ No contradictory "No failures 🎉" message appears in real usage
+
+### Learnings
+
+**Patterns discovered:**
+- **Verify before coding**: Always check if the feature is already implemented correctly. In this case, the conditional rendering was already perfect - only tests were missing.
+- **Component isolation vs real usage**: `FailureSummaryPanel` component handles empty state gracefully (shows "No failures 🎉") for isolated testing, but `SummarySection` never renders it when empty. This is good defensive programming.
+- **Chart.js mocking for tests**: When testing components that import Chart.js (via SummarySection → PortfolioHealthChart → MetricsPanel → TrendChart), must mock both `chart.js` and `react-chartjs-2` with `registerables: []` export.
+
+**Gotchas encountered:**
+- Needed to add `registerables: []` to chart.js mock (not just the component exports)
+- Must import components AFTER mocks in test files
+- `FailureSummaryPanel.test.tsx` tests the component in isolation, but real app usage (via `SummarySection`) never hits the "No failures" branch
+
+---
