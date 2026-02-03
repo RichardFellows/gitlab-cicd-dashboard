@@ -53,7 +53,30 @@ describe('TableView with Health Score', () => {
     expect(badges.length).toBe(2);
   });
 
-  test('clicking Health header toggles sort', () => {
+  test('defaults to ascending health sort (worst first)', () => {
+    const projects = [
+      makeProject(1, 'healthy', {
+        mainBranchFailureRate: 0,
+        codeCoverage: { coverage: 95, available: true },
+        totalPipelines: 20,
+      }),
+      makeProject(2, 'unhealthy', {
+        mainBranchFailureRate: 30,
+        codeCoverage: { coverage: null, available: false },
+        totalPipelines: 20,
+      }),
+    ];
+    render(<TableView projects={projects} onProjectSelect={vi.fn()} />);
+    
+    // Should default to ascending sort indicator
+    const healthHeader = screen.getByText(/Health/);
+    expect(healthHeader.textContent).toContain('↑');
+    
+    // Check localStorage has been set to 'asc' by default
+    expect(localStorage.getItem('gitlab_cicd_dashboard_health_sort')).toBe('asc');
+  });
+
+  test('clicking Health header toggles between asc and desc', () => {
     const projects = [
       makeProject(1, 'healthy', {
         mainBranchFailureRate: 0,
@@ -71,13 +94,18 @@ describe('TableView with Health Score', () => {
     // Find the Health header
     const healthHeader = screen.getByText(/Health/);
     
+    // Initially ascending (default)
+    expect(healthHeader.textContent).toContain('↑');
+    
     // Click to sort descending
     fireEvent.click(healthHeader);
+    expect(healthHeader.textContent).toContain('↓');
+    expect(localStorage.getItem('gitlab_cicd_dashboard_health_sort')).toBe('desc');
     
-    // Get project rows to check order
-    const rows = screen.getAllByRole('row');
-    // First data row should have higher score (healthy project) after desc sort
-    expect(rows.length).toBeGreaterThan(1);
+    // Click again to go back to ascending
+    fireEvent.click(healthHeader);
+    expect(healthHeader.textContent).toContain('↑');
+    expect(localStorage.getItem('gitlab_cicd_dashboard_health_sort')).toBe('asc');
   });
 
   test('clicking health badge shows breakdown row', () => {
@@ -102,16 +130,16 @@ describe('TableView with Health Score', () => {
     render(<TableView projects={projects} onProjectSelect={vi.fn()} />);
     
     const healthHeader = screen.getByText(/Health/);
-    fireEvent.click(healthHeader);
     
-    expect(localStorage.getItem('gitlab_cicd_dashboard_health_sort')).toBe('desc');
-    
-    // Click again to go to ascending
-    fireEvent.click(healthHeader);
+    // Starts at 'asc' by default
     expect(localStorage.getItem('gitlab_cicd_dashboard_health_sort')).toBe('asc');
     
-    // Click again to clear
+    // Click to go to descending
     fireEvent.click(healthHeader);
-    expect(localStorage.getItem('gitlab_cicd_dashboard_health_sort')).toBeNull();
+    expect(localStorage.getItem('gitlab_cicd_dashboard_health_sort')).toBe('desc');
+    
+    // Click again to go back to ascending
+    fireEvent.click(healthHeader);
+    expect(localStorage.getItem('gitlab_cicd_dashboard_health_sort')).toBe('asc');
   });
 });

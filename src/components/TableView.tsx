@@ -46,9 +46,15 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
   }, [keyboardSelectedId]);
 
   // Health sort: 'asc' | 'desc' | null
+  // Default to 'asc' (ascending, worst first) per US-001
   const [healthSort, setHealthSort] = useState<'asc' | 'desc' | null>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.HEALTH_SORT_ORDER);
-    return saved === 'asc' || saved === 'desc' ? saved : null;
+    if (saved === 'asc' || saved === 'desc') {
+      return saved;
+    }
+    // No saved preference, set default to 'asc'
+    localStorage.setItem(STORAGE_KEYS.HEALTH_SORT_ORDER, 'asc');
+    return 'asc';
   });
 
   // Compute health scores for all projects
@@ -72,13 +78,11 @@ const TableView: FC<TableViewProps> = ({ projects, onProjectSelect, gitLabServic
   }, [projects, healthSort, healthScores]);
 
   const toggleHealthSort = () => {
-    const next = healthSort === null ? 'desc' : healthSort === 'desc' ? 'asc' : null;
+    // Cycle: asc → desc → asc (no null state as per US-001)
+    // User can always override, but there's always a default sort
+    const next = healthSort === 'asc' ? 'desc' : 'asc';
     setHealthSort(next);
-    if (next) {
-      localStorage.setItem(STORAGE_KEYS.HEALTH_SORT_ORDER, next);
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.HEALTH_SORT_ORDER);
-    }
+    localStorage.setItem(STORAGE_KEYS.HEALTH_SORT_ORDER, next);
   };
 
   // Load merge requests for a project
