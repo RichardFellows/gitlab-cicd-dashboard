@@ -389,6 +389,17 @@ label {
   border-color: var(--inactive-color);
 }
 
+.filter-chip.needs-attention {
+  font-weight: 600;
+}
+
+.filter-chip.needs-attention.active {
+  background: linear-gradient(135deg, var(--danger-color), var(--warning-color));
+  border-color: var(--danger-color);
+  color: white;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+}
+
 /* Summary section layout */
 .summary-section {
   background-color: var(--card-bg-color);

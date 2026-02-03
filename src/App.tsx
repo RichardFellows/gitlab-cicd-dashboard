@@ -100,7 +100,13 @@ const App = () => {
       if (statusFilter !== 'all') {
         const category = categorizeProject(project);
         const mappedCategory = category === 'no-pipeline' ? 'inactive' : category;
-        if (mappedCategory !== statusFilter) return false;
+        
+        // Handle "needs-attention" filter (failed + warning combined)
+        if (statusFilter === 'needs-attention') {
+          if (mappedCategory !== 'failed' && mappedCategory !== 'warning') return false;
+        } else {
+          if (mappedCategory !== statusFilter) return false;
+        }
       }
       return true;
     });
@@ -110,6 +116,57 @@ const App = () => {
   useEffect(() => {
     setKeyboardSelectedIndex(-1);
   }, [searchQuery, statusFilter, viewType]);
+
+  // Sync filter state with URL query params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const filterParam = params.get('filter');
+    if (filterParam && filterParam !== statusFilter) {
+      const validFilters: ProjectStatusFilter[] = ['all', 'success', 'warning', 'failed', 'inactive', 'needs-attention'];
+      if (validFilters.includes(filterParam as ProjectStatusFilter)) {
+        setStatusFilter(filterParam as ProjectStatusFilter);
+      }
+    }
+  }, [statusFilter]);
+
+  // Update URL when filter changes
+  const handleStatusFilterChange = (filter: ProjectStatusFilter) => {
+    setStatusFilter(filter);
+    const params = new URLSearchParams(window.location.search);
+    if (filter === 'all') {
+      params.delete('filter');
+    } else {
+      params.set('filter', filter);
+    }
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
+  };
+
+  // Compute status counts for filter badges
+  const statusCounts = useMemo(() => {
+    if (!metrics) return { failed: 0, warning: 0, success: 0, inactive: 0, needsAttention: 0 };
+    
+    const counts = { failed: 0, warning: 0, success: 0, inactive: 0, needsAttention: 0 };
+    
+    metrics.projects.forEach((project: Project) => {
+      const category = categorizeProject(project);
+      const mappedCategory = category === 'no-pipeline' ? 'inactive' : category;
+      
+      if (mappedCategory === 'failed') {
+        counts.failed++;
+        counts.needsAttention++;
+      } else if (mappedCategory === 'warning') {
+        counts.warning++;
+        counts.needsAttention++;
+      } else if (mappedCategory === 'success') {
+        counts.success++;
+      } else if (mappedCategory === 'inactive') {
+        counts.inactive++;
+      }
+    });
+    
+    return counts;
+  }, [metrics]);
 
   // Stable ref to current config for auto-refresh callback
   const configRef = useRef(config);
@@ -897,11 +954,6 @@ const App = () => {
     handleAutoRefreshIntervalChange(fiveMin);
   };
 
-  // Handle status filter change
-  const handleStatusFilterChange = (filter: ProjectStatusFilter) => {
-    setStatusFilter(filter);
-  };
-
   // Notification handlers
   const handleToggleNotificationsEnabled = useCallback(() => {
     const newVal = !notificationsEnabled;
@@ -1154,6 +1206,12 @@ const App = () => {
                   onClick={() => handleStatusFilterChange('all')}
                 >
                   All
+                </button>
+                <button
+                  className={`filter-chip needs-attention ${statusFilter === 'needs-attention' ? 'active' : ''}`}
+                  onClick={() => handleStatusFilterChange('needs-attention')}
+                >
+                  Needs Attention ({statusCounts.needsAttention})
                 </button>
                 <button
                   className={`filter-chip success ${statusFilter === 'success' ? 'active' : ''}`}

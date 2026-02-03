@@ -125,3 +125,65 @@
 - `FailureSummaryPanel.test.tsx` tests the component in isolation, but real app usage (via `SummarySection`) never hits the "No failures" branch
 
 ---
+
+## [2026-02-03] - bd-3qm.6 - US-006: Needs Attention Quick Filter
+
+### What was implemented
+- **types/index.ts**: Added `'needs-attention'` to `ProjectStatusFilter` type
+- **App.tsx**: Implemented "Needs Attention" filter logic
+  - Updated `filteredProjects` memo to handle 'needs-attention' filter (shows Failed + Warning combined)
+  - Added URL query param support: filter state syncs with URL via `?filter=needs-attention`
+  - Created `statusCounts` memo to compute counts for all filter buttons
+  - Added `handleStatusFilterChange` to update both state and URL
+  - Added "Needs Attention (N)" button in filter bar (positioned after "All" for prominence)
+- **styles/index.css**: Created distinctive styling for needs-attention filter
+  - Applied gradient background: `linear-gradient(135deg, var(--danger-color), var(--warning-color))`
+  - Added box-shadow for emphasis: `0 2px 6px rgba(220, 53, 69, 0.3)`
+  - Set font-weight: 600 for visual distinction
+- **NeedsAttentionFilter.test.tsx**: Created comprehensive test suite (9 new tests)
+  - Test: "displays 'Needs Attention' button with correct count"
+  - Test: "filter shows Failed + Warning projects combined"
+  - Test: "filter correctly categorizes projects"
+  - Test: "filter button has 'needs-attention' class for styling"
+  - Test: "filter button gets 'active' class when selected"
+  - Test: "count is zero when no projects need attention"
+  - Test: "count includes projects with low success rate (warning)"
+  - Test: "count includes canceled pipelines as failed"
+  - Test: "does not include inactive projects in count"
+
+### Files changed
+- `src/types/index.ts` - Added 'needs-attention' to ProjectStatusFilter union type
+- `src/App.tsx` - Filter logic, URL params, status counts, button UI
+- `src/styles/index.css` - Needs attention filter button styling
+- `src/components/NeedsAttentionFilter.test.tsx` - New test file with 9 tests
+
+### Verification
+- ✅ All 751 tests pass (55 test files, +9 tests from previous build)
+- ✅ "Needs Attention" button shows correct count (Failed + Warning combined)
+- ✅ Filter correctly shows only Failed and Warning projects when active
+- ✅ Button has orange/red gradient background with box-shadow for visual emphasis
+- ✅ Filter state persists in URL query param (`?filter=needs-attention`)
+- ✅ Count includes canceled pipelines (treated as failed)
+- ✅ Count includes projects with low success rate (<75%) even if pipeline succeeded
+- ✅ Count excludes inactive projects (no pipeline)
+
+### Learnings
+
+**Patterns discovered:**
+- **URL query param pattern**: Use `window.history.replaceState()` to update URL without page reload, sync with state via useEffect watching the filter value
+- **Computed counts for filter badges**: Create a memoized `statusCounts` object that computes all counts in one pass through projects array — reusable for multiple filter buttons
+- **Filter composition**: "Needs Attention" is implemented as a meta-filter that combines two existing categories (failed + warning) rather than adding a new category to `categorizeProject()`
+- **Gradient styling for emphasis**: CSS `linear-gradient(135deg, red, orange)` provides strong visual distinction without overwhelming the UI
+
+**Gotchas encountered:**
+- Need to handle both `failed` status AND `canceled` status as "failed" category — `categorizeProject()` already does this
+- Projects with `success` status but low success rate (<75%) are categorized as "warning" — important for count accuracy
+- URL params must be bidirectional: read on mount, write on change, handle both `?filter=value` and no param (defaults to 'all')
+- Filter positioning matters: placed "Needs Attention" second (after "All") to make it highly visible
+
+**Testing insights:**
+- Created isolated test component (`FilterBar`) that mimics real App behavior without full App complexity
+- Tests verify both UI behavior (button rendering, count display, active class) and filter logic (correct categorization, count accuracy)
+- Mock projects should cover all edge cases: failed, canceled, warning (running), warning (low success rate), success, inactive
+
+---

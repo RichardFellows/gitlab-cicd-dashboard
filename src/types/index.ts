@@ -280,7 +280,7 @@ export enum ViewType {
 }
 
 // Project status filter type
-export type ProjectStatusFilter = 'all' | 'success' | 'warning' | 'failed' | 'inactive';
+export type ProjectStatusFilter = 'all' | 'success' | 'warning' | 'failed' | 'inactive' | 'needs-attention';
 
 // ============================================
 // Environment Overview Types (Priority 2)
