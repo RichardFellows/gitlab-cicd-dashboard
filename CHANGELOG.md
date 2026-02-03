@@ -1,3 +1,15 @@
+# [1.1.0](https://gitlab.com/richard2/gitlab-cicd-dashboard/compare/v1.0.0...v1.1.0) (2026-01-26)
+
+
+### Bug Fixes
+
+* **ci:** use node:22 for semantic-release (v25 requires Node 22.14+) ([20d3286](https://gitlab.com/richard2/gitlab-cicd-dashboard/commit/20d3286a650b2d10c4a632d7b8f8604d3f01a158))
+
+
+### Features
+
+* **release:** add automatic versioning with semantic-release ([439d6e7](https://gitlab.com/richard2/gitlab-cicd-dashboard/commit/439d6e74c9c7ce5a49b4441995259c55ea31f66a))
+
 # Changelog for GitLab CI/CD Dashboard
 
 All notable changes to this project will be documented in this file.
