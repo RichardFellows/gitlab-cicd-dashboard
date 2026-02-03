@@ -4,11 +4,19 @@
 image: node:20
 
 # Prevent duplicate pipelines: MR pipelines take priority over branch pipelines
+# Auto-cancel: if MR pipeline starts, cancel any running branch pipeline for same commit
 workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+    on_job_failure: none
   rules:
     - if: $CI_MERGE_REQUEST_IID
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS == null
     - if: $CI_COMMIT_TAG
+
+# Default settings for all jobs
+default:
+  interruptible: true
 
 stages:
   - .pre
