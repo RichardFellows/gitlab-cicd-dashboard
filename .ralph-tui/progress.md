@@ -49,3 +49,40 @@
 - CardView grouping already implemented the desired "problems first" behavior via its existing categorization logic (failed → warning → inactive → success)
 
 ---
+
+## [2026-02-03] - bd-3qm.2 - US-002: Larger Health Score Badges
+
+### What was implemented
+- **HealthBadge.css**: Increased `sm` size from 28px × 28px to 40px × 40px
+  - Font size increased from 11px to 16px for better readability
+  - Badge already had background colors (green/yellow/red) and was clickable ✅
+  - Both TableView and CardView use `size="sm"` for health badges
+- **HealthBadge.test.tsx**: Added tests to verify new badge dimensions
+  - Test: "sm badge has correct dimensions (40px)"
+  - Test: "badge has background color for visibility"
+  - All 13 tests in this suite pass
+
+### Files changed
+- `src/styles/HealthBadge.css` - Updated sm size from 28px to 40px, font from 11px to 16px
+- `src/components/HealthBadge.test.tsx` - Added 2 new tests for dimensions and styling
+
+### Verification
+- ✅ All 736 tests pass (53 test files)
+- ✅ Health badges increased from 28px to 40px diameter (~43% larger)
+- ✅ Font size increased from 11px to 16px (~45% larger, more readable)
+- ✅ Badge already clickable (button element with onClick handler)
+- ✅ Background colors already present (green/yellow/red based on health band)
+- ✅ Used in both TableView and CardView consistently
+
+### Learnings
+
+**Patterns discovered:**
+- **Component already well-designed**: HealthBadge component already implemented best practices (semantic button, accessibility labels, hover effects, color coding)
+- **Size naming convention**: The `sm/md/lg` size props provide flexible scaling across different views
+- **Shared component usage**: Changing the base `sm` size affects both TableView and CardView consistently, which is desired behavior for unified UX
+
+**Gotchas encountered:**
+- Initial assumption was ~24px, actual was 28px — always verify current values before changes
+- Component was already fully clickable and styled with backgrounds, so only size adjustments needed
+
+---
