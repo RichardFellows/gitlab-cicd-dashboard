@@ -90,70 +90,64 @@ const SummarySection: FC<SummarySectionProps> = ({
   return (
     <section className="summary-section">
       <h2>CI/CD Summary</h2>
-      <div className="summary-layout">
-        <div className="summary-left">
-          <div className="summary-cards">
-            <button
-              className={`summary-card clickable ${activeFilter === 'all' ? 'active' : ''}`}
-              onClick={() => handleCardClick('all')}
-            >
-              <h3>Total</h3>
-              <div className="metric">{metrics.totalProjects}</div>
-            </button>
-            <button
-              className={`summary-card success clickable ${activeFilter === 'success' ? 'active' : ''}`}
-              onClick={() => handleCardClick('success')}
-            >
-              <h3>Success</h3>
-              <div className="metric">{projectStatusCounts.success}</div>
-            </button>
-            <button
-              className={`summary-card warning clickable ${activeFilter === 'warning' ? 'active' : ''}`}
-              onClick={() => handleCardClick('warning')}
-            >
-              <h3>Warning</h3>
-              <div className="metric">{projectStatusCounts.warning}</div>
-            </button>
-            <button
-              className={`summary-card danger clickable ${activeFilter === 'failed' ? 'active' : ''}`}
-              onClick={() => handleCardClick('failed')}
-            >
-              <h3>Failed</h3>
-              <div className="metric">{projectStatusCounts.failed}</div>
-            </button>
-            <button
-              className={`summary-card inactive clickable ${activeFilter === 'inactive' ? 'active' : ''}`}
-              onClick={() => handleCardClick('inactive')}
-            >
-              <h3>Inactive</h3>
-              <div className="metric">{projectStatusCounts.inactive}</div>
-            </button>
-          </div>
-          <div className="summary-metrics">
-            <div className="summary-metric">
-              <span className="metric-label">Total Pipelines</span>
-              <span className="metric-value">{metrics.aggregateMetrics.totalPipelines}</span>
-            </div>
-            <div className="summary-metric">
-              <span className="metric-label">Success Rate</span>
-              <span className={`metric-value ${getSuccessRateClass(metrics.aggregateMetrics.avgSuccessRate)}`}>
-                {metrics.aggregateMetrics.avgSuccessRate.toFixed(1)}%
-              </span>
-            </div>
-            <div className="summary-metric">
-              <span className="metric-label">Avg Duration</span>
-              <span className="metric-value">{formatDuration(metrics.aggregateMetrics.avgDuration)}</span>
-            </div>
+      <div className="summary-compact-layout">
+        <div className="summary-stats-row">
+          <button
+            className={`summary-card compact clickable ${activeFilter === 'all' ? 'active' : ''}`}
+            onClick={() => handleCardClick('all')}
+          >
+            <h3>Total</h3>
+            <div className="metric">{metrics.totalProjects}</div>
+          </button>
+          <button
+            className={`summary-card compact success clickable ${activeFilter === 'success' ? 'active' : ''}`}
+            onClick={() => handleCardClick('success')}
+          >
+            <h3>Success</h3>
+            <div className="metric">{projectStatusCounts.success}</div>
+          </button>
+          <button
+            className={`summary-card compact warning clickable ${activeFilter === 'warning' ? 'active' : ''}`}
+            onClick={() => handleCardClick('warning')}
+          >
+            <h3>Warning</h3>
+            <div className="metric">{projectStatusCounts.warning}</div>
+          </button>
+          <button
+            className={`summary-card compact danger clickable ${activeFilter === 'failed' ? 'active' : ''}`}
+            onClick={() => handleCardClick('failed')}
+          >
+            <h3>Failed</h3>
+            <div className="metric">{projectStatusCounts.failed}</div>
+          </button>
+          <button
+            className={`summary-card compact inactive clickable ${activeFilter === 'inactive' ? 'active' : ''}`}
+            onClick={() => handleCardClick('inactive')}
+          >
+            <h3>Inactive</h3>
+            <div className="metric">{projectStatusCounts.inactive}</div>
+          </button>
+        </div>
+        <div className="summary-health-chart">
+          <div className="chart-container compact">
+            <Doughnut data={chartData} options={chartOptions} />
           </div>
         </div>
-        <div className="summary-right">
-          <div className="chart-container">
-            <Doughnut data={chartData} options={chartOptions} />
-            <div className="chart-center-label">
-              <span className="chart-total">{metrics.totalProjects}</span>
-              <span className="chart-label">Projects</span>
-            </div>
-          </div>
+      </div>
+      <div className="summary-secondary-stats">
+        <div className="summary-metric">
+          <span className="metric-label">Total Pipelines</span>
+          <span className="metric-value">{metrics.aggregateMetrics.totalPipelines}</span>
+        </div>
+        <div className="summary-metric">
+          <span className="metric-label">Success Rate</span>
+          <span className={`metric-value ${getSuccessRateClass(metrics.aggregateMetrics.avgSuccessRate)}`}>
+            {metrics.aggregateMetrics.avgSuccessRate.toFixed(1)}%
+          </span>
+        </div>
+        <div className="summary-metric">
+          <span className="metric-label">Avg Duration</span>
+          <span className="metric-value">{formatDuration(metrics.aggregateMetrics.avgDuration)}</span>
         </div>
       </div>
 

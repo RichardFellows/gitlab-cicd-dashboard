@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react';
+import { FC, useMemo, useState, useEffect } from 'react';
 import TrendChart, { TrendDataset } from './TrendChart';
 import { AggregatedTrend } from '../types';
 import { METRICS_THRESHOLDS, CHART_COLORS } from '../utils/constants';
@@ -11,7 +11,29 @@ interface MetricsPanelProps {
   onChartCanvasReady?: (name: string, canvas: HTMLCanvasElement | null) => void;
 }
 
+const STORAGE_KEY = 'dashboard_pipeline_trends_expanded';
+
 const MetricsPanel: FC<MetricsPanelProps> = ({ trends, loading = false, darkMode = false, onChartCanvasReady }) => {
+  // Initialize collapsed state (default: collapsed = true)
+  const [isExpanded, setIsExpanded] = useState<boolean>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored !== null) {
+      return stored === 'true';
+    }
+    // Default: collapsed (not expanded)
+    const defaultValue = false;
+    localStorage.setItem(STORAGE_KEY, String(defaultValue));
+    return defaultValue;
+  });
+
+  // Persist state changes to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, String(isExpanded));
+  }, [isExpanded]);
+
+  const toggleExpanded = () => {
+    setIsExpanded(prev => !prev);
+  };
   // Format date labels (show only day/month for brevity)
   const labels = useMemo(() => {
     return trends.map(t => {
@@ -47,10 +69,21 @@ const MetricsPanel: FC<MetricsPanelProps> = ({ trends, loading = false, darkMode
   if (loading) {
     return (
       <div className="metrics-panel">
-        <h3 className="metrics-panel-title">Pipeline Trends</h3>
-        <div className="metrics-panel-loading">
-          Loading trend data...
-        </div>
+        <button
+          className="metrics-panel-header"
+          onClick={toggleExpanded}
+          aria-expanded={isExpanded}
+        >
+          <span className="metrics-panel-toggle">{isExpanded ? '▼' : '▶'}</span>
+          <h3 className="metrics-panel-title">Pipeline Trends</h3>
+        </button>
+        {isExpanded && (
+          <div className="metrics-panel-content">
+            <div className="metrics-panel-loading">
+              Loading trend data...
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -58,18 +91,38 @@ const MetricsPanel: FC<MetricsPanelProps> = ({ trends, loading = false, darkMode
   if (trends.length === 0) {
     return (
       <div className="metrics-panel">
-        <h3 className="metrics-panel-title">Pipeline Trends</h3>
-        <div className="metrics-panel-empty">
-          No trend data available for the selected timeframe.
-        </div>
+        <button
+          className="metrics-panel-header"
+          onClick={toggleExpanded}
+          aria-expanded={isExpanded}
+        >
+          <span className="metrics-panel-toggle">{isExpanded ? '▼' : '▶'}</span>
+          <h3 className="metrics-panel-title">Pipeline Trends</h3>
+        </button>
+        {isExpanded && (
+          <div className="metrics-panel-content">
+            <div className="metrics-panel-empty">
+              No trend data available for the selected timeframe.
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="metrics-panel">
-      <h3 className="metrics-panel-title">Pipeline Trends</h3>
-      <div className="metrics-panel-grid">
+      <button
+        className="metrics-panel-header"
+        onClick={toggleExpanded}
+        aria-expanded={isExpanded}
+      >
+        <span className="metrics-panel-toggle">{isExpanded ? '▼' : '▶'}</span>
+        <h3 className="metrics-panel-title">Pipeline Trends</h3>
+      </button>
+      {isExpanded && (
+        <div className="metrics-panel-content">
+          <div className="metrics-panel-grid">
         <TrendChart
           title="Failure Rate"
           labels={labels}
@@ -109,7 +162,9 @@ const MetricsPanel: FC<MetricsPanelProps> = ({ trends, loading = false, darkMode
           }}
           onCanvasReady={onChartCanvasReady ? (c) => onChartCanvasReady('coverage', c) : undefined}
         />
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

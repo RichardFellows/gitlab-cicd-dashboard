@@ -24,9 +24,10 @@ interface CardViewProps {
   selectedIds?: Set<number>;
   onToggleSelection?: (projectId: number) => void;
   keyboardSelectedIndex?: number;
+  compactMode?: boolean;
 }
 
-const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode = false, selectedIds, onToggleSelection, keyboardSelectedIndex = -1 }) => {
+const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode = false, selectedIds, onToggleSelection, keyboardSelectedIndex = -1, compactMode = true }) => {
   // Determine the keyboard-selected project ID from the flat index
   const keyboardSelectedId = keyboardSelectedIndex >= 0 ? projects[keyboardSelectedIndex]?.id ?? -1 : -1;
   // Group projects by status
@@ -70,6 +71,7 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode 
                 isSelected={selectedIds?.has(project.id) ?? false}
                 onToggleSelection={onToggleSelection}
                 isKeyboardSelected={project.id === keyboardSelectedId}
+                compactMode={compactMode}
               />
             ))}
           </div>
@@ -90,6 +92,7 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode 
                 isSelected={selectedIds?.has(project.id) ?? false}
                 onToggleSelection={onToggleSelection}
                 isKeyboardSelected={project.id === keyboardSelectedId}
+                compactMode={compactMode}
               />
             ))}
           </div>
@@ -110,6 +113,7 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode 
                 isSelected={selectedIds?.has(project.id) ?? false}
                 onToggleSelection={onToggleSelection}
                 isKeyboardSelected={project.id === keyboardSelectedId}
+                compactMode={compactMode}
               />
             ))}
           </div>
@@ -130,6 +134,7 @@ const CardView: FC<CardViewProps> = ({ projects, onProjectSelect, selectionMode 
                 isSelected={selectedIds?.has(project.id) ?? false}
                 onToggleSelection={onToggleSelection}
                 isKeyboardSelected={project.id === keyboardSelectedId}
+                compactMode={compactMode}
               />
             ))}
           </div>
@@ -146,9 +151,10 @@ interface ProjectCardProps {
   isSelected?: boolean;
   onToggleSelection?: (projectId: number) => void;
   isKeyboardSelected?: boolean;
+  compactMode?: boolean;
 }
 
-const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect, selectionMode = false, isSelected = false, onToggleSelection, isKeyboardSelected = false }) => {
+const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect, selectionMode = false, isSelected = false, onToggleSelection, isKeyboardSelected = false, compactMode = true }) => {
   const category = categorizeProject(project);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -206,7 +212,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect, selection
   return (
     <div
       ref={cardRef}
-      className={`project-card ${category}${isSelected ? ' comparison-selected' : ''}${isKeyboardSelected ? ' keyboard-selected' : ''}`}
+      className={`project-card ${category}${isSelected ? ' comparison-selected' : ''}${isKeyboardSelected ? ' keyboard-selected' : ''}${compactMode ? ' compact' : ''}`}
       style={{ position: 'relative' }}
       aria-label={isKeyboardSelected ? `${project.name} (keyboard selected)` : undefined}
     >
@@ -342,42 +348,48 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onProjectSelect, selection
           </div>
         </div>
         
-        <div className="metric-section">
-          <h4>Recent Commits</h4>
-          <div className="recent-commits">
-            {commitsToShow.length > 0 ? (
-              commitsToShow.map(commit => (
-                <div key={commit.id} className="commit-item">
-                  <div className="commit-header">
-                    <span className="commit-id">{commit.short_id}</span>
-                    <span className="commit-date">{formatDate(commit.created_at)}</span>
+        {/* Recent Commits - Hidden in compact mode */}
+        {!compactMode && (
+          <div className="metric-section">
+            <h4>Recent Commits</h4>
+            <div className="recent-commits">
+              {commitsToShow.length > 0 ? (
+                commitsToShow.map(commit => (
+                  <div key={commit.id} className="commit-item">
+                    <div className="commit-header">
+                      <span className="commit-id">{commit.short_id}</span>
+                      <span className="commit-date">{formatDate(commit.created_at)}</span>
+                    </div>
+                    <div className="commit-message">{escapeHtml(commit.title)}</div>
                   </div>
-                  <div className="commit-message">{escapeHtml(commit.title)}</div>
-                </div>
-              ))
-            ) : (
-              <div className="no-data">No recent commits found</div>
-            )}
+                ))
+              ) : (
+                <div className="no-data">No recent commits found</div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
         
-        <div className="metric-section">
-          <h4>Test Results</h4>
-          <div className="metric-item">
-            <span className="metric-label">Tests:</span>
-            {project.metrics.testMetrics.available ? (
-              <>
-                <span className="metric-value">{project.metrics.testMetrics.total}</span>
-                <span className="test-details">
-                  ({project.metrics.testMetrics.success} passed,
-                  {project.metrics.testMetrics.failed} failed)
-                </span>
-              </>
-            ) : (
-              <span className="metric-value">No Test Data Available</span>
-            )}
+        {/* Test Results - Hidden in compact mode */}
+        {!compactMode && (
+          <div className="metric-section">
+            <h4>Test Results</h4>
+            <div className="metric-item">
+              <span className="metric-label">Tests:</span>
+              {project.metrics.testMetrics.available ? (
+                <>
+                  <span className="metric-value">{project.metrics.testMetrics.total}</span>
+                  <span className="test-details">
+                    ({project.metrics.testMetrics.success} passed,
+                    {project.metrics.testMetrics.failed} failed)
+                  </span>
+                </>
+              ) : (
+                <span className="metric-value">No Test Data Available</span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

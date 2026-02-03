@@ -366,6 +366,28 @@
 }
 
 /* Selection toggle button */
+/* Compact mode toggle button */
+.compact-mode-toggle {
+  padding: 6px 14px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-color, #333);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.compact-mode-toggle.active {
+  background-color: var(--primary-color, #6e49cb);
+  color: #fff;
+  border-color: var(--primary-color, #6e49cb);
+}
+
+.compact-mode-toggle:hover {
+  border-color: var(--primary-color, #6e49cb);
+}
+
 .comparison-select-toggle {
   padding: 6px 14px;
   border: 1px solid var(--border-color, #ccc);
@@ -548,6 +570,17 @@
 .dark-mode .comparison-action-bar__clear-btn {
   color: #ccc;
   border-color: #555;
+}
+
+.dark-mode .compact-mode-toggle {
+  color: #ccc;
+  border-color: #555;
+}
+
+.dark-mode .compact-mode-toggle.active {
+  background-color: #9d7fe8;
+  border-color: #9d7fe8;
+  color: #fff;
 }
 
 .dark-mode .comparison-select-toggle {

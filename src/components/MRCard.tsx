@@ -66,7 +66,19 @@ const MRCard = ({ mr, onSelect }: MRCardProps) => {
       </div>
       {failedJobs.length > 0 && (
         <div className="mr-card__failed-jobs">
-          ❌ {failedJobs.map(j => j.name).join(', ')}
+          {failedJobs.slice(0, 2).map((job, idx) => (
+            <span key={idx} className="mr-card__failed-badge" title={job.name}>
+              {job.name}
+            </span>
+          ))}
+          {failedJobs.length > 2 && (
+            <span 
+              className="mr-card__failed-badge mr-card__failed-badge--more" 
+              title={failedJobs.slice(2).map(j => j.name).join(', ')}
+            >
+              +{failedJobs.length - 2} more
+            </span>
+          )}
         </div>
       )}
       {lastCommit && (

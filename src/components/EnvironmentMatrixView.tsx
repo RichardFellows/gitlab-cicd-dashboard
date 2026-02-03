@@ -1,10 +1,11 @@
-import { FC, useState, useEffect, useCallback } from 'react';
+import { FC, useState, useEffect, useCallback, useMemo } from 'react';
 import { Project, ENVIRONMENT_ORDER, DeploymentsByEnv, EnvironmentName } from '../types';
 import DashboardDataService from '../services/DashboardDataService';
 import DeploymentCell from './DeploymentCell';
 import DeploymentDetails from './DeploymentDetails';
 import DeploymentTimeline from './DeploymentTimeline';
 import { generateEnvironmentCsv, downloadCsv } from '../utils/exportCsv';
+import { calculateVersionDrift, countProjectsWithDrift } from '../utils/versionDrift';
 import '../styles/EnvironmentMatrix.css';
 import '../styles/DeploymentTimeline.css';
 
@@ -113,6 +114,11 @@ const EnvironmentMatrix: FC<{
   // Track which cell is expanded (projectId-environment key)
   const [expandedCell, setExpandedCell] = useState<string | null>(null);
 
+  // Calculate drift count
+  const driftCount = useMemo(() => {
+    return countProjectsWithDrift(deploymentCache);
+  }, [deploymentCache]);
+
   // Fetch deployments for visible projects on mount
   useEffect(() => {
     projects.forEach(project => {
@@ -135,6 +141,16 @@ const EnvironmentMatrix: FC<{
 
   return (
     <div className="environment-matrix">
+      {/* Version drift summary */}
+      {driftCount > 0 && (
+        <div className="environment-matrix__drift-summary">
+          <span className="environment-matrix__drift-icon">→</span>
+          <span className="environment-matrix__drift-text">
+            {driftCount} {driftCount === 1 ? 'project has' : 'projects have'} unpromoted changes
+          </span>
+        </div>
+      )}
+
       <table className="environment-matrix__table">
         <thead>
           <tr>
@@ -153,6 +169,7 @@ const EnvironmentMatrix: FC<{
             const deploymentData = deploymentCache.get(project.id);
             const isLoading = deploymentData?.loading ?? true;
             const hasError = !!deploymentData?.error;
+            const driftInfo = calculateVersionDrift(deploymentData);
 
             return (
               <ProjectRow
@@ -163,6 +180,7 @@ const EnvironmentMatrix: FC<{
                 hasError={hasError}
                 expandedCell={expandedCell}
                 jiraBaseUrl={jiraBaseUrl}
+                driftInfo={driftInfo}
                 onCellClick={handleCellClick}
                 onCloseDetails={handleCloseDetails}
               />
@@ -181,6 +199,7 @@ interface ProjectRowProps {
   hasError: boolean;
   expandedCell: string | null;
   jiraBaseUrl?: string;
+  driftInfo: ReturnType<typeof calculateVersionDrift>;
   onCellClick: (projectId: number, env: EnvironmentName) => void;
   onCloseDetails: () => void;
 }
@@ -195,6 +214,7 @@ const ProjectRow: FC<ProjectRowProps> = ({
   hasError,
   expandedCell,
   jiraBaseUrl,
+  driftInfo,
   onCellClick,
   onCloseDetails
 }) => {
@@ -208,7 +228,7 @@ const ProjectRow: FC<ProjectRowProps> = ({
 
   return (
     <>
-      <tr className="environment-matrix__row">
+      <tr className={`environment-matrix__row ${driftInfo.hasDrift ? 'environment-matrix__row--drift' : ''}`}>
         <td className="environment-matrix__cell environment-matrix__cell--project">
           <a
             href={project.web_url}
@@ -218,6 +238,11 @@ const ProjectRow: FC<ProjectRowProps> = ({
           >
             {project.name}
           </a>
+          {driftInfo.hasDrift && (
+            <span className="environment-matrix__drift-badge" title={driftInfo.message}>
+              →
+            </span>
+          )}
           {hasError && (
             <span className="environment-matrix__error-indicator" title={deploymentData?.error}>
               ⚠
