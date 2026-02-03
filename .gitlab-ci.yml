@@ -10,28 +10,35 @@ workflow:
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS == null
     - if: $CI_COMMIT_TAG
 
-# Cache node_modules between jobs
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - node_modules/
-
 stages:
+  - .pre
   - test
   - build
   - deploy
   - post-deploy
   - release
 
-# Install dependencies (shared script)
-.install_dependencies: &install_dependencies
-  - npm ci
+# Dedicated install job - runs once per pipeline
+install:
+  stage: .pre
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+  script:
+    - npm ci
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
 
 # Run unit tests
 test:
   stage: test
+  needs: [install]
   script:
-    - *install_dependencies
     - npm test
   rules:
     - if: $CI_COMMIT_BRANCH
@@ -40,8 +47,8 @@ test:
 # Run linting
 lint:
   stage: test
+  needs: [install]
   script:
-    - *install_dependencies
     - npm run lint
   rules:
     - if: $CI_COMMIT_BRANCH
@@ -50,8 +57,8 @@ lint:
 # Build the project
 build:
   stage: build
+  needs: [install]
   script:
-    - *install_dependencies
     - npm run build
     - echo "Build output:"
     - ls -la dist/
@@ -69,6 +76,9 @@ build:
 # Note: Branch slug is truncated to 25 chars to avoid Cloudflare's unpredictable truncation
 deploy:
   stage: deploy
+  needs:
+    - job: build
+      artifacts: true
   variables:
     CLOUDFLARE_ACCOUNT_ID: $CLOUDFLARE_ACCOUNT_ID
     CLOUDFLARE_API_KEY: $CLOUDFLARE_API_TOKEN
@@ -86,8 +96,6 @@ deploy:
       echo "Deploying with branch slug: $BRANCH_SLUG"
       echo "BRANCH_SLUG=$BRANCH_SLUG" >> deploy.env
       CLOUDFLARE_API_KEY=$CLOUDFLARE_API_TOKEN CLOUDFLARE_EMAIL=$CLOUDFLARE_EMAIL wrangler pages deploy dist --project-name=gitlab-cicd-dashboard --branch=$BRANCH_SLUG
-  dependencies:
-    - build
   artifacts:
     reports:
       dotenv: deploy.env
@@ -101,8 +109,12 @@ deploy:
 # Post-deployment verification (all branches)
 post-deploy-test:
   stage: post-deploy
+  needs:
+    - job: install
+      artifacts: true
+    - job: deploy
+      artifacts: true
   script:
-    - *install_dependencies
     # Use production URL for main, branch-specific URL for others
     # BRANCH_SLUG is passed from deploy job via dotenv artifact
     - |
@@ -116,16 +128,19 @@ post-deploy-test:
   rules:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_MERGE_REQUEST_IID
-  needs:
-    - job: deploy
-      artifacts: true
 
 # E2E tests with Playwright (all branches)
+# Note: Uses Playwright image but inherits node_modules from install job.
+# If native module issues occur, may need to run npm ci here instead.
 e2e-test:
   stage: post-deploy
   image: mcr.microsoft.com/playwright:v1.58.0-jammy
+  needs:
+    - job: install
+      artifacts: true
+    - job: deploy
+      artifacts: true
   script:
-    - npm ci
     # BRANCH_SLUG is passed from deploy job via dotenv artifact
     - |
       if [ "$CI_COMMIT_REF_NAME" = "main" ]; then
@@ -138,9 +153,6 @@ e2e-test:
   rules:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_MERGE_REQUEST_IID
-  needs:
-    - job: deploy
-      artifacts: true
   allow_failure: true  # Don't block MR if E2E tests fail initially
   artifacts:
     when: always
@@ -167,11 +179,13 @@ release:
     - git config --global user.name "$GIT_COMMITTER_NAME"
     - git remote set-url origin "https://oauth2:${RELEASE_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
   script:
-    - *install_dependencies
+    - npm ci
     - npx semantic-release
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
   needs:
+    - job: install
+      artifacts: true
     - job: test
     - job: lint
     - job: build
