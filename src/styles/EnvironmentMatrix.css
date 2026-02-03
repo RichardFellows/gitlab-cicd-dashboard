@@ -8,6 +8,36 @@
   overflow-x: auto;
 }
 
+/* Version drift summary */
+.environment-matrix__drift-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  color: #856404;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.dark-mode .environment-matrix__drift-summary {
+  background: rgba(255, 193, 7, 0.15);
+  border-color: rgba(255, 193, 7, 0.4);
+  color: #ffc107;
+}
+
+.environment-matrix__drift-icon {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.environment-matrix__drift-text {
+  flex: 1;
+}
+
 .environment-matrix--empty {
   text-align: center;
   padding: 2rem;
@@ -55,12 +85,30 @@
   background: #f8f9fa;
 }
 
+.environment-matrix__row--drift {
+  background: rgba(255, 193, 7, 0.05);
+  border-left: 3px solid #ffc107;
+}
+
+.environment-matrix__row--drift:hover {
+  background: rgba(255, 193, 7, 0.1);
+}
+
 .dark-mode .environment-matrix__row {
   border-color: #444;
 }
 
 .dark-mode .environment-matrix__row:hover {
   background: #2a2a2a;
+}
+
+.dark-mode .environment-matrix__row--drift {
+  background: rgba(255, 193, 7, 0.08);
+  border-left-color: rgba(255, 193, 7, 0.6);
+}
+
+.dark-mode .environment-matrix__row--drift:hover {
+  background: rgba(255, 193, 7, 0.12);
 }
 
 /* Cells */
@@ -92,6 +140,35 @@
 .environment-matrix__error-indicator {
   color: #dc3545;
   cursor: help;
+}
+
+.environment-matrix__drift-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 0.4rem;
+  background: #ffc107;
+  color: #333;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: help;
+  transition: background-color 0.15s ease;
+}
+
+.environment-matrix__drift-badge:hover {
+  background: #ffcd39;
+}
+
+.dark-mode .environment-matrix__drift-badge {
+  background: rgba(255, 193, 7, 0.9);
+  color: #1a1a1a;
+}
+
+.dark-mode .environment-matrix__drift-badge:hover {
+  background: #ffc107;
 }
 
 /* ============================================

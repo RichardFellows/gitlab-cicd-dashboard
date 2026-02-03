@@ -298,9 +298,35 @@
 }
 
 .mr-card__failed-jobs {
-  font-size: 0.7rem;
-  color: #dc3545;
-  margin-top: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.3rem;
+}
+
+.mr-card__failed-badge {
+  display: inline-block;
+  background: #dc3545;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: fit-content;
+  cursor: default;
+  transition: background 0.15s;
+}
+
+.mr-card__failed-badge:hover {
+  background: #c82333;
+}
+
+.mr-card__failed-badge--more {
+  background: #bd2130;
+  font-size: 13px;
 }
 
 .mr-card__commit {
@@ -597,8 +623,16 @@
   color: #f44336;
 }
 
-.dark-mode .mr-card__failed-jobs {
-  color: #f44336;
+.dark-mode .mr-card__failed-badge {
+  background: #f44336;
+}
+
+.dark-mode .mr-card__failed-badge:hover {
+  background: #e53935;
+}
+
+.dark-mode .mr-card__failed-badge--more {
+  background: #e53935;
 }
 
 .dark-mode .mr-card-details__job-failure {

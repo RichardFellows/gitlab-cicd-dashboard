@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react';
+import { FC, useMemo, useState, useEffect } from 'react';
 import SummarySection from './SummarySection';
 import TableView from './TableView';
 import CardView from './CardView';
@@ -48,6 +48,26 @@ const Dashboard: FC<DashboardProps> = ({
   keyboardSelectedIndex = -1,
   onChartCanvasReady,
 }) => {
+  // Compact mode state (default: true/compact, persisted in localStorage)
+  const [compactMode, setCompactMode] = useState<boolean>(() => {
+    const stored = localStorage.getItem('dashboard_card_compact_mode');
+    const defaultValue = stored === null ? true : stored === 'true';
+    // Persist default if not already in localStorage
+    if (stored === null) {
+      localStorage.setItem('dashboard_card_compact_mode', 'true');
+    }
+    return defaultValue;
+  });
+
+  // Persist compact mode changes
+  useEffect(() => {
+    localStorage.setItem('dashboard_card_compact_mode', compactMode.toString());
+  }, [compactMode]);
+
+  const toggleCompactMode = () => {
+    setCompactMode(prev => !prev);
+  };
+
   // Filter projects based on status and search query
   const filteredProjects = useMemo(() => {
     return metrics.projects.filter((project: Project) => {
@@ -96,6 +116,15 @@ const Dashboard: FC<DashboardProps> = ({
               </span>
             )}
           </h2>
+          {viewType === ViewType.CARD && (
+            <button
+              className={`compact-mode-toggle${compactMode ? ' active' : ''}`}
+              onClick={toggleCompactMode}
+              title={compactMode ? 'Switch to expanded view' : 'Switch to compact view'}
+            >
+              {compactMode ? '📋 Compact' : '📄 Expanded'}
+            </button>
+          )}
           {onToggleSelectionMode && (
             <button
               className={`comparison-select-toggle${selectionMode ? ' active' : ''}`}
@@ -128,6 +157,7 @@ const Dashboard: FC<DashboardProps> = ({
             selectedIds={selectedForComparison}
             onToggleSelection={onToggleComparisonSelection}
             keyboardSelectedIndex={keyboardSelectedIndex}
+            compactMode={compactMode}
           />
         )}
       </section>
