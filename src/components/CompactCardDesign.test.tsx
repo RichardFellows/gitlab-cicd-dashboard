@@ -36,12 +36,7 @@ const createMockProject = (
 ): Project => ({
   id,
   name,
-  namespace: { name: 'test-namespace', full_path: 'test-namespace' },
-  description: 'Test project',
   web_url: `https://gitlab.example.com/test/${name}`,
-  default_branch: 'main',
-  visibility: 'private',
-  last_activity_at: new Date().toISOString(),
   metrics: {
     mainBranchPipeline: {
       id: 1,
@@ -58,6 +53,7 @@ const createMockProject = (
           status: 'failed',
           failure_reason: 'script_failure',
           web_url: `https://gitlab.example.com/test/${name}/jobs/1`,
+          created_at: new Date().toISOString(),
         },
       ] : [],
     },
@@ -66,6 +62,8 @@ const createMockProject = (
     totalPipelines: 10,
     successfulPipelines: Math.floor(10 * (successRate / 100)),
     failedPipelines: Math.floor(10 * ((100 - successRate) / 100)),
+    canceledPipelines: 0,
+    runningPipelines: 0,
     codeCoverage: {
       coverage: 85,
       available: true,
@@ -103,12 +101,14 @@ const createMockProject = (
 });
 
 const createMockMetrics = (projects: Project[]): DashboardMetrics => ({
+  totalProjects: projects.length,
   projects,
   aggregateMetrics: {
-    totalProjects: projects.length,
     totalPipelines: projects.reduce((sum, p) => sum + p.metrics.totalPipelines, 0),
     successfulPipelines: projects.reduce((sum, p) => sum + p.metrics.successfulPipelines, 0),
     failedPipelines: projects.reduce((sum, p) => sum + p.metrics.failedPipelines, 0),
+    canceledPipelines: 0,
+    runningPipelines: 0,
     avgSuccessRate: projects.reduce((sum, p) => sum + p.metrics.successRate, 0) / projects.length,
     avgDuration: projects.reduce((sum, p) => sum + p.metrics.avgDuration, 0) / projects.length,
     testMetrics: {
@@ -133,7 +133,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -152,7 +152,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -172,7 +172,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -197,7 +197,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -236,7 +236,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -257,7 +257,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -279,7 +279,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -319,7 +319,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -339,7 +339,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -374,7 +374,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -410,7 +410,7 @@ describe('CompactCardDesign', () => {
     rerender(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -433,7 +433,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""
@@ -467,7 +467,7 @@ describe('CompactCardDesign', () => {
     render(
       <Dashboard
         metrics={metrics}
-        viewType={ViewType.CARDS}
+        viewType={ViewType.CARD}
         onProjectSelect={vi.fn()}
         statusFilter="all"
         searchQuery=""

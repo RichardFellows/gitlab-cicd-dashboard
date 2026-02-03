@@ -116,7 +116,7 @@ const Dashboard: FC<DashboardProps> = ({
               </span>
             )}
           </h2>
-          {viewType === ViewType.CARDS && (
+          {viewType === ViewType.CARD && (
             <button
               className={`compact-mode-toggle${compactMode ? ' active' : ''}`}
               onClick={toggleCompactMode}
