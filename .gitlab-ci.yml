@@ -160,26 +160,25 @@ e2e-test:
 
 # Semantic release - creates tags and releases on main branch
 # Requires Node 22+ (semantic-release v25 dropped Node 20 support)
-# Uses GIT_ASKPASS for git authentication (simpler than SSH)
+# Token needs: Maintainer role, api + write_repository scopes
 release:
   stage: release
   image: node:22
   variables:
+    GL_TOKEN: $RELEASE_TOKEN
     GITLAB_TOKEN: $RELEASE_TOKEN
     GIT_AUTHOR_NAME: "craw-cube"
     GIT_AUTHOR_EMAIL: "craw-cube@users.noreply.gitlab.com"
     GIT_COMMITTER_NAME: "craw-cube"
     GIT_COMMITTER_EMAIL: "craw-cube@users.noreply.gitlab.com"
+    GIT_CREDENTIALS: oauth2:$RELEASE_TOKEN
   before_script:
-    # Set up git credentials via GIT_ASKPASS
-    - echo '#!/bin/sh' > /tmp/askpass.sh
-    - echo 'echo $RELEASE_TOKEN' >> /tmp/askpass.sh
-    - chmod +x /tmp/askpass.sh
-    - export GIT_ASKPASS=/tmp/askpass.sh
-    - export GIT_USERNAME=oauth2
-    # Configure git
     - git config --global user.email "$GIT_COMMITTER_EMAIL"
     - git config --global user.name "$GIT_COMMITTER_NAME"
+    # Configure git to use token for HTTPS
+    - git config --global credential.helper store
+    - echo "https://oauth2:${RELEASE_TOKEN}@gitlab.com" > ~/.git-credentials
+    - git remote set-url origin "https://oauth2:${RELEASE_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
   script:
     - npm ci
     - npx semantic-release
