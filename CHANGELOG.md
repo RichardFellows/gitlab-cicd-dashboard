@@ -1,3 +1,10 @@
+# [1.3.0](https://gitlab.com/cube-craw/gitlab-cicd-dashboard/compare/v1.2.0...v1.3.0) (2026-02-12)
+
+
+### Features
+
+* multi-theme system with 7 themes ([8a36cd6](https://gitlab.com/cube-craw/gitlab-cicd-dashboard/commit/8a36cd61622e7941bcfc9216aa8dd11ebe814031))
+
 # [1.2.0](https://gitlab.com/cube-craw/gitlab-cicd-dashboard/compare/v1.1.0...v1.2.0) (2026-02-04)
 
 
