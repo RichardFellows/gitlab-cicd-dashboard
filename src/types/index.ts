@@ -253,6 +253,7 @@ export const STORAGE_KEYS = {
   TIMEFRAME: 'gitlab_cicd_dashboard_timeframe',
   VIEW_TYPE: 'gitlab_cicd_dashboard_view_type',
   DARK_MODE: 'gitlab_cicd_dashboard_dark_mode',
+  THEME: 'gitlab_cicd_dashboard_theme',
   SETTINGS_COLLAPSED: 'gitlab_cicd_dashboard_settings_collapsed',
   DASHBOARD_CONFIG: 'gitlab_cicd_dashboard_config',
   HEALTH_SORT_ORDER: 'gitlab_cicd_dashboard_health_sort',

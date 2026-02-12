@@ -13,7 +13,7 @@
   --shadow-color: rgba(0, 0, 0, 0.1);
 }
 
-/* Dark mode variables */
+/* Dark mode variables (legacy fallback — themes are applied via JS) */
 body.dark-mode,
 .container.dark-mode {
   --primary-color: #9d7fe8;

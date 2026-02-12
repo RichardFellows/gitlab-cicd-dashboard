@@ -26,6 +26,8 @@ import GitLabApiService from './services/GitLabApiService';
 import DashboardDataService from './services/DashboardDataService';
 import { loadConfig, saveConfig, clearConfig, isConfigReady, createDefaultConfig } from './utils/configMigration';
 import { getSavedConfigs, getActiveConfigId, setActiveConfigId, saveNewConfig, updateConfigEntry, renameConfigEntry, deleteConfigEntry, exportConfig, importConfig, hasUnsavedChanges as checkUnsavedChanges } from './utils/configStorage';
+import { themes, getThemeById, applyTheme, Theme } from './themes';
+import ThemeSelector from './components/ThemeSelector';
 import './styles/index.css';
 
 // Initialize services
@@ -47,7 +49,8 @@ const App = () => {
   const [viewType, setViewType] = useState<ViewType>(ViewType.TABLE);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [settingsCollapsed, setSettingsCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<Theme>(themes[0]);
+  const darkMode = currentTheme.isDark;
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [statusFilter, setStatusFilter] = useState<ProjectStatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -222,9 +225,10 @@ const App = () => {
     {
       key: 'd',
       handler: () => {
-        const newDarkMode = !darkMode;
-        setDarkMode(newDarkMode);
-        localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(newDarkMode));
+        const idx = themes.findIndex((t) => t.id === currentTheme.id);
+        const next = themes[(idx + 1) % themes.length];
+        setCurrentTheme(next);
+        localStorage.setItem(STORAGE_KEYS.THEME, next.id);
       },
     },
     { key: '?', handler: () => { setShowShortcutsOverlay(true); } },
@@ -286,10 +290,10 @@ const App = () => {
     shortcuts,
   });
 
-  // Apply dark mode class to body
+  // Apply theme
   useEffect(() => {
-    document.body.classList.toggle('dark-mode', darkMode);
-  }, [darkMode]);
+    applyTheme(currentTheme);
+  }, [currentTheme]);
 
   // Load saved settings on mount
   useEffect(() => {
@@ -328,6 +332,7 @@ const App = () => {
     setActiveConfigIdState(getActiveConfigId());
 
     const savedViewType = localStorage.getItem(STORAGE_KEYS.VIEW_TYPE) as ViewType || ViewType.TABLE;
+    const savedThemeId = localStorage.getItem(STORAGE_KEYS.THEME);
     const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
     const savedSettingsCollapsed = localStorage.getItem(STORAGE_KEYS.SETTINGS_COLLAPSED) === 'true';
 
@@ -341,7 +346,12 @@ const App = () => {
     }
 
     if (savedViewType) setViewType(savedViewType);
-    setDarkMode(savedDarkMode);
+    // Migrate: if they had dark mode saved but no theme, use 'dark'
+    if (savedThemeId) {
+      setCurrentTheme(getThemeById(savedThemeId));
+    } else if (savedDarkMode) {
+      setCurrentTheme(getThemeById('dark'));
+    }
     setSettingsCollapsed(savedSettingsCollapsed);
 
     // Load notification settings
@@ -904,11 +914,10 @@ const App = () => {
     window.location.hash = `project/${projectId}`;
   };
 
-  // Handle dark mode toggle
-  const handleDarkModeToggle = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(newDarkMode));
+  // Handle theme change
+  const handleThemeChange = (theme: Theme) => {
+    setCurrentTheme(theme);
+    localStorage.setItem(STORAGE_KEYS.THEME, theme.id);
   };
 
   // Handle chart canvas refs for PDF export
@@ -1001,6 +1010,7 @@ const App = () => {
     clearConfig();
     localStorage.removeItem(STORAGE_KEYS.VIEW_TYPE);
     localStorage.removeItem(STORAGE_KEYS.DARK_MODE);
+    localStorage.removeItem(STORAGE_KEYS.THEME);
     localStorage.removeItem(STORAGE_KEYS.AUTO_REFRESH_INTERVAL);
 
     setConfig(createDefaultConfig());
@@ -1116,14 +1126,7 @@ const App = () => {
           >
             <kbd>?</kbd>
           </button>
-          <button
-            className="icon-btn theme-btn"
-            onClick={handleDarkModeToggle}
-            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-keyshortcuts="d"
-          >
-            {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
-          </button>
+          <ThemeSelector currentTheme={currentTheme} onThemeChange={handleThemeChange} />
         </div>
       </header>
 
