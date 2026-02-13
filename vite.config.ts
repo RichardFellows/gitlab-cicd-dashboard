@@ -4,7 +4,9 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // Ensures assets are loaded correctly when deployed to GitHub Pages
+  // Use CI_PAGES_URL for GitLab Pages deployments (includes path prefix for branch previews)
+  // Falls back to './' for local dev and other environments
+  base: process.env.CI_PAGES_URL || './',
   server: {
     port: 5050, // Match the original port
     proxy: {

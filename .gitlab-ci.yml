@@ -1,5 +1,5 @@
 # GitLab CI/CD Pipeline for gitlab-cicd-dashboard
-# Runs tests, builds the project, and deploys to Cloudflare Pages
+# Runs tests, builds the project, and deploys to GitLab Pages
 
 image: node:20
 
@@ -78,41 +78,26 @@ build:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_MERGE_REQUEST_IID
 
-# Deploy to Cloudflare Pages
-# - main branch -> production (gitlab-cicd-dashboard.pages.dev)
-# - other branches -> preview ({branch-slug}.gitlab-cicd-dashboard.pages.dev)
-# Note: Branch slug is truncated to 25 chars to avoid Cloudflare's unpredictable truncation
-deploy:
+# Deploy to GitLab Pages
+# - main branch -> production (cube-craw.gitlab.io/gitlab-cicd-dashboard)
+# - other branches -> preview (cube-craw.gitlab.io/gitlab-cicd-dashboard/$CI_COMMIT_REF_SLUG)
+# Uses GitLab's multiple deployments feature (16.7+) for branch previews
+pages:
   stage: deploy
   needs:
     - job: build
       artifacts: true
-  variables:
-    CLOUDFLARE_ACCOUNT_ID: $CLOUDFLARE_ACCOUNT_ID
-    CLOUDFLARE_API_KEY: $CLOUDFLARE_API_TOKEN
   script:
-    - npm install -g wrangler
-    # Create a short branch slug (max 25 chars) to avoid Cloudflare truncation
-    # Also strip trailing hyphens since Cloudflare normalizes them away
-    # Use CI_COMMIT_REF_NAME (works for both branch and MR pipelines)
-    - |
-      if [ "$CI_COMMIT_REF_NAME" = "main" ]; then
-        BRANCH_SLUG="main"
-      else
-        BRANCH_SLUG=$(echo "${CI_COMMIT_REF_SLUG}" | cut -c1-25 | sed 's/-*$//')
-      fi
-      echo "Deploying with branch slug: $BRANCH_SLUG"
-      echo "BRANCH_SLUG=$BRANCH_SLUG" >> deploy.env
-      CLOUDFLARE_API_KEY=$CLOUDFLARE_API_TOKEN CLOUDFLARE_EMAIL=$CLOUDFLARE_EMAIL wrangler pages deploy dist --project-name=gitlab-cicd-dashboard --branch=$BRANCH_SLUG
+    - mv dist/ public/
   artifacts:
-    reports:
-      dotenv: deploy.env
+    paths:
+      - public/
   rules:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_MERGE_REQUEST_IID
   environment:
     name: $CI_COMMIT_REF_SLUG
-    url: https://${CI_COMMIT_REF_SLUG}.gitlab-cicd-dashboard.pages.dev
+    url: $CI_PAGES_URL
 
 # Post-deployment verification (all branches)
 post-deploy-test:
@@ -120,17 +105,11 @@ post-deploy-test:
   needs:
     - job: install
       artifacts: true
-    - job: deploy
-      artifacts: true
+    - job: pages
+      artifacts: false
   script:
-    # Use production URL for main, branch-specific URL for others
-    # BRANCH_SLUG is passed from deploy job via dotenv artifact
     - |
-      if [ "$CI_COMMIT_REF_NAME" = "main" ]; then
-        DEPLOY_URL="https://gitlab-cicd-dashboard.pages.dev"
-      else
-        DEPLOY_URL="https://${BRANCH_SLUG}.gitlab-cicd-dashboard.pages.dev"
-      fi
+      DEPLOY_URL="${CI_PAGES_URL}"
       echo "Testing deployment at: $DEPLOY_URL"
       npm run test:deployment "$DEPLOY_URL"
   rules:
@@ -146,7 +125,7 @@ e2e-test:
     - job: install
       artifacts: true
   script:
-    - export BASE_URL=https://gitlab-cicd-dashboard.pages.dev
+    - export BASE_URL=https://cube-craw.gitlab.io/gitlab-cicd-dashboard
     - echo "Running full E2E suite"
     - npx playwright test --reporter=list
   rules:
