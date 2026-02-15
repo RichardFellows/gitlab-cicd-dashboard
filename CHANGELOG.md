@@ -1,3 +1,10 @@
+## [1.3.1](https://gitlab.com/cube-craw/gitlab-cicd-dashboard/compare/v1.3.0...v1.3.1) (2026-02-15)
+
+
+### Bug Fixes
+
+* **deps:** add @vitest/coverage-v8 as dev dependency ([68c6dd5](https://gitlab.com/cube-craw/gitlab-cicd-dashboard/commit/68c6dd5055d32c7a5fbbfecf9add1c7d33dc4824))
+
 # [1.3.0](https://gitlab.com/cube-craw/gitlab-cicd-dashboard/compare/v1.2.0...v1.3.0) (2026-02-12)
 
 
