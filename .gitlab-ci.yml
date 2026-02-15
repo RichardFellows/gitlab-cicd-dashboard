@@ -66,6 +66,16 @@ lint:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_MERGE_REQUEST_IID
 
+# TypeScript type checking (catches type errors without emitting)
+typecheck:
+  stage: test
+  needs: [install]
+  script:
+    - npx tsc --noEmit
+  rules:
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_MERGE_REQUEST_IID
+
 # SonarCloud analysis
 # Requires SONAR_TOKEN CI/CD variable (group or project level)
 # Setup: https://sonarcloud.io → create org "cube-craw", import project, generate token
@@ -131,6 +141,29 @@ pages:
   environment:
     name: $CI_COMMIT_REF_SLUG
     url: $CI_PAGES_URL
+
+# Deploy to Cloudflare Pages (main branch only, optional)
+# Requires: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_PROJECT_NAME CI/CD vars
+deploy-cloudflare:
+  stage: deploy
+  image: node:20
+  needs:
+    - job: build
+      artifacts: true
+    - job: test
+    - job: lint
+    - job: typecheck
+  script:
+    - npx wrangler pages deploy dist/
+      --project-name="${CLOUDFLARE_PROJECT_NAME}"
+      --branch="${CI_COMMIT_BRANCH}"
+  environment:
+    name: cloudflare-$CI_COMMIT_REF_SLUG
+    url: https://${CLOUDFLARE_PROJECT_NAME}.pages.dev
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CLOUDFLARE_API_TOKEN
+  variables:
+    CLOUDFLARE_ACCOUNT_ID: $CLOUDFLARE_ACCOUNT_ID
 
 # Post-deployment verification (all branches)
 post-deploy-test:
@@ -201,5 +234,6 @@ release:
       artifacts: true
     - job: test
     - job: lint
+    - job: typecheck
     - job: build
     - job: post-deploy-test
