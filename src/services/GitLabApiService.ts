@@ -1,5 +1,30 @@
-import { MergeRequest, Pipeline, Commit, Job, TestMetrics, GitLabApiProject, PartialGitLabApiProject, STORAGE_KEYS, MRNote } from '../types';
+import { MergeRequest, Pipeline, Commit, Job, TestMetrics, GitLabApiProject, PartialGitLabApiProject, STORAGE_KEYS, MRNote, EnvironmentName } from '../types';
 import { logger } from '../utils/logger';
+import { apiQueue, RequestQueue } from '../utils/requestQueue';
+import { apiCache, ResponseCache } from '../utils/responseCache';
+
+/** GitLab environment object (from Environments API). */
+export interface GitLabEnvironment {
+  id: number;
+  name: string;
+  slug: string;
+  external_url?: string;
+  state: 'available' | 'stopped';
+  last_deployment?: {
+    id: number;
+    iid: number;
+    ref: string;
+    sha: string;
+    created_at: string;
+    status: string;
+    deployable?: {
+      id: number;
+      name: string;
+      status: string;
+      pipeline: { id: number; status: string; web_url: string };
+    };
+  };
+}
 
 class GitLabApiService {
   baseUrl: string;
@@ -7,6 +32,8 @@ class GitLabApiService {
   defaultBranch: string;
   useProxy: boolean;
   proxyUrl: string;
+  private requestQueue: RequestQueue;
+  private responseCache: ResponseCache;
 
   constructor(baseUrl = "https://gitlab.com/api/v4", privateToken = "") {
     this.baseUrl = baseUrl;
@@ -14,6 +41,8 @@ class GitLabApiService {
     this.defaultBranch = 'main'; // Default branch name to use if not specified
     this.useProxy = this.shouldUseProxy();
     this.proxyUrl = '/proxy'; // Default proxy path configured in Vite
+    this.requestQueue = apiQueue;
+    this.responseCache = apiCache;
     
     // If token is empty, try to load from localStorage
     if (!this.privateToken && typeof window !== 'undefined' && window.localStorage) {
@@ -1072,6 +1101,105 @@ class GitLabApiService {
       return null;
     }
   }
+  /**
+   * Perform a cached, queued fetch. All API calls should use this for
+   * rate limiting and response caching.
+   * @param url - The URL to fetch
+   * @param options - Fetch options
+   * @param cacheKey - Cache key (defaults to url)
+   * @param ttlMs - Cache TTL in ms (default: 60000)
+   */
+  private async cachedFetch<T>(
+    url: string,
+    options: RequestInit,
+    cacheKey?: string,
+    ttlMs?: number
+  ): Promise<T> {
+    const key = cacheKey ?? url;
+    return this.responseCache.getOrFetch<T>(
+      key,
+      () => this.requestQueue.add(async () => {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.statusText} (${response.status})`);
+        }
+        return response.json();
+      }),
+      ttlMs
+    );
+  }
+
+  /**
+   * Clear the response cache (e.g., on manual refresh).
+   */
+  clearCache(): void {
+    this.responseCache.clear();
+  }
+
+  /**
+   * Invalidate cache entries for a specific project.
+   */
+  invalidateProject(projectId: string | number): void {
+    this.responseCache.invalidateByPrefix(`/projects/${projectId}`);
+  }
+
+  /**
+   * Get environments for a project.
+   * @param projectId - The GitLab project ID
+   * @returns List of environments
+   */
+  async getProjectEnvironments(projectId: string | number): Promise<GitLabEnvironment[]> {
+    try {
+      const path = `/projects/${projectId}/environments`;
+      const queryParams = '?per_page=100';
+      const url = this.getApiUrl(path, queryParams);
+
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 403 || response.status === 404) {
+          logger.debug(`Environments not available for project ${projectId} (${response.status})`);
+          return [];
+        }
+        throw new Error(`Error fetching environments: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      logger.error(`Failed to fetch environments for project ${projectId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get a specific environment by ID.
+   * @param projectId - The GitLab project ID
+   * @param environmentId - The environment ID
+   * @returns Environment details or null
+   */
+  async getEnvironment(projectId: string | number, environmentId: number): Promise<GitLabEnvironment | null> {
+    try {
+      const path = `/projects/${projectId}/environments/${environmentId}`;
+      const url = this.getApiUrl(path, '');
+
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error(`Error fetching environment: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      logger.error(`Failed to fetch environment ${environmentId}:`, error);
+      return null;
+    }
+  }
+
   /**
    * Get the trace (log) of a specific job
    * Endpoint: GET /projects/:id/jobs/:job_id/trace
