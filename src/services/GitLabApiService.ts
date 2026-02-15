@@ -1,4 +1,4 @@
-import { MergeRequest, Pipeline, Commit, Job, TestMetrics, GitLabApiProject, PartialGitLabApiProject, STORAGE_KEYS, MRNote, EnvironmentName } from '../types';
+import { MergeRequest, Pipeline, Commit, Job, TestMetrics, GitLabApiProject, PartialGitLabApiProject, STORAGE_KEYS, MRNote } from '../types';
 import { logger } from '../utils/logger';
 import { apiQueue, RequestQueue } from '../utils/requestQueue';
 import { apiCache, ResponseCache } from '../utils/responseCache';
@@ -1109,7 +1109,7 @@ class GitLabApiService {
    * @param cacheKey - Cache key (defaults to url)
    * @param ttlMs - Cache TTL in ms (default: 60000)
    */
-  private async cachedFetch<T>(
+  async cachedFetch<T>(
     url: string,
     options: RequestInit,
     cacheKey?: string,
