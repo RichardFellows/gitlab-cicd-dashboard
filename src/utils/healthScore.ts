@@ -14,6 +14,15 @@ export const HEALTH_WEIGHTS = {
   RECENT_ACTIVITY: 0.15,
 } as const;
 
+/** User-configurable weight overrides */
+export interface HealthWeightConfig {
+  failureRate?: number;
+  coverage?: number;
+  durationStability?: number;
+  mrBacklog?: number;
+  recentActivity?: number;
+}
+
 /** Health band thresholds */
 export const HEALTH_BANDS = {
   HEALTHY: 80,   // score >= 80
@@ -117,9 +126,67 @@ export function getHealthBand(score: number): HealthBand {
 }
 
 /**
- * Calculate the composite health score for a project's metrics.
+ * Resolve effective weights from optional user overrides.
+ * Falls back to defaults for any unset weight.
  */
-export function calculateHealthScore(metrics: ProjectMetrics): HealthScore {
+export function resolveWeights(overrides?: HealthWeightConfig): Record<string, number> {
+  return {
+    failureRate: overrides?.failureRate ?? HEALTH_WEIGHTS.FAILURE_RATE,
+    coverage: overrides?.coverage ?? HEALTH_WEIGHTS.COVERAGE,
+    durationStability: overrides?.durationStability ?? HEALTH_WEIGHTS.DURATION_STABILITY,
+    mrBacklog: overrides?.mrBacklog ?? HEALTH_WEIGHTS.MR_BACKLOG,
+    recentActivity: overrides?.recentActivity ?? HEALTH_WEIGHTS.RECENT_ACTIVITY,
+  };
+}
+
+/**
+ * Redistribute weights when a metric is unavailable.
+ * Unavailable signals get weight 0; their share is distributed
+ * proportionally among the remaining signals.
+ */
+function redistributeWeights(
+  weights: Record<string, number>,
+  available: Record<string, boolean>
+): Record<string, number> {
+  let unavailableTotal = 0;
+  let availableTotal = 0;
+
+  for (const key of Object.keys(weights)) {
+    if (available[key] === false) {
+      unavailableTotal += weights[key];
+    } else {
+      availableTotal += weights[key];
+    }
+  }
+
+  // If nothing is unavailable, or everything is unavailable, return as-is
+  if (unavailableTotal === 0 || availableTotal === 0) return { ...weights };
+
+  const result: Record<string, number> = {};
+  for (const key of Object.keys(weights)) {
+    if (available[key] === false) {
+      result[key] = 0;
+    } else {
+      // Scale up proportionally to absorb the unavailable weight
+      result[key] = weights[key] * (1 + unavailableTotal / availableTotal);
+    }
+  }
+  return result;
+}
+
+/**
+ * Calculate the composite health score for a project's metrics.
+ *
+ * @param metrics - Project metrics data
+ * @param weightOverrides - Optional custom weights (defaults to HEALTH_WEIGHTS)
+ * @param gracefulDegradation - If true (default), redistribute weight from
+ *   unavailable metrics to available ones instead of scoring missing as 0.
+ */
+export function calculateHealthScore(
+  metrics: ProjectMetrics,
+  weightOverrides?: HealthWeightConfig,
+  gracefulDegradation = true
+): HealthScore {
   // Compute failure rate from raw data if not pre-computed
   const failureRate = metrics.mainBranchFailureRate ??
     (metrics.totalPipelines > 0
@@ -131,8 +198,23 @@ export function calculateHealthScore(metrics: ProjectMetrics): HealthScore {
   const totalOpen = metrics.mergeRequestCounts?.totalOpen ?? 0;
   const totalPipelines = metrics.totalPipelines ?? 0;
 
+  const baseWeights = resolveWeights(weightOverrides);
+
+  // Determine which metrics are available
+  const availability: Record<string, boolean> = {
+    failureRate: true, // Always available (defaults to 0)
+    coverage: coverage !== null,
+    durationStability: true, // Always available (defaults to 0)
+    mrBacklog: true, // Always available (defaults to 0)
+    recentActivity: true, // Always available (defaults to 0)
+  };
+
+  const weights = gracefulDegradation
+    ? redistributeWeights(baseWeights, availability)
+    : baseWeights;
+
   const failureRateScore = scoreFailureRate(failureRate);
-  const coverageScore = scoreCoverage(coverage);
+  const coverageScore = coverage !== null ? scoreCoverage(coverage) : 0;
   const durationScore = scoreDurationStability(spikePercent);
   const mrScore = scoreMRBacklog(totalOpen);
   const activityScore = scoreRecentActivity(totalPipelines);
@@ -140,48 +222,48 @@ export function calculateHealthScore(metrics: ProjectMetrics): HealthScore {
   const signals: HealthSignalResult[] = [
     {
       name: 'Failure Rate',
-      weight: HEALTH_WEIGHTS.FAILURE_RATE,
+      weight: weights.failureRate,
       rawValue: failureRate,
       score: failureRateScore,
-      weighted: failureRateScore * HEALTH_WEIGHTS.FAILURE_RATE,
+      weighted: failureRateScore * weights.failureRate,
       unit: '%',
       description: `Main branch failure rate: ${failureRate.toFixed(1)}%`,
     },
     {
       name: 'Code Coverage',
-      weight: HEALTH_WEIGHTS.COVERAGE,
+      weight: weights.coverage,
       rawValue: coverage,
       score: coverageScore,
-      weighted: coverageScore * HEALTH_WEIGHTS.COVERAGE,
+      weighted: coverageScore * weights.coverage,
       unit: '%',
       description: coverage !== null
         ? `Code coverage: ${coverage.toFixed(1)}%`
-        : 'Code coverage: N/A',
+        : 'Code coverage: N/A (weight redistributed)',
     },
     {
       name: 'Duration Stability',
-      weight: HEALTH_WEIGHTS.DURATION_STABILITY,
+      weight: weights.durationStability,
       rawValue: spikePercent,
       score: durationScore,
-      weighted: durationScore * HEALTH_WEIGHTS.DURATION_STABILITY,
+      weighted: durationScore * weights.durationStability,
       unit: '%',
       description: `Duration spike: ${spikePercent.toFixed(1)}%`,
     },
     {
       name: 'MR Backlog',
-      weight: HEALTH_WEIGHTS.MR_BACKLOG,
+      weight: weights.mrBacklog,
       rawValue: totalOpen,
       score: mrScore,
-      weighted: mrScore * HEALTH_WEIGHTS.MR_BACKLOG,
+      weighted: mrScore * weights.mrBacklog,
       unit: 'MRs',
       description: `Open merge requests: ${totalOpen}`,
     },
     {
       name: 'Recent Activity',
-      weight: HEALTH_WEIGHTS.RECENT_ACTIVITY,
+      weight: weights.recentActivity,
       rawValue: totalPipelines,
       score: activityScore,
-      weighted: activityScore * HEALTH_WEIGHTS.RECENT_ACTIVITY,
+      weighted: activityScore * weights.recentActivity,
       unit: 'pipelines',
       description: `Total pipelines: ${totalPipelines}`,
     },

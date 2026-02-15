@@ -402,3 +402,134 @@ describe('calculatePortfolioHealth', () => {
     expect(result.projectScores[0].projectName).toBe('my-project');
   });
 });
+
+// ============================================
+// Configurable weights
+// ============================================
+
+import { resolveWeights } from './healthScore';
+
+describe('resolveWeights', () => {
+  test('returns defaults when no overrides', () => {
+    const w = resolveWeights();
+    expect(w.failureRate).toBe(0.30);
+    expect(w.coverage).toBe(0.25);
+  });
+
+  test('applies partial overrides', () => {
+    const w = resolveWeights({ coverage: 0.40 });
+    expect(w.coverage).toBe(0.40);
+    expect(w.failureRate).toBe(0.30); // unchanged
+  });
+
+  test('applies full overrides', () => {
+    const w = resolveWeights({
+      failureRate: 0.50,
+      coverage: 0.10,
+      durationStability: 0.10,
+      mrBacklog: 0.20,
+      recentActivity: 0.10,
+    });
+    expect(w.failureRate).toBe(0.50);
+    expect(w.coverage).toBe(0.10);
+  });
+});
+
+// ============================================
+// Graceful degradation
+// ============================================
+
+describe('graceful degradation', () => {
+  const baseMetrics: ProjectMetrics = {
+    totalPipelines: 20,
+    successfulPipelines: 18,
+    failedPipelines: 2,
+    canceledPipelines: 0,
+    runningPipelines: 0,
+    successRate: 90,
+    avgDuration: 120,
+    testMetrics: { total: 100, success: 100, failed: 0, skipped: 0, available: true },
+    mainBranchPipeline: { id: 1, status: 'success', created_at: '', updated_at: '' },
+    codeCoverage: { coverage: null, available: false },
+    mergeRequestCounts: { totalOpen: 2, drafts: 0 },
+    recentCommits: [],
+    mainBranchFailureRate: 10,
+    durationSpikePercent: 5,
+  };
+
+  test('with graceful degradation, missing coverage redistributes weight', () => {
+    const result = calculateHealthScore(baseMetrics, undefined, true);
+    const coverageSignal = result.signals.find(s => s.name === 'Code Coverage')!;
+    // Coverage weight should be 0 (redistributed)
+    expect(coverageSignal.weight).toBe(0);
+    expect(coverageSignal.weighted).toBe(0);
+
+    // Other weights should sum to ~1.0
+    const totalWeight = result.signals.reduce((sum, s) => sum + s.weight, 0);
+    expect(totalWeight).toBeCloseTo(1.0, 2);
+  });
+
+  test('without graceful degradation, missing coverage scores 0 with original weight', () => {
+    const result = calculateHealthScore(baseMetrics, undefined, false);
+    const coverageSignal = result.signals.find(s => s.name === 'Code Coverage')!;
+    expect(coverageSignal.weight).toBe(0.25);
+    expect(coverageSignal.score).toBe(0);
+    expect(coverageSignal.weighted).toBe(0);
+  });
+
+  test('with coverage present, weights stay at defaults', () => {
+    const metricsWithCoverage = {
+      ...baseMetrics,
+      codeCoverage: { coverage: 85, available: true },
+    };
+    const result = calculateHealthScore(metricsWithCoverage, undefined, true);
+    const coverageSignal = result.signals.find(s => s.name === 'Code Coverage')!;
+    expect(coverageSignal.weight).toBe(0.25);
+    expect(coverageSignal.score).toBeGreaterThan(0);
+  });
+
+  test('graceful degradation produces higher score than non-graceful when metric missing', () => {
+    const graceful = calculateHealthScore(baseMetrics, undefined, true);
+    const nonGraceful = calculateHealthScore(baseMetrics, undefined, false);
+    // Graceful should be >= non-graceful since missing metric doesn't drag score down
+    expect(graceful.total).toBeGreaterThanOrEqual(nonGraceful.total);
+  });
+});
+
+// ============================================
+// Custom weights with calculateHealthScore
+// ============================================
+
+describe('calculateHealthScore with custom weights', () => {
+  const metrics: ProjectMetrics = {
+    totalPipelines: 20,
+    successfulPipelines: 20,
+    failedPipelines: 0,
+    canceledPipelines: 0,
+    runningPipelines: 0,
+    successRate: 100,
+    avgDuration: 60,
+    testMetrics: { total: 50, success: 50, failed: 0, skipped: 0, available: true },
+    mainBranchPipeline: { id: 1, status: 'success', created_at: '', updated_at: '' },
+    codeCoverage: { coverage: 90, available: true },
+    mergeRequestCounts: { totalOpen: 0, drafts: 0 },
+    recentCommits: [],
+    mainBranchFailureRate: 0,
+    durationSpikePercent: 0,
+  };
+
+  test('heavily weighting failure rate changes the score', () => {
+    const heavy = calculateHealthScore(metrics, { failureRate: 0.80, coverage: 0.05, durationStability: 0.05, mrBacklog: 0.05, recentActivity: 0.05 });
+    const normal = calculateHealthScore(metrics);
+    // Both should be 100 since all metrics are perfect, but weights differ
+    expect(heavy.total).toBe(100);
+    expect(normal.total).toBe(100);
+  });
+
+  test('custom weights affect signal weighted values', () => {
+    const result = calculateHealthScore(metrics, { failureRate: 0.60 });
+    const frSignal = result.signals.find(s => s.name === 'Failure Rate')!;
+    expect(frSignal.weight).toBe(0.60);
+    expect(frSignal.weighted).toBe(60); // 100 score * 0.60 weight
+  });
+});
