@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// GitLab API URL — configurable via env for self-hosted instances
+const gitlabApiUrl = process.env.VITE_GITLAB_URL || 'https://gitlab.com/api/v4';
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -11,7 +14,7 @@ export default defineConfig({
     port: 5050, // Match the original port
     proxy: {
       '/proxy': {
-        target: 'https://gitlab.com/api/v4',
+        target: gitlabApiUrl,
         changeOrigin: true,
         secure: true,
         cookieDomainRewrite: 'localhost',

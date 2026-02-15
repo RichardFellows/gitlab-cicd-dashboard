@@ -1,19 +1,25 @@
 import { DashboardConfig, STORAGE_KEYS } from '../types';
 import { logger } from './logger';
+import { getEnvConfig } from './envConfig';
 
 const CURRENT_CONFIG_VERSION = 1;
 
 /**
- * Create a default empty config
+ * Create a default config seeded from environment variables.
+ * Falls back to sensible hardcoded defaults when env vars are absent.
  */
 export function createDefaultConfig(): DashboardConfig {
+  const env = getEnvConfig();
+  const now = new Date().toISOString();
+
   return {
     version: CURRENT_CONFIG_VERSION,
-    gitlabUrl: 'https://gitlab.com/api/v4',
-    token: '',
-    timeframe: 30,
-    groups: [],
-    projects: []
+    gitlabUrl: env.gitlabUrl,
+    token: env.gitlabToken,
+    timeframe: env.defaultTimeframe,
+    groups: env.defaultGroups.map(id => ({ id, addedAt: now })),
+    projects: env.defaultProjects.map(id => ({ id, addedAt: now })),
+    ...(env.jiraBaseUrl ? { jiraBaseUrl: env.jiraBaseUrl } : {}),
   };
 }
 
