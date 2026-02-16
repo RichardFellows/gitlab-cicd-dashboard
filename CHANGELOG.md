@@ -1,3 +1,10 @@
+## [1.3.2](https://gitlab.com/cube-craw/gitlab-cicd-dashboard/compare/v1.3.1...v1.3.2) (2026-02-16)
+
+
+### Bug Fixes
+
+* add lcov reporter for SonarCloud coverage analysis ([c042c05](https://gitlab.com/cube-craw/gitlab-cicd-dashboard/commit/c042c059b21ea517cfbbd5487eee6bed6057ec3f))
+
 ## [1.3.1](https://gitlab.com/cube-craw/gitlab-cicd-dashboard/compare/v1.3.0...v1.3.1) (2026-02-15)
 
 
